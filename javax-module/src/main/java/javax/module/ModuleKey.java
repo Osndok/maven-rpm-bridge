@@ -15,15 +15,41 @@ class ModuleKey implements Serializable
 	String majorVersion;
 
 	private final
-	String minimumMinorVersion;
+	String minorVersion;
 
 	public
-	ModuleKey(String moduleName, String majorVersion, String minimumMinorVersion)
+	ModuleKey(String moduleName, String majorVersion, String minorVersion)
 	{
-		if (moduleName==null) throw new NullPointerException();
-		this.moduleName = moduleName;
-		this.majorVersion = majorVersion;
-		this.minimumMinorVersion = minimumMinorVersion;
+		if (moduleName == null) throw new NullPointerException();
+		this.moduleName = moduleName.toLowerCase();
+
+		if (majorVersion==null)
+		{
+			this.majorVersion = null;
+		}
+		else
+		{
+			final
+			String lower = majorVersion.toLowerCase();
+
+			if (lower.contains("snapshot"))
+			{
+				this.majorVersion = null;
+			}
+			else
+			{
+				this.majorVersion = lower;
+			}
+		}
+
+		if (minorVersion==null)
+		{
+			this.minorVersion = null;
+		}
+		else
+		{
+			this.minorVersion = minorVersion.toLowerCase();
+		}
 	}
 
 	public
@@ -45,9 +71,9 @@ class ModuleKey implements Serializable
 	 * @return
 	 */
 	public
-	String getMinimumMinorVersion()
+	String getMinorVersion()
 	{
-		return minimumMinorVersion;
+		return minorVersion;
 	}
 
 	private transient
@@ -66,11 +92,17 @@ class ModuleKey implements Serializable
 		return stringValue;
 	}
 
+	private static
+	boolean isDigit(char a)
+	{
+		return (a>='0' && a<='9');
+	}
+
 	private transient
 	String vMajor;
 
 	/**
-	 * @return the major version number (prefixed with a v) or 'snapshot', as appropriate.
+	 * @return the major version number (possibly prefixed with a v) or 'snapshot', as appropriate.
 	 */
 	public
 	String vMajor()
@@ -88,7 +120,17 @@ class ModuleKey implements Serializable
 			}
 			else
 			{
-				this.vMajor=vMajor="v"+majorVersion;
+				final
+				char c=majorVersion.charAt(0);
+
+				if (isDigit(c))
+				{
+					this.vMajor = vMajor = "v" + majorVersion;
+				}
+				else
+				{
+					this.vMajor = vMajor = majorVersion;
+				}
 			}
 		}
 

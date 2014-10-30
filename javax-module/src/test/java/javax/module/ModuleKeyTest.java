@@ -27,6 +27,17 @@ class ModuleKeyTest extends Assert
 		assertNotEquals(m(a, b), m(a, c));
 	}
 
+	@Test
+	public
+	void testToStringKeyCompat()
+	{
+		assertEquals(m("a").toString(), "a-snapshot");
+		assertEquals(m("a", "b").toString(), "a-b");
+		assertEquals(m("a", "1").toString(), "a-v1");
+		assertEquals(m("a", "b", "c").toString(), "a-b");
+		assertEquals(m("a", "1", "c").toString(), "a-v1");
+	}
+
 	private
 	ModuleKey m(String s)
 	{
