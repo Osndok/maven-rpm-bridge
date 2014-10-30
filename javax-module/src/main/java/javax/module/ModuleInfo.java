@@ -38,7 +38,7 @@ class ModuleInfo
 	}
 
 	static
-	ModuleKey readLine(InputStream inputStream) throws IOException
+	ModuleKey readLine(InputStream inputStream, ModuleKey requestor) throws IOException
 	{
 		int c=inputStream.read();
 
@@ -63,7 +63,14 @@ class ModuleInfo
 
 			if (isVerticalOrEOF(c))
 			{
-				return new ModuleKey(sb.toString(), null, null);
+				if (requestor==null)
+				{
+					return new ModuleKey(sb.toString(), null, null);
+				}
+				else
+				{
+					return new Dependency(sb.toString(), null, null, requestor);
+				}
 			}
 		}
 		while(!isHorizontalSpace(c));
@@ -77,7 +84,14 @@ class ModuleInfo
 
 			if (isVerticalOrEOF(c))
 			{
-				return new ModuleKey(moduleName, null, null);
+				if (requestor==null)
+				{
+					return new ModuleKey(moduleName, null, null);
+				}
+				else
+				{
+					return new Dependency(moduleName, null, null, requestor);
+				}
 			}
 		}
 		while(isHorizontalSpace(c));
@@ -92,7 +106,14 @@ class ModuleInfo
 
 			if (isVerticalOrEOF(c))
 			{
-				return new ModuleKey(moduleName, sb.toString(), null);
+				if (requestor==null)
+				{
+					return new ModuleKey(moduleName, sb.toString(), null);
+				}
+				else
+				{
+					return new Dependency(moduleName, sb.toString(), null, requestor);
+				}
 			}
 		}
 		while(!isHorizontalSpace(c));
@@ -106,7 +127,14 @@ class ModuleInfo
 
 			if (isVerticalOrEOF(c))
 			{
-				return new ModuleKey(moduleName, majorVersion, null);
+				if (requestor==null)
+				{
+					return new ModuleKey(moduleName, majorVersion, null);
+				}
+				else
+				{
+					return new Dependency(moduleName, majorVersion, null, requestor);
+				}
 			}
 		}
 		while(isHorizontalSpace(c));
@@ -121,7 +149,14 @@ class ModuleInfo
 
 			if (isVerticalOrEOF(c))
 			{
-				return new ModuleKey(moduleName, majorVersion, sb.toString());
+				if (requestor==null)
+				{
+					return new ModuleKey(moduleName, majorVersion, sb.toString());
+				}
+				else
+				{
+					return new Dependency(moduleName, majorVersion, sb.toString(), requestor);
+				}
 			}
 		}
 		while(!isHorizontalSpace(c));
@@ -135,7 +170,14 @@ class ModuleInfo
 		}
 		while (!isVerticalOrEOF(c));
 
-		return new ModuleKey(moduleName, majorVersion, minorVersion);
+		if (requestor==null)
+		{
+			return new ModuleKey(moduleName, majorVersion, minorVersion);
+		}
+		else
+		{
+			return new Dependency(moduleName, majorVersion, minorVersion, requestor);
+		}
 	}
 
 	private static
@@ -151,20 +193,39 @@ class ModuleInfo
 	}
 
 	static
-	ModuleInfo read(InputStream inputStream) throws IOException
+	ModuleInfo blank(ModuleKey self)
+	{
+		return new ModuleInfo(self, Collections.<ModuleKey>emptySet());
+	}
+
+	static
+	ModuleInfo read(InputStream inputStream, ModuleKey originalSelf) throws IOException
 	{
 		final
-		ModuleKey self=readLine(inputStream);
+		ModuleKey requestor;
+		{
+			if (originalSelf instanceof Dependency)
+			{
+				requestor=((Dependency)originalSelf).getRequestingModuleKey();
+			}
+			else
+			{
+				requestor=null;
+			}
+		}
+
+		final
+		ModuleKey self=readLine(inputStream, requestor);
 
 		final
 		Set<ModuleKey> deps=new HashSet<ModuleKey>();
 
-		ModuleKey dep=readLine(inputStream);
+		ModuleKey dep=readLine(inputStream, self);
 
 		while (dep!=null)
 		{
 			deps.add(dep);
-			dep=readLine(inputStream);
+			dep=readLine(inputStream, self);
 		}
 
 		return new ModuleInfo(self, Collections.unmodifiableSet(deps));

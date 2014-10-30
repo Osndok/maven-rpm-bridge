@@ -1,11 +1,13 @@
 package javax.module;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by robert on 10/29/14.
  */
-public final
+public
 class ModuleKey implements Serializable
 {
 	private final
@@ -186,6 +188,48 @@ class ModuleKey implements Serializable
 		}
 
 		return retval;
+	}
+
+	private transient
+	ModuleKey[] dependencyChain;
+
+	public
+	ModuleKey[] getDependencyChain()
+	{
+		ModuleKey[] dependencyChain = this.dependencyChain;
+
+		if (dependencyChain==null)
+		{
+			dependencyChain=createDependencyChain();
+		}
+
+		return dependencyChain;
+	}
+
+	private
+	ModuleKey[] createDependencyChain()
+	{
+		final
+		List<ModuleKey> retval=new ArrayList<ModuleKey>();
+
+		ModuleKey moduleKey=this;
+
+		do
+		{
+			retval.add(moduleKey);
+
+			if (moduleKey instanceof Dependency)
+			{
+				moduleKey = ((Dependency)moduleKey).getRequestingModuleKey();
+			}
+			else
+			{
+				moduleKey = null;
+			}
+		}
+		while (moduleKey!=null);
+
+		return retval.toArray(new ModuleKey[retval.size()]);
 	}
 
 }

@@ -6,6 +6,6 @@ package javax.module;
 public
 interface Repo
 {
-	ModuleFile getModuleFile(ModuleKey moduleKey);
-	ModuleFile getModuleFile(String moduleName, String majorVersion);
+	Module getModuleFile(ModuleKey moduleKey);
+	Module getModuleFile(String moduleName, String majorVersion);
 }

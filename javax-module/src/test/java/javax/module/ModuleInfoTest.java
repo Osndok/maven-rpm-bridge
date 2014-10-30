@@ -23,7 +23,7 @@ class ModuleInfoTest extends Assert
 		assertNotNull(in);
 
 		final
-		ModuleInfo mi=ModuleInfo.read(in);
+		ModuleInfo mi=ModuleInfo.read(in, null);
 
 		ModuleKey m=mi.getModuleKey();
 
@@ -33,6 +33,10 @@ class ModuleInfoTest extends Assert
 		for (ModuleKey moduleKey : mi.getDependencies())
 		{
 			System.err.println("dep: "+moduleKey);
+			assertTrue(moduleKey instanceof Dependency);
+
+			ModuleKey self=((Dependency)moduleKey).getRequestingModuleKey();
+			assertEquals(self.getModuleName(), "self");
 
 			String s=moduleKey.getModuleName();
 			int i=Integer.parseInt(s);
