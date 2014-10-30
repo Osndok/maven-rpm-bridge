@@ -9,22 +9,46 @@ public
 class ModuleFile
 {
 	private final
-	ModuleKey moduleKey;
+	ModuleInfo moduleInfo;
 
 	private final
 	File file;
 
 	public
-	ModuleFile(ModuleKey moduleKey, File file)
+	ModuleFile(ModuleInfo moduleInfo, File file)
 	{
-		this.moduleKey = moduleKey;
+		this.moduleInfo = moduleInfo;
 		this.file = file;
+	}
+
+	public
+	ModuleInfo getModuleInfo()
+	{
+		return moduleInfo;
 	}
 
 	public
 	ModuleKey getModuleKey()
 	{
-		return moduleKey;
+		return moduleInfo.getModuleKey();
+	}
+
+	public
+	String getModuleName()
+	{
+		return moduleInfo.getModuleKey().getModuleName();
+	}
+
+	public
+	String getMajorVersion()
+	{
+		return moduleInfo.getModuleKey().getMajorVersion();
+	}
+
+	public
+	String getMinorVersion()
+	{
+		return moduleInfo.getModuleKey().getMinorVersion();
 	}
 
 	public
