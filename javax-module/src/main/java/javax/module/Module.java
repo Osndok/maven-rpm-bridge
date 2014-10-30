@@ -5,6 +5,7 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Properties;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -90,25 +91,25 @@ class Module
 	public
 	ModuleKey getModuleKey()
 	{
-		return moduleInfo.getModuleKey();
+		return getModuleInfo().getModuleKey();
 	}
 
 	public
 	String getModuleName()
 	{
-		return moduleInfo.getModuleKey().getModuleName();
+		return getModuleInfo().getModuleKey().getModuleName();
 	}
 
 	public
 	String getMajorVersion()
 	{
-		return moduleInfo.getModuleKey().getMajorVersion();
+		return getModuleInfo().getModuleKey().getMajorVersion();
 	}
 
 	public
 	String getMinorVersion()
 	{
-		return moduleInfo.getModuleKey().getMinorVersion();
+		return getModuleInfo().getModuleKey().getMinorVersion();
 	}
 
 	public
@@ -259,5 +260,11 @@ class Module
 			}
 		}
 		return properties;
+	}
+
+	public
+	Set<Dependency> getDependencies()
+	{
+		return getModuleInfo().getDependencies();
 	}
 }

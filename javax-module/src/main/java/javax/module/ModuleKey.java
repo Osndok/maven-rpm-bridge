@@ -1,6 +1,7 @@
 package javax.module;
 
 import java.io.Serializable;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -232,4 +233,44 @@ class ModuleKey implements Serializable
 		return retval.toArray(new ModuleKey[retval.size()]);
 	}
 
+	/**
+	 * Used when specifying a class by name.
+	 * @param moduleReference - roughly the output of this class's toString() method, e.g. "log4j-v1"
+	 * @return a ModuleKey with the embedded module-name and version
+	 */
+	public static
+	ModuleKey parseModuleKey(String moduleReference) throws ParseException
+	{
+		if (moduleReference==null || moduleReference.length()==0) throw new ParseException(moduleReference,0);
+
+		int lastHyphen=moduleReference.lastIndexOf('-');
+
+		if (lastHyphen>0 && lastHyphen<=moduleReference.length()-2)
+		{
+			final
+			String moduleName=moduleReference.substring(0, lastHyphen);
+
+			if (moduleReference.charAt(lastHyphen+1)=='v')
+			{
+				try
+				{
+					final
+					Integer majorVersion=new Integer(moduleReference.substring(lastHyphen+2));
+					//NB: a subtlety here... if the suffix starts with a v, but is not a number, we want to throw to *include* the 'v'.
+					return new ModuleKey(moduleName, majorVersion.toString(), null);
+				}
+				catch (Exception e)
+				{
+					//ignore... or log.debug() it...
+					//e.printStackTrace();
+				}
+			}
+
+			return new ModuleKey(moduleName, moduleReference.substring(lastHyphen+1), null);
+		}
+		else
+		{
+			return new ModuleKey(moduleReference, null, null);
+		}
+	}
 }

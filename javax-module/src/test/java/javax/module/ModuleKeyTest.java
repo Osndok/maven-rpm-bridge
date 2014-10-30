@@ -3,6 +3,8 @@ package javax.module;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.text.ParseException;
+
 /**
  * Created by robert on 10/29/14.
  */
@@ -56,4 +58,62 @@ class ModuleKeyTest extends Assert
 		return new ModuleKey(s, m, mn);
 	}
 
+	@Test
+	public
+	void testParsing() throws ParseException
+	{
+		p("a-v1", "a", 1);
+		p("a-1", "a", 1);
+		p("alpha-v1234", "alpha", 1234);
+		p("alpha-1234", "alpha", 1234);
+		p("alpha-rc3", "alpha", "rc3");
+		p("alpha-snapshot", "alpha", null);
+		p("alpha-beta", "alpha", "beta");
+		p("alpha-beta-delta-gamma", "alpha-beta-delta", "gamma");
+		p("alpha", "alpha", null);
+		p("a", "a", null);
+
+		//Edge case... a 'v' that does not indicate a numeric version number...
+		p("uvula-vixen", "uvula", "vixen");
+
+		//These don't conform, and so are less important... just checking the edge cases.
+		//Maybe *these* should throw a parse exception?
+		p("a-", "a-", null);
+		p("-a", "-a", null);
+
+		//Yeah... nothing to go on...
+		x("");
+		x(null);
+	}
+
+	private
+	void x(String raw)
+	{
+		try
+		{
+			ModuleKey m=ModuleKey.parseModuleKey(raw);
+			throw new AssertionError("should not be able to parse '"+raw+"', but got: "+m);
+		}
+		catch (ParseException e)
+		{
+			//good...
+		}
+	}
+
+	private
+	void p(String raw, String moduleName, Object majorVersion) throws ParseException
+	{
+		ModuleKey m=ModuleKey.parseModuleKey(raw);
+
+		assertEquals(m.getModuleName(), moduleName);
+
+		if (majorVersion==null)
+		{
+			assertNull(m.getMajorVersion());
+		}
+		else
+		{
+			assertEquals(m.getMajorVersion(), majorVersion.toString());
+		}
+	}
 }

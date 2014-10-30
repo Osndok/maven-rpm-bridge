@@ -16,10 +16,10 @@ class ModuleInfo
 	ModuleKey moduleKey;
 
 	private final
-	Set<ModuleKey> dependencies;
+	Set<Dependency> dependencies;
 
 	private
-	ModuleInfo(ModuleKey moduleKey, Set<ModuleKey> dependencies)
+	ModuleInfo(ModuleKey moduleKey, Set<Dependency> dependencies)
 	{
 		this.moduleKey = moduleKey;
 		this.dependencies = dependencies;
@@ -32,7 +32,7 @@ class ModuleInfo
 	}
 
 	public
-	Set<ModuleKey> getDependencies()
+	Set<Dependency> getDependencies()
 	{
 		return dependencies;
 	}
@@ -195,7 +195,7 @@ class ModuleInfo
 	static
 	ModuleInfo blank(ModuleKey self)
 	{
-		return new ModuleInfo(self, Collections.<ModuleKey>emptySet());
+		return new ModuleInfo(self, new HashSet<Dependency>());
 	}
 
 	static
@@ -218,13 +218,13 @@ class ModuleInfo
 		ModuleKey self=readLine(inputStream, requestor);
 
 		final
-		Set<ModuleKey> deps=new HashSet<ModuleKey>();
+		Set<Dependency> deps=new HashSet<Dependency>();
 
 		ModuleKey dep=readLine(inputStream, self);
 
 		while (dep!=null)
 		{
-			deps.add(dep);
+			deps.add((Dependency)dep);
 			dep=readLine(inputStream, self);
 		}
 

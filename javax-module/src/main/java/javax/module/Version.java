@@ -52,6 +52,13 @@ class Version implements Comparable<Version>, Serializable
 		return compare(getBits(), v.getBits())<0;
 	}
 
+	@Deprecated
+	public static
+	int compare(String a, String b)
+	{
+		return new Version(a).compareTo(new Version(b));
+	}
+
 	private static
 	int compare(Object[] a, Object[] b)
 	{
