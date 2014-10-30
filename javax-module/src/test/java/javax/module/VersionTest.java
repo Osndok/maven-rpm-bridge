@@ -85,16 +85,16 @@ class VersionTest extends Assert
 		//And the converses...
 		assertTrue(v("1.2-SNAPSHOT").isOlderThan(oneDotTwo));
 		assertTrue(v("1.2-rc7"     ).isOlderThan(oneDotTwo));
-		assertTrue(v("1.1.99"      ).isOlderThan(oneDotTwo));
-		assertTrue(v("1.1"         ).isOlderThan(oneDotTwo));
-		assertTrue(v("1.2"         ).equals(oneDotTwo));
-		assertTrue(v("1.2.0"       ).equals(oneDotTwo));
-		assertTrue(v("1.2.0.0"     ).equals(oneDotTwo));
-		assertTrue(v("1.2.0.0.0"   ).equals(oneDotTwo));
+		assertTrue(v("1.1.99").isOlderThan(oneDotTwo));
+		assertTrue(v("1.1").isOlderThan(oneDotTwo));
+		assertTrue(v("1.2").equals(oneDotTwo));
+		assertTrue(v("1.2.0").equals(oneDotTwo));
+		assertTrue(v("1.2.0.0").equals(oneDotTwo));
+		assertTrue(v("1.2.0.0.0").equals(oneDotTwo));
 		assertTrue(v("1.2.0.0.0.1" ).isNewerThan(oneDotTwo));
-		assertTrue(v("1.3"         ).isNewerThan(oneDotTwo));
-		assertTrue(v("2"           ).isNewerThan(oneDotTwo));
-		assertTrue(v("1.2.1"       ).isNewerThan(oneDotTwo));
+		assertTrue(v("1.3").isNewerThan(oneDotTwo));
+		assertTrue(v("2").isNewerThan(oneDotTwo));
+		assertTrue(v("1.2.1").isNewerThan(oneDotTwo));
 	}
 
 	//For shorthand & readability
@@ -103,5 +103,22 @@ class VersionTest extends Assert
 	{
 		return new Version(s);
 	}
+
+	/*
+	 * Not super-useful, but one could have Version keys (e.g. to a hashmap), and retrieve
+	 * using just a string (so long as the string is an exact match). Can't catch the string
+	 * side anyway...
+	 * /
+	@Test
+	public
+	void testStringEquivalence()
+	{
+		for (String s : new String[]{"1", "1.0.3", "a", "1-snapshot"})
+		{
+			assertEquals(v(s), s);
+			assertEquals(v(s).hashCode(), s.hashCode());
+		}
+	}
+	*/
 
 }

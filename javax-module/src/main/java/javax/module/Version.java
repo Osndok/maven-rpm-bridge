@@ -173,6 +173,12 @@ class Version implements Comparable<Version>, Serializable
 		}
 	}
 
+	/*
+	 * NB: does not comply with the other side of the equals() contract very well, we
+	 * *could* generate a hash based on getBits(), but that would still not catch all
+	 * the nuances of the version.equals() command, which at times ignores strings
+	 * and zeros based on what you are comparing it against.
+	 */
 	@Override
 	public
 	int hashCode()
