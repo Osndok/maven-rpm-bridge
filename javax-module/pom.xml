@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+	>
+
+    <modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.github.osndok.maven_rpm_bridge</groupId>
+		<artifactId>mrb-parent</artifactId>
+		<version>${release.version}</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+
+    <groupId>${parent.groupId}</groupId>
+
+    <artifactId>javax-module</artifactId>
+    <packaging>jar</packaging>
+    <version>${release.version}</version>
+
+
+    <dependencies>
+
+		<!-- Important: none... this must be primordial, as it's only task is to load *other* modules -->
+		<!-- Therefore, only test dependencies are allowed. -->
+		<dependency>
+			<groupId>org.testng</groupId>
+			<artifactId>testng</artifactId>
+			<version>6.8.8</version>
+		</dependency>
+
+	</dependencies>
+
+</project>

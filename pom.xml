@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+	>
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- important: no parent -->
+
+    <modules>
+		<module>javax-module</module>
+		<module>mrb-grinder</module>
+    </modules>
+
+    <groupId>com.github.osndok.maven_rpm_bridge</groupId>
+    <artifactId>mrb-parent</artifactId>
+    <packaging>pom</packaging>
+    <version>${release.version}</version>
+
+    <scm>
+        <connection>scm:git:ssh://devel.allogy.com/projects/infra/maven-rpm-bridge.git</connection>
+        <developerConnection>scm:git:ssh://devel.allogy.com/projects/infra/maven-rpm-bridge.git</developerConnection>
+    </scm>
+
+    <dependencies>
+
+		<!-- do not put deps here -->
+		<!-- the javax-module must have *zero* -->
+
+	</dependencies>
+
+	<build>
+
+		<plugins>
+			<plugin>
+				<groupId>com.sap.prd.mobile.ios.maven.plugins</groupId>
+				<artifactId>resolve-pom-maven-plugin</artifactId>
+				<version>1.0</version>
+				<executions>
+					<execution>
+						<id>resolve-pom-props</id>
+						<goals>
+							<goal>resolve-pom-props</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+
+	</build>
+
+    <properties>
+		<release.version>snapshot</release.version>
+		<slf4j.version>1.7.7</slf4j.version>
+    </properties>
+
+</project>
+
