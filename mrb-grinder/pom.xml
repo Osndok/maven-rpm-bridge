@@ -23,7 +23,23 @@
 
     <dependencies>
 
-		
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>${slf4j.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.semver</groupId>
+			<artifactId>api</artifactId>
+			<version>0.9.32</version>
+		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>javax-module</artifactId>
+			<version>1.0</version>
+		</dependency>
 
 	</dependencies>
 

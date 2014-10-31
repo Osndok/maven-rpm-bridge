@@ -1,0 +1,8 @@
+#!/bin/bash
+
+. /etc/sysconfig/javax-module
+
+MODULE=test-module-v1
+CLASS=com.example.Test
+
+exec $JAVA -cp ':' -Dmodule=$MODULE -Dclass=$CLASS javax.module.Startup "$@"

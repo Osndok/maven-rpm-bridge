@@ -1,0 +1,21 @@
+
+mkdir -p  ./usr/bin
+touch     ./usr/bin/@TOOL_NAME@
+chmod 755 ./usr/bin/@TOOL_NAME@
+cat ->    ./usr/bin/@TOOL_NAME@ <<"EOF"
+#!/bin/bash
+#
+# @TOOL_NAME@
+#
+# From the %{name} rpm package.
+#
+
+. /etc/sysconfig/javax-module
+
+MODULE=%{name}
+CLASS=@CLASS@
+
+exec $JAVA -Dmodule=$MODULE -Dclass=$CLASS $LOADER "$@"
+
+EOF
+

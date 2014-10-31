@@ -1,0 +1,18 @@
+
+
+Name:           mrb-@NAME@
+Version:        @VERSION@
+Release:        @RELEASE@
+Summary:        @NAME@ java library, auto-converted
+
+
+Group:          Java/MrB
+Vendor:         MrB
+License:        @LICENSE@
+
+Source0:        @JAR@
+
+BuildArch:      noarch
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+#-- Dependencies --
