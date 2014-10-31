@@ -42,15 +42,38 @@ class ModuleInfo
 	{
 		int c=inputStream.read();
 
-		while (isHorizontalSpace(c) || isVerticalOrEOF(c))
+		do
 		{
-			if (c<=0)
+			while (isHorizontalSpace(c) || isVerticalOrEOF(c))
 			{
-				return null;
+				if (c <= 0)
+				{
+					return null;
+				}
+
+				c = inputStream.read();
 			}
 
-			c=inputStream.read();
+			if (c == '#')
+			{
+				//Consume the whole comment line, then loop...
+				while (!isVerticalOrEOF(c))
+				{
+					if (c <= 0)
+					{
+						return null;
+					}
+					c = inputStream.read();
+				}
+			}
+			else
+			{
+				break;
+			}
 		}
+		while(true);
+
+		//At this point 'c' should contain the first character of the module name.
 
 		final
 		StringBuilder sb=new StringBuilder();
@@ -217,6 +240,11 @@ class ModuleInfo
 		final
 		ModuleKey self=readLine(inputStream, requestor);
 
+		if (self==null || (originalSelf!=null && !originalSelf.equals(self)))
+		{
+			throw new IllegalStateException("first line of deps file should be module identity: "+originalSelf+" -> "+self+" ?");
+		}
+
 		final
 		Set<Dependency> deps=new HashSet<Dependency>();
 
@@ -224,7 +252,15 @@ class ModuleInfo
 
 		while (dep!=null)
 		{
-			deps.add((Dependency)dep);
+			if (dep instanceof Dependency)
+			{
+				deps.add((Dependency) dep);
+			}
+			else
+			{
+				throw new AssertionError("expecting Dependency, not "+dep.getClass());
+			}
+
 			dep=readLine(inputStream, self);
 		}
 

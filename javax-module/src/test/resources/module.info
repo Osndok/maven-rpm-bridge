@@ -1,9 +1,9 @@
-
+# Comments should be ignored
 self	majorVersion	minorVersion
 1	majorVersion	minorVersion
 2  majorVersion   minorVersion
 
-
+# More comments
 
 3	majorVersion	minorVersion	note goes here?
 

@@ -26,7 +26,7 @@ class ModuleKey implements Serializable
 		if (moduleName == null) throw new NullPointerException();
 		this.moduleName = moduleName.toLowerCase();
 
-		if (majorVersion==null)
+		if (majorVersion==null || majorVersion.length()==0)
 		{
 			this.majorVersion = null;
 		}
@@ -45,7 +45,7 @@ class ModuleKey implements Serializable
 			}
 		}
 
-		if (minorVersion==null)
+		if (minorVersion==null || minorVersion.length()==0)
 		{
 			this.minorVersion = null;
 		}
