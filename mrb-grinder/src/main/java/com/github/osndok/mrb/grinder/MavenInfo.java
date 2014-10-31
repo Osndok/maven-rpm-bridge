@@ -1,10 +1,13 @@
 package com.github.osndok.mrb.grinder;
 
+import javax.module.ModuleKey;
+import java.io.Serializable;
+
 /**
  * Created by robert on 10/30/14.
  */
 public
-class MavenInfo
+class MavenInfo implements Serializable
 {
 	private final
 	String groupId;
@@ -15,10 +18,13 @@ class MavenInfo
 	private final
 	String version;
 
+	private transient
+	String parsablePrefix;
+
 	public
 	MavenInfo(String groupId, String artifactId, String version)
 	{
-		if (groupId   ==null) throw new NullPointerException("groupIp is missing");
+		if (groupId == null) throw new NullPointerException("groupIp is missing");
 		if (artifactId==null) throw new NullPointerException("artifactId is missing");
 		if (version   ==null) throw new NullPointerException("version is missing");
 
@@ -110,15 +116,46 @@ class MavenInfo
 		return result;
 	}
 
+	/**
+	 * I seem to recall seeing a one-line maven identifier separated by colons...
+	 * but since I cannot find it is the documentation at the moment, we will not
+	 * rely on this for parsing.
+	 *
+	 * @return
+	 */
 	@Override
 	public
 	String toString()
 	{
-		return "MavenInfo{" +
-				   "groupId='" + groupId + '\'' +
-				   ", artifactId='" + artifactId + '\'' +
-				   ", version='" + version + '\'' +
-				   '}';
+		return groupId + ':' + artifactId + ':' + version;
 	}
 
+	public
+	String toParsableLine(String majorVersion)
+	{
+		return getParsablePrefix() + majorVersion + "\n";
+	}
+
+	private
+	String getParsablePrefix()
+	{
+		if (parsablePrefix==null)
+		{
+			parsablePrefix=groupId + '>' + artifactId + '>' + version + '>';
+		}
+		return parsablePrefix;
+	}
+
+	public
+	String majorVersionFromParsableLineMatch(String line)
+	{
+		if (line.startsWith(getParsablePrefix()))
+		{
+			return line.substring(getParsablePrefix().length());
+		}
+		else
+		{
+			return null;
+		}
+	}
 }

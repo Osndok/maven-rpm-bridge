@@ -59,6 +59,11 @@ class Main
 	private
 	void grind(File file) throws IOException, ObsoleteJarException
 	{
+		if (!isWritableDirectory(file.getParentFile()))
+		{
+			throw new IOException("not a writable directory: "+file.getParent());
+		}
+
 		if (isWarFile(file))
 		{
 			throw new UnsupportedOperationException("WARN files will be supported *soon*, but not yet");
@@ -75,15 +80,31 @@ class Main
 	}
 
 	private
-	void grindJar(File file) throws IOException, ObsoleteJarException
+	boolean isWritableDirectory(File file)
 	{
-		MavenJar mavenJar=new MavenJar(file);
+		return file.isDirectory() && file.canWrite();
+	}
+
+	private
+	void grindJar(File jar) throws IOException, ObsoleteJarException
+	{
+		MavenJar mavenJar=new MavenJar(jar);
 		MavenInfo mavenInfo=mavenJar.getInfo();
-		ModuleKey moduleKey=rpmRepo.mostSpecificCompatibleAndPreExistingVersion(mavenInfo);
-		File spec=Spec.write(moduleKey, mavenJar);
-		File rpm=buildRpm(spec);
-		addToRepository(rpm);
-		rebuildRepository();
+
+		rpmRepo.getRegistry().shouldNotContain(mavenInfo);
+
+		ModuleKey moduleKey=rpmRepo.mostSpecificCompatibleAndPreExistingVersion(mavenJar);
+
+		File spec=Spec.write(moduleKey, mavenJar, rpmRepo);
+		File rpm=RPM.build(spec, jar);
+
+		rpmRepo.add(rpm);
+		rpmRepo.getRegistry().append(mavenInfo, moduleKey);
+
+		spec.delete();
+		rpm.delete();
+
+		rpmRepo.rebuildMetadata();
 	}
 
 	private

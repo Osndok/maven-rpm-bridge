@@ -28,6 +28,14 @@ class MavenJar
 	}
 
 	public
+	MavenJar(File file, MavenInfo mavenInfo) throws IOException
+	{
+		this.file = file;
+		this.jarFile = new JarFile(file);
+		this.mavenInfo=mavenInfo;
+	}
+
+	public
 	File getFile()
 	{
 		return file;

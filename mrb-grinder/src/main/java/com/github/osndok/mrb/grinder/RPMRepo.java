@@ -1,5 +1,6 @@
 package com.github.osndok.mrb.grinder;
 
+import com.github.osndok.mrb.grinder.util.Exec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +18,8 @@ class RPMRepo
 {
 	private final
 	File dir;
+	private File directory;
+	private Registry registry;
 
 	public
 	RPMRepo(File dir) throws IOException
@@ -28,11 +31,11 @@ class RPMRepo
 			throw new IOException("not a writable directory: " + dir);
 		}
 
-		File repodata=new File(dir, "repodata");
+		File repodata = new File(dir, "repodata");
 
 		if (!repodata.isDirectory())
 		{
-			throw new IOException(dir +": does not look like a yum RPM repo (see 'man createrepo')");
+			throw new IOException(dir + ": does not look like a yum RPM repo (see 'man createrepo')");
 		}
 	}
 
@@ -42,12 +45,13 @@ class RPMRepo
 	 * new (more specific) major versions as we find them, and won't jump back
 	 * to the least specific once old/incompatible rpms are removed.
 	 *
-	 * @param mavenInfo
+	 * @param mavenJar
 	 * @return
 	 */
 	public
-	ModuleKey mostSpecificCompatibleAndPreExistingVersion(MavenInfo mavenInfo) throws ObsoleteJarException
+	ModuleKey mostSpecificCompatibleAndPreExistingVersion(MavenJar mavenJar) throws ObsoleteJarException, IOException
 	{
+		MavenInfo mavenInfo=mavenJar.getInfo();
 		final
 		Object[] bits= Version.split(mavenInfo.getVersion());
 
@@ -66,10 +70,11 @@ class RPMRepo
 			else
 			if (equalOrOlder(guess, rpm.getModuleKey()))
 			{
+				getRegistry().append(mavenInfo, guess);
 				throw new ObsoleteJarException("already have "+guess+" @ "+rpm.getModuleKey().getMinorVersion()+", so don't need to install @ "+guess.getMinorVersion());
 			}
 			else
-			if (rpm.innerJarIsCompatibleWith(mavenInfo))
+			if (rpm.innerJarIsCompatibleWithNewer(mavenJar))
 			{
 				return guess;
 			}
@@ -186,5 +191,33 @@ class RPMRepo
 		{
 			return new ModuleKey(moduleName, majorVersion, sb.toString());
 		}
+	}
+
+	public
+	File getDirectory()
+	{
+		return directory;
+	}
+
+	public
+	Registry getRegistry()
+	{
+		if (registry==null)
+		{
+			registry=new Registry(this);
+		}
+		return registry;
+	}
+
+	public
+	void rebuildMetadata() throws IOException
+	{
+		Exec.andWait("createrepo", "--update", directory.getAbsolutePath());
+	}
+
+	public
+	void add(File rpm) throws IOException
+	{
+		Exec.andWait("cp", "-v", rpm.getAbsolutePath(), directory.getAbsolutePath());
 	}
 }
