@@ -295,9 +295,9 @@ class MavenJar
 	private
 	MavenInfo parseMavenDependency(Element dep)
 	{
-		String groupId=dep.getElementsByTagName("groupId").item(0).toString();
-		String artifactId=dep.getElementsByTagName("artifactId").item(0).toString();
-		String version=dep.getElementsByTagName("version").item(0).toString();
+		String groupId=dep.getElementsByTagName("groupId").item(0).getTextContent();
+		String artifactId=dep.getElementsByTagName("artifactId").item(0).getTextContent();
+		String version=dep.getElementsByTagName("version").item(0).getTextContent();
 
 		return new MavenInfo(groupId, artifactId, version);
 	}

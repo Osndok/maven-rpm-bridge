@@ -19,8 +19,9 @@ class RPMRepo
 {
 	private final
 	File dir;
-	private File directory;
-	private Registry registry;
+
+	private
+	Registry registry;
 
 	public
 	RPMRepo(File dir) throws IOException
@@ -58,7 +59,9 @@ class RPMRepo
 
 		ModuleKey guess=null;
 
-		for (int i=bits.length; i>0; i++)
+		log.debug("split into {} bits", bits.length);
+
+		for (int i=bits.length-1; i>0; i--)
 		{
 			guess = deriveVersionGuess(bits, i, mavenInfo);
 
@@ -127,7 +130,14 @@ class RPMRepo
 			}
 		});
 
-		if (fileNames==null || fileNames.length==0) return null;
+		if (fileNames==null || fileNames.length==0)
+		{
+			log.info("found nothing for rpm prefix: {}", rpmPrefix);
+			return null;
+		}
+
+		log.info("found {} rpms for prefix: {}", fileNames.length, rpmPrefix);
+
 		if (fileNames.length==1) return new RPM(new File(dir, fileNames[0]));
 
 		String bestFileName=null;
@@ -171,6 +181,7 @@ class RPMRepo
 		for (int i = 0; i < transition; i++)
 		{
 			if (i != 0) sb.append('.');
+			log.info("so far: {}/{} -> {}", i, transition, sb);
 			sb.append(bits[i].toString());
 		}
 
@@ -197,7 +208,7 @@ class RPMRepo
 	public
 	File getDirectory()
 	{
-		return directory;
+		return dir;
 	}
 
 	public
@@ -213,13 +224,13 @@ class RPMRepo
 	public
 	void rebuildMetadata() throws IOException
 	{
-		Exec.andWait("createrepo", "--update", directory.getAbsolutePath());
+		Exec.andWait("createrepo", "--update", dir.getAbsolutePath());
 	}
 
 	public
 	void add(File rpm) throws IOException
 	{
-		Exec.andWait("cp", "-v", rpm.getAbsolutePath(), directory.getAbsolutePath());
+		Exec.andWait("cp", "-v", rpm.getAbsolutePath(), dir.getAbsolutePath());
 	}
 
 	public

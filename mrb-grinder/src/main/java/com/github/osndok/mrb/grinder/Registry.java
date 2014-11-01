@@ -1,5 +1,8 @@
 package com.github.osndok.mrb.grinder;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.module.ModuleKey;
 import java.io.*;
 
@@ -26,6 +29,8 @@ class Registry
 	public
 	void shouldNotContain(MavenInfo mavenInfo) throws ObsoleteJarException, IOException
 	{
+		if (!file.exists()) file.createNewFile();
+
 		BufferedReader br=new BufferedReader(new FileReader(file));
 		try
 		{
@@ -89,6 +94,8 @@ class Registry
 			br.close();
 		}
 
+		log.warn("unable to locate dependency: {}", mavenInfo);
+
 		//TODO: make this into a depth counter (e.g. to bomb out [eventually] on circular dependencies), and on by default?
 		if (Boolean.getBoolean("RECURSIVE"))
 		{
@@ -99,4 +106,6 @@ class Registry
 			throw new DependencyNotProcessedException(mavenInfo);
 		}
 	}
+
+	private static final Logger log = LoggerFactory.getLogger(Registry.class);
 }
