@@ -14,6 +14,7 @@ class Dependency extends ModuleKey
 	Dependency(String moduleName, String majorVersion, String minorVersion, ModuleKey requestingModuleKey)
 	{
 		super(moduleName, majorVersion, minorVersion);
+		if (requestingModuleKey==null) throw new NullPointerException("requestor module key cannot be null");
 		this.requestingModuleKey=requestingModuleKey;
 	}
 

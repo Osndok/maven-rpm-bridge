@@ -27,6 +27,12 @@ class Main
 		this.rpmRepo=new RPMRepo(new File(repoPath));
 	}
 
+	public
+	Main(RPMRepo rpmRepo)
+	{
+		this.rpmRepo=rpmRepo;
+	}
+
 	public static
 	void main(String[] args) throws IOException
 	{
@@ -117,5 +123,11 @@ class Main
 	boolean isWarFile(File file)
 	{
 		return file.getName().toLowerCase().endsWith(".war");
+	}
+
+	public
+	String getMajorVersionFromProcessingMavenArtifact(MavenInfo mavenInfo)
+	{
+		throw new UnsupportedOperationException("unimplemented");
 	}
 }

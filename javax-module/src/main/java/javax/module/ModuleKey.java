@@ -56,6 +56,12 @@ class ModuleKey implements Serializable
 	}
 
 	public
+	Dependency asDependencyOf(ModuleKey otherModule)
+	{
+		return new Dependency(moduleName, majorVersion, minorVersion, otherModule);
+	}
+
+	public
 	String getModuleName()
 	{
 		return moduleName;

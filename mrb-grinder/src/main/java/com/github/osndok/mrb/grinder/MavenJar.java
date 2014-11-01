@@ -4,8 +4,16 @@ import org.reflections.Reflections;
 import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.module.Dependency;
 import javax.module.ModuleKey;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,7 +49,7 @@ class MavenJar
 	{
 		this.file = file;
 		this.jarFile = new JarFile(file);
-		this.mavenInfo=mavenInfo;
+		this.mavenInfo = mavenInfo;
 	}
 
 	public
@@ -239,4 +247,109 @@ class MavenJar
 	}
 
 	private static final Logger log = LoggerFactory.getLogger(MavenJar.class);
+
+	public
+	Set<Dependency> listRpmDependencies(ModuleKey moduleKey, RPMRepo rpmRepo) throws DependencyNotProcessedException, IOException, ParserConfigurationException, SAXException
+	{
+		final
+		Set<Dependency> retval=new HashSet<Dependency>();
+
+		for (MavenInfo info : listMavenDependenciesFromPomXml())
+		{
+			retval.add(rpmRepo.getFullModuleDependency(moduleKey, info));
+		}
+
+		return retval;
+	}
+
+	private
+	Set<MavenInfo> listMavenDependenciesFromPomXml() throws ParserConfigurationException, SAXException, IOException
+	{
+		Document pom = getPomXmlDom();
+		pom.getDocumentElement().normalize();
+
+		NodeList dependencies = ((Element) pom.getElementsByTagName("dependencies").item(0)).getElementsByTagName("dependency");
+
+		int l=dependencies.getLength();
+
+		final
+		Set<MavenInfo> retval=new HashSet<MavenInfo>();
+
+		for (int i=0; i<l; i++)
+		{
+			Element e = (Element) dependencies.item(i);
+
+			if (isTestScope(e))
+			{
+				log.debug("ignoring test scope: {}", e);
+			}
+			else
+			{
+				retval.add(parseMavenDependency(e));
+			}
+		}
+
+		return retval;
+	}
+
+	private
+	MavenInfo parseMavenDependency(Element dep)
+	{
+		String groupId=dep.getElementsByTagName("groupId").item(0).toString();
+		String artifactId=dep.getElementsByTagName("artifactId").item(0).toString();
+		String version=dep.getElementsByTagName("version").item(0).toString();
+
+		return new MavenInfo(groupId, artifactId, version);
+	}
+
+	private
+	boolean isTestScope(Element dep)
+	{
+		NodeList list = dep.getElementsByTagName("scope");
+
+		if (list.getLength()>=1)
+		{
+			Element scope=(Element)list.item(0);
+			if (scope.toString().toLowerCase().contains("test"))
+			{
+				return true;
+			}
+			else
+			{
+				log.info("scope={}", scope);
+			}
+		}
+		else
+		{
+			log.debug("no scope");
+		}
+
+		return false;
+	}
+
+	private
+	Document getPomXmlDom() throws IOException, ParserConfigurationException, SAXException
+	{
+		Enumeration e = jarFile.entries();
+
+		while (e.hasMoreElements())
+		{
+			JarEntry je = (JarEntry) e.nextElement();
+			String name = je.getName();
+
+			if (name.endsWith("/pom.xml"))
+			{
+				return domFromInputStream(jarFile.getInputStream(je));
+			}
+		}
+
+		throw new IllegalStateException("could not find embedded pom.xml file");
+	}
+
+	private
+	Document domFromInputStream(InputStream inputStream) throws ParserConfigurationException, IOException, SAXException
+	{
+		return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
+	}
+
 }

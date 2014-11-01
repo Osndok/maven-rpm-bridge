@@ -66,4 +66,37 @@ class Registry
 			out.close();
 		}
 	}
+
+	public
+	String getMajorVersionFor(MavenInfo mavenInfo, RPMRepo rpmRepo) throws DependencyNotProcessedException, IOException
+	{
+		BufferedReader br=new BufferedReader(new FileReader(file));
+		try
+		{
+			String line;
+			while ((line=br.readLine())!=null)
+			{
+				String retval=mavenInfo.majorVersionFromParsableLineMatch(line);
+
+				if (retval!=null)
+				{
+					return retval;
+				}
+			}
+		}
+		finally
+		{
+			br.close();
+		}
+
+		//TODO: make this into a depth counter (e.g. to bomb out [eventually] on circular dependencies), and on by default?
+		if (Boolean.getBoolean("RECURSIVE"))
+		{
+			return new Main(rpmRepo).getMajorVersionFromProcessingMavenArtifact(mavenInfo);
+		}
+		else
+		{
+			throw new DependencyNotProcessedException(mavenInfo);
+		}
+	}
 }

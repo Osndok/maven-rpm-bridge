@@ -2,9 +2,11 @@ package com.github.osndok.mrb.grinder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 import javax.module.Dependency;
 import javax.module.ModuleKey;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,8 +66,26 @@ class Spec
 			generalInfos.put("@MINOR_VERSION@", moduleKey.getMinorVersion());
 		}
 
+		//NB: do this (listing the dependencies) *strictly* before writing the spec file.
 		final
-		Set<Dependency> dependencies=mavenJar.listRpmDependencies(rpmRepo);
+		Set<Dependency> dependencies;
+
+		try
+		{
+			dependencies=mavenJar.listRpmDependencies(moduleKey, rpmRepo);
+		}
+		catch (DependencyNotProcessedException e)
+		{
+			throw new IOException("unable to list rpm dependencies", e);
+		}
+		catch (ParserConfigurationException e)
+		{
+			throw new IOException("malformed pom.xml?", e);
+		}
+		catch (SAXException e)
+		{
+			throw new IOException("unable to process pom.xml", e);
+		}
 
 		final
 		Map<String,String> execClassesByToolName=mavenJar.getExecClassesByToolName(moduleKey);

@@ -4,6 +4,7 @@ import com.github.osndok.mrb.grinder.util.Exec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.module.Dependency;
 import javax.module.ModuleKey;
 import javax.module.Version;
 import java.io.File;
@@ -110,10 +111,10 @@ class RPMRepo
 	private static final Logger log = LoggerFactory.getLogger(RPMRepo.class);
 
 	private
-	RPM get(ModuleKey guess)
+	RPM get(ModuleKey moduleKey)
 	{
 		final
-		String rpmPrefix = guess.toString();
+		String rpmPrefix = moduleKey.toString();
 
 		final
 		String[] fileNames=dir.list(new FilenameFilter()
@@ -220,4 +221,15 @@ class RPMRepo
 	{
 		Exec.andWait("cp", "-v", rpm.getAbsolutePath(), directory.getAbsolutePath());
 	}
+
+	public
+	Dependency getFullModuleDependency(ModuleKey requestor, MavenInfo mavenInfo) throws DependencyNotProcessedException, IOException
+	{
+		String majorVersion = getRegistry().getMajorVersionFor(mavenInfo, this);
+		//The guess might actually be enough, but it would be better to verify the RPM's presence.
+		ModuleKey guess = new ModuleKey(mavenInfo.getModuleNameCandidate(), majorVersion, null);
+		RPM rpm = get(guess);
+		return rpm.getModuleKey().asDependencyOf(requestor);
+	}
+
 }
