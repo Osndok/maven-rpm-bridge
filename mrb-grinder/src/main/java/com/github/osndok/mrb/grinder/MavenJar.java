@@ -1,10 +1,19 @@
 package com.github.osndok.mrb.grinder;
 
+import org.reflections.Reflections;
+import org.reflections.util.ConfigurationBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.module.ModuleKey;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Enumeration;
-import java.util.Properties;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.net.MalformedURLException;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -106,4 +115,128 @@ class MavenJar
 
 		return new MavenInfo(p.getProperty("groupId"), p.getProperty("artifactId"), p.getProperty("version"));
 	}
+
+	/**
+	 * @return a set of main method classes and their desired CLI-tool names, which are usually prefixed \
+	 *         with the module key (e.g. "alpha-v3"), unless specified otherwise (which might lead to collisions).
+	 */
+	public
+	Map<String, String> getExecClassesByToolName(ModuleKey moduleKey) throws MalformedURLException
+	{
+		Map<String,String> retval=new HashMap<String, String>();
+		String mainClassName=getMainClassName();
+
+		//And the sad thing is... this unreadable glob is actually *much-easier* than any "standard" way of doing it...
+		Reflections reflections = new Reflections(new ConfigurationBuilder().setUrls(Collections.singleton(file.toURI().toURL())));
+
+		boolean hasOverride=false;
+
+		for (Class<?> aClass : reflections.getSubTypesOf(Object.class))
+		{
+			if (hasPublicStaticMainMethod(aClass))
+			{
+				String className=aClass.getName();
+				log.debug("has main: {}", className);
+
+				String toolName=moduleKey.toString()+(className.equals(mainClassName)?"":"-"+aClass.getSimpleName());
+
+				String override=staticJavaXModuleField(aClass);
+
+				if (override==null)
+				{
+					if (retval.containsKey(toolName))
+					{
+						String[] segments=className.split("\\.");
+						int start=segments.length-2;
+
+						do
+						{
+							StringBuilder sb=new StringBuilder(moduleKey.toString()).append('-');
+
+							for (int i=start; i<segments.length; i++)
+							{
+								if (i!=start) sb.append('.');
+								sb.append(segments[i]);
+							}
+
+							toolName=sb.toString();
+							start--;
+						}
+						while (retval.containsKey(toolName));
+
+						log.info("from tool-name contention: {}", toolName);
+					}
+
+					retval.put(toolName, className);
+				}
+				else
+				{
+					hasOverride=true;
+					retval.put(override, className);
+				}
+			}
+		}
+
+		if (retval.size()==1 && !hasOverride)
+		{
+			//If there is only one main class in the jar, and they did not specify a cli-tool name... grant "the big one"
+			retval.put(retval.keySet().iterator().next(), moduleKey.toString());
+		}
+
+		return retval;
+	}
+
+	private
+	String staticJavaXModuleField(Class<?> aClass)
+	{
+		try
+		{
+			Field field = aClass.getDeclaredField("JAVAX_MODULE_EXEC");
+			field.setAccessible(true);
+			return field.get(null).toString();
+		}
+		catch (Exception e)
+		{
+			log.info("can't get javax-module-exec field", e);
+			return null;
+		}
+	}
+
+	private
+	boolean hasPublicStaticMainMethod(Class<?> aClass)
+	{
+		try
+		{
+			Method main = aClass.getMethod("main", String[].class);
+			return Modifier.isStatic(main.getModifiers()) && Modifier.isPublic(main.getModifiers());
+		}
+		catch (NoSuchMethodException e)
+		{
+			log.debug("hasPublicStaticMainMethod?", e);
+			return false;
+		}
+	}
+
+	private
+	String mainClassName;
+
+	private
+	String getMainClassName()
+	{
+		if (mainClassName==null)
+		{
+			try
+			{
+				mainClassName = jarFile.getManifest().getMainAttributes().getValue("Main-Class");
+			}
+			catch (Exception e)
+			{
+				log.error("unable to get jar's main-class for {}", this, e);
+				mainClassName=e.toString(); //fix me, if this becomes a public method...
+			}
+		}
+		return mainClassName;
+	}
+
+	private static final Logger log = LoggerFactory.getLogger(MavenJar.class);
 }

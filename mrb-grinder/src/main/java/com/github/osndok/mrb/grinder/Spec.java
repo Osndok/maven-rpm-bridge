@@ -68,7 +68,7 @@ class Spec
 		Set<Dependency> dependencies=mavenJar.listRpmDependencies(rpmRepo);
 
 		final
-		Map<String,String> execClassesByToolName=mavenJar.getExecClassesByToolName();
+		Map<String,String> execClassesByToolName=mavenJar.getExecClassesByToolName(moduleKey);
 
 		StringBuilder sb=readTemplate("spec.prefix");
 
