@@ -241,6 +241,7 @@ class RPMRepo
 		return registry;
 	}
 
+	//TODO: don't rebuild metadata after every addition... defer it, but still try if an error/exception occurs.
 	public
 	void rebuildMetadata() throws IOException
 	{

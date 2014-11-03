@@ -108,7 +108,7 @@ class Spec
 				out.write(requiresLine(dependency));
 			}
 
-			out.write(descriptionFromPomFile(mavenJar));
+			out.write(kludgy_descriptionFromPomFile(mavenJar));
 
 			final
 			Map<String,String> dependencyReplacements=buildDependencyReplacements(moduleKey, dependencies, mavenJar, generalInfos, execClassesByToolName);
@@ -259,11 +259,20 @@ class Spec
 	}
 
 	private static
-	byte[] descriptionFromPomFile(MavenJar mavenJar)
+	byte[] kludgy_descriptionFromPomFile(MavenJar mavenJar)
 	{
 		StringBuilder sb=new StringBuilder("\n%description\n");
-		//TODO: read description from pom.xml
-		sb.append("Upstream JAR/WAR conversion by Maven-RPM-Bridge (MrB).");
+
+		String descriptionFromPom=mavenJar.kludge_getDescription_onlyAfterListingDependencies();
+
+		if (descriptionFromPom==null)
+		{
+			sb.append("Upstream JAR/WAR conversion by Maven-RPM-Bridge (MrB).");
+		}
+		else
+		{
+			sb.append(descriptionFromPom);
+		}
 
 		sb.append("\n\n");
 		return sb.toString().getBytes();

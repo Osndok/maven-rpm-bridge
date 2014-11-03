@@ -365,6 +365,15 @@ class MavenJar
 		return retval;
 	}
 
+	private transient
+	String description;
+
+	public
+	String kludge_getDescription_onlyAfterListingDependencies()
+	{
+		return description;
+	}
+
 	private
 	Set<MavenInfo> listMavenDependenciesFromPomXml() throws ParserConfigurationException, SAXException, IOException
 	{
@@ -386,6 +395,18 @@ class MavenJar
 
 		pom.getDocumentElement().normalize();
 
+		Node description = pom.getElementsByTagName("description").item(0);
+
+		if (description==null)
+		{
+			log.debug("no description");
+		}
+		else
+		{
+			//TODO: if a multiline description, trim each line to avoid indentation issues.
+			this.description=description.getTextContent().trim();
+			log.debug("description: {}", this.description);
+		}
 
 		Node depsGroup = pom.getElementsByTagName("dependencies").item(0);
 

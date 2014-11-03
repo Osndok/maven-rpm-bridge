@@ -19,6 +19,10 @@
     <artifactId>javax-module</artifactId>
     <packaging>jar</packaging>
 
+	<description>
+		A runtime module loader for java that principally addresses modules by (1) module-name, and (2) major-version.
+	</description>
+
     <version>${javax.module.version}</version>
 
     <dependencies>
