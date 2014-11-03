@@ -72,6 +72,7 @@ class ContextLoader extends ClassLoader
 			int colon = name.indexOf(':');
 			if (colon > 0)
 			{
+				//TODO: factor out the string math, if ever we expect many nested contexts.
 				String moduleName = name.substring(0, colon);
 				String className = name.substring(colon + 1);
 
@@ -83,6 +84,12 @@ class ContextLoader extends ClassLoader
 				try
 				{
 					ModuleKey moduleKey = ModuleKey.parseModuleKey(moduleName);
+
+					if (moduleKey.equals(Version.JAVAX_MODULE))
+					{
+						return null;
+					}
+
 					ModuleLoader adhocLoader = context.getModuleLoaderFor(moduleKey);
 					Class retval = adhocLoader.findClassInThisModule(className);
 					if (retval == null)
@@ -150,30 +157,6 @@ class ContextLoader extends ClassLoader
 		}
 		return null;
 	}
-
-	/**
-	 * Searches for a class to be defined by this module. More specifically, this
-	 * mechanism does not percolate the request upward to super-contexts.
-	 * /
-	 private Class findClassInThisContext(String name) throws IOException {
-	 Class retval=findLoadedClass(name);
-	 if (retval!=null) {
-	 return retval;
-	 }
-
-	 if (DEBUG) System.err.println(name+": find-in-context '"+context+"'");
-
-	 //we are a context loader, query all our available module loaders
-	 for (ModuleLoader m : moduleLoaders) {
-	 retval=m.findClassInThisModule(name);
-	 if (retval!=null) {
-	 if (DEBUG) System.err.println(name+": loaded via "+m.getModuleKey()+" in "+context);
-	 return retval;
-	 }
-	 }
-	 return null;
-	 }
-	 */
 
 	/**
 	 * This find-class will primarily be used by containers and the Startup context.

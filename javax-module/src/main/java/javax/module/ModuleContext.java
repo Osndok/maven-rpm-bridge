@@ -114,7 +114,14 @@ class ModuleContext
 		//NB: adding module to context is not lazy, loading module deps is
 		try
 		{
-			contextLoader.addModuleLoader(getModuleLoaderFor(moduleKey));
+			if (moduleKey.equals(Version.JAVAX_MODULE))
+			{
+				//log.debug...
+			}
+			else
+			{
+				contextLoader.addModuleLoader(getModuleLoaderFor(moduleKey));
+			}
 		}
 		catch (ModuleNotFoundException e)
 		{
@@ -338,6 +345,7 @@ class ModuleContext
 	{
 		ModuleAccessDeniedException denied = null;
 		Class retval = null;
+
 		if (parentModuleContext != null)
 		{
 			try
@@ -349,14 +357,17 @@ class ModuleContext
 				denied = e;
 			}
 		}
+
 		if (retval == null)
 		{
 			retval = contextLoader.findClassInThisContext(name, requestor, this);
 		}
+
 		if (retval == null && denied != null)
 		{
 			throw denied;
 		}
+
 		return retval;
 	}
 
