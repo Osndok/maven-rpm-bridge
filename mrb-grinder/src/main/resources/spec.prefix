@@ -7,7 +7,7 @@ Summary:        @NAME@ java library, auto-converted
 
 
 Group:          Java/MrB
-Vendor:         MrB
+Vendor:         Maven Central Repository
 License:        @LICENSE@
 
 Source0:        @JAR@

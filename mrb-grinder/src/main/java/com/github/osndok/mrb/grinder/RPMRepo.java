@@ -117,7 +117,7 @@ class RPMRepo
 	RPM get(ModuleKey moduleKey)
 	{
 		final
-		String rpmPrefix = moduleKey.toString();
+		String rpmPrefix = Spec.RPM_NAME_PREFIX+moduleKey.toString();
 
 		final
 		String[] fileNames=dir.list(new FilenameFilter()

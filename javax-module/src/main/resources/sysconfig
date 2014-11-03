@@ -1,0 +1,5 @@
+
+JAVA=/usr/bin/java
+JAVA_OPTS=
+
+MODULE_LOADER="-cp /usr/lib/java/javax-module-v1/javax-module.jar javax.module.Startup"

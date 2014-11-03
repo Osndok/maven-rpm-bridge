@@ -18,6 +18,8 @@ import java.util.Set;
 public
 class Spec
 {
+	public static final String RPM_NAME_PREFIX="mrb-";
+
 	//TODO: maybe pull release in from mrb-grinder maven version?
 	private static final String RELEASE="0";
 
@@ -34,7 +36,7 @@ class Spec
 	File write(ModuleKey moduleKey, MavenJar mavenJar, RPMRepo rpmRepo) throws IOException
 	{
 		final
-		File jar=mavenJar.getFile();
+		File jar=mavenJar.getFile().getCanonicalFile();
 
 		final
 		File spec=new File(jar.getParent(), jar.getName()+".spec");
@@ -110,6 +112,13 @@ class Spec
 
 			final
 			Map<String,String> dependencyReplacements=buildDependencyReplacements(moduleKey, dependencies, mavenJar, generalInfos, execClassesByToolName);
+
+			sb=readTemplate("spec.postfix");
+
+			replace(sb, dependencyReplacements);
+			replace(sb, generalInfos);
+
+			out.write(sb.toString().getBytes());
 		}
 		finally
 		{
@@ -293,7 +302,7 @@ class Spec
 	{
 		StringBuilder sb=new StringBuilder();
 
-		InputStream in=Spec.class.getResourceAsStream(name);
+		InputStream in=Spec.class.getClassLoader().getResourceAsStream(name);
 
 		try
 		{

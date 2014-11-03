@@ -7,7 +7,7 @@ cd     $RPM_BUILD_ROOT
 mkdir -p  ./usr/java/@NAME@
 chmod 700 ./usr/java/@NAME@
 
-cp -v %{SOURCE0} ./usr/java/@NAME/@MODULE_NAME@.jar
+cp -v %{SOURCE0} ./usr/java/@NAME@/@MODULE_NAME@.jar
 
 cat -> ./usr/java/@NAME@/@MODULE_NAME@.deps <<EOF
 @DEPS_FILE_CONTENTS@

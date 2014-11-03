@@ -10,12 +10,16 @@ cat ->    ./usr/bin/@TOOL_NAME@ <<"EOF"
 # From the %{name} rpm package.
 #
 
-. /etc/sysconfig/javax-module
+. /etc/sysconfig/javax-module-v1
 
 MODULE=%{name}
 CLASS=@CLASS@
 
-exec $JAVA -Dmodule=$MODULE -Dclass=$CLASS $LOADER "$@"
+test -r /etc/sysconfig/%{name} && . /etc/sysconfig/%{name}
+
+unset CLASSPATH
+
+exec $JAVA $JAVA_OPTS -Dmodule=$MODULE -Dclass=$CLASS $MODULE_LOADER "$@"
 
 EOF
 

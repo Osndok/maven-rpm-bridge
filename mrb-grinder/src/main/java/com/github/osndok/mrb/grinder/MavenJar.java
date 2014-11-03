@@ -6,10 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.module.Version;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.module.Dependency;
 import javax.module.ModuleKey;
@@ -254,6 +254,8 @@ class MavenJar
 		final
 		Set<Dependency> retval=new HashSet<Dependency>();
 
+		retval.add(Version.JAVAX_MODULE.asDependencyOf(moduleKey));
+
 		for (MavenInfo info : listMavenDependenciesFromPomXml())
 		{
 			retval.add(rpmRepo.getFullModuleDependency(moduleKey, info));
@@ -266,6 +268,21 @@ class MavenJar
 	Set<MavenInfo> listMavenDependenciesFromPomXml() throws ParserConfigurationException, SAXException, IOException
 	{
 		Document pom = getPomXmlDom();
+
+		/*
+		Without a pom.xml, we have to way of determining what a jar's dependencies are.
+		However... some (particularly low-level) apis simply don't have deps, or are built
+		from the ant tool, and injected manually into the maven repo.
+
+		TODO: is there a way to get a pom.xml for a jar given only it's MavenInfo? It's worth trying.
+
+		 */
+		if (pom==null)
+		{
+			log.warn("could not find embedded pom.xml in: {}",file);
+			return Collections.emptySet();
+		}
+
 		pom.getDocumentElement().normalize();
 
 		NodeList dependencies = ((Element) pom.getElementsByTagName("dependencies").item(0)).getElementsByTagName("dependency");
@@ -279,13 +296,15 @@ class MavenJar
 		{
 			Element e = (Element) dependencies.item(i);
 
-			if (isTestScope(e))
+			MavenInfo mavenInfo=parseMavenDependency(e);
+
+			if (isTestOrProvidedScope(e))
 			{
-				log.debug("ignoring test scope: {}", e);
+				log.debug("ignoring test/provided scope: {}", mavenInfo);
 			}
 			else
 			{
-				retval.add(parseMavenDependency(e));
+				retval.add(mavenInfo);
 			}
 		}
 
@@ -303,14 +322,15 @@ class MavenJar
 	}
 
 	private
-	boolean isTestScope(Element dep)
+	boolean isTestOrProvidedScope(Element dep)
 	{
 		NodeList list = dep.getElementsByTagName("scope");
 
 		if (list.getLength()>=1)
 		{
-			Element scope=(Element)list.item(0);
-			if (scope.toString().toLowerCase().contains("test"))
+			String scope=list.item(0).getTextContent().toLowerCase();
+
+			if (scope.equals("test") || scope.equals("provided"))
 			{
 				return true;
 			}
@@ -321,6 +341,9 @@ class MavenJar
 		}
 		else
 		{
+			//BUG? Dependency scope might be declarable in a parent pom...
+			//Is it worth the trouble to support?
+			//I suppose that it doesn't hurt TOO much to have the test harness at runtime.
 			log.debug("no scope");
 		}
 
@@ -343,7 +366,7 @@ class MavenJar
 			}
 		}
 
-		throw new IllegalStateException("could not find embedded pom.xml file");
+		return null;
 	}
 
 	private

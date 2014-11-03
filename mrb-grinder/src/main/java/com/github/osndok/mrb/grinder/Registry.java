@@ -97,9 +97,17 @@ class Registry
 		log.warn("unable to locate dependency: {}", mavenInfo);
 
 		//TODO: make this into a depth counter (e.g. to bomb out [eventually] on circular dependencies), and on by default?
-		if (Boolean.getBoolean("RECURSIVE"))
+		if (Main.RECURSIVE)
 		{
-			return new Main(rpmRepo).getMajorVersionFromProcessingMavenArtifact(mavenInfo);
+			try
+			{
+				return new Main(rpmRepo).grindMavenArtifact(mavenInfo).getMajorVersion();
+			}
+			catch (ObsoleteJarException e)
+			{
+				//TODO: We can handle this better, it's probably a race condition of some kind.
+				throw new AssertionError("did not find item in registry, but claimedly obsolete?", e);
+			}
 		}
 		else
 		{

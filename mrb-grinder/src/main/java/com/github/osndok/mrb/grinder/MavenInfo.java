@@ -116,10 +116,11 @@ class MavenInfo implements Serializable
 		return result;
 	}
 
+	private
+	String stringValue;
+
 	/**
-	 * I seem to recall seeing a one-line maven identifier separated by colons...
-	 * but since I cannot find it is the documentation at the moment, we will not
-	 * rely on this for parsing.
+	 * This must match the artifact spec as required by dependency:copy, et al.
 	 *
 	 * @return
 	 */
@@ -127,7 +128,12 @@ class MavenInfo implements Serializable
 	public
 	String toString()
 	{
-		return groupId + ':' + artifactId + ':' + version;
+		if (stringValue==null)
+		{
+			stringValue=groupId + ':' + artifactId + ':' + version;
+		}
+
+		return stringValue;
 	}
 
 	public
@@ -141,7 +147,7 @@ class MavenInfo implements Serializable
 	{
 		if (parsablePrefix==null)
 		{
-			parsablePrefix=groupId + '>' + artifactId + '>' + version + '>';
+			parsablePrefix=groupId + ':' + artifactId + ':' + version + '>';
 		}
 		return parsablePrefix;
 	}

@@ -1,11 +1,13 @@
 package com.github.osndok.mrb.grinder;
 
+import com.github.osndok.mrb.grinder.util.Exec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.module.ModuleKey;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * Given a JAR file (or eventually a WAR file) grind it (and it's dependencies) into
@@ -16,7 +18,9 @@ class Main
 {
 	public static final String JAVAX_MODULE_EXEC = "mrb-grinder";
 
-	public static final Logger log = LoggerFactory.getLogger(Main.class);
+	public static final  Logger  log       = LoggerFactory.getLogger(Main.class);
+	public static final  boolean RECURSIVE = (Boolean.valueOf(System.getProperty("RECURSIVE", "true")));
+	private static final boolean DEBUG     = true;
 
 	private final
 	RPMRepo rpmRepo;
@@ -24,13 +28,13 @@ class Main
 	public
 	Main(String repoPath) throws IOException
 	{
-		this.rpmRepo=new RPMRepo(new File(repoPath));
+		this.rpmRepo = new RPMRepo(new File(repoPath));
 	}
 
 	public
 	Main(RPMRepo rpmRepo)
 	{
-		this.rpmRepo=rpmRepo;
+		this.rpmRepo = rpmRepo;
 	}
 
 	public static
@@ -72,7 +76,7 @@ class Main
 
 		if (isWarFile(file))
 		{
-			throw new UnsupportedOperationException("WARN files will be supported *soon*, but not yet");
+			grindWar(file);
 		}
 		else
 		if (isJarFile(file))
@@ -92,10 +96,17 @@ class Main
 	}
 
 	private
-	void grindJar(File jar) throws IOException, ObsoleteJarException
+	ModuleKey grindJar(File jar) throws IOException, ObsoleteJarException
 	{
-		MavenJar mavenJar=new MavenJar(jar);
-		MavenInfo mavenInfo=mavenJar.getInfo();
+		MavenJar mavenJar = new MavenJar(jar);
+		MavenInfo mavenInfo = mavenJar.getInfo();
+
+		return grindJar(jar, mavenJar, mavenInfo);
+	}
+
+	private
+	ModuleKey grindJar(File jar, MavenJar mavenJar, MavenInfo mavenInfo) throws IOException, ObsoleteJarException
+	{
 
 		rpmRepo.getRegistry().shouldNotContain(mavenInfo);
 
@@ -111,6 +122,29 @@ class Main
 		rpm.delete();
 
 		rpmRepo.rebuildMetadata();
+
+		return moduleKey;
+	}
+
+	private
+	ModuleKey grindWar(File jar) throws IOException, ObsoleteJarException
+	{
+		MavenJar mavenJar = new MavenJar(jar);
+		MavenInfo mavenInfo = mavenJar.getInfo();
+
+		return grindWar(jar, mavenJar, mavenInfo);
+	}
+
+	private
+	ModuleKey grindWar(File jar, MavenJar mavenJar, MavenInfo mavenInfo) throws IOException, ObsoleteJarException
+	{
+		//(1) Expand the war to a temporary directory (such that we can re-jar it, or rpmbuild it?)
+		//(2) convert every jar in the libs directory to a module dependency (ignore javax-servlet?)
+		//(3) convert the classes inside the war to a new module
+		//(4a) HOW: can we get the production (or development?) port number from the WAR? pom.xml? and the uncompliant ones?
+		//(4b) MAYBE: just install them tomcat-style with the module/version prefix?
+		//(5)  write the spec/rpm to the repo
+		throw new UnsupportedOperationException("unimplemented");
 	}
 
 	private
@@ -120,14 +154,101 @@ class Main
 	}
 
 	private
+	boolean isPomFile(File file)
+	{
+		return file.getName().equals("pom.xml");
+	}
+
+	private
 	boolean isWarFile(File file)
 	{
 		return file.getName().toLowerCase().endsWith(".war");
 	}
 
 	public
-	String getMajorVersionFromProcessingMavenArtifact(MavenInfo mavenInfo)
+	ModuleKey grindMavenArtifact(MavenInfo mavenInfo) throws IOException, ObsoleteJarException
 	{
-		throw new UnsupportedOperationException("unimplemented");
+		final
+		File dir=new File(Exec.toString("mktemp", "-d", "/tmp/mrb-maven-dep-copy-XXXXXXXX").trim());
+
+		boolean success=false;
+
+		try
+		{
+			log.info("downloading {} to {}", mavenInfo, dir);
+			Exec.andWait("mvn","dependency:copy","-Dartifact="+mavenInfo, "-DoutputDirectory="+dir.getAbsolutePath());
+
+			final
+			File[] onlyOne = dir.listFiles();
+
+			if (onlyOne==null || onlyOne.length!=1)
+			{
+				throw new IOException("expecting only one maven download, but got: "+ Arrays.toString(onlyOne));
+			}
+
+			final
+			File file=onlyOne[0];
+
+			final
+			ModuleKey retval;
+
+			if (isJarFile(file))
+			{
+				//Perhaps there is a benefit to having mavenInfo available externally? Can we grind deps that were manually put into maven?
+				final
+				MavenJar mavenJar = new MavenJar(file, mavenInfo);
+
+				retval = grindJar(file, mavenJar, mavenInfo);
+			}
+			else
+			if (isPomFile(file))
+			{
+				//TODO: check: I think that one can specify a parent/pom a a dep, and it adds all it's modules? correct?
+				throw new UnsupportedOperationException("unimplemented: can't process pom file deps");
+			}
+			else
+			if (isWarFile(file))
+			{
+				final
+				MavenJar mavenJar = new MavenJar(file, mavenInfo);
+
+				retval = grindWar(file, mavenJar, mavenInfo);
+			}
+			else
+			{
+				throw new UnsupportedOperationException("don't know of (or have a process for): "+file.getName());
+			}
+
+			success=true;
+
+			return retval;
+		}
+		finally
+		{
+			if (!DEBUG || success)
+			{
+				for (File file : notNull(dir.listFiles()))
+				{
+					log.debug("delete: {}", file);
+					file.delete();
+				}
+
+				log.debug("rmdir: {}", dir);
+				dir.delete();
+			}
+		}
+	}
+
+	private
+	File[] notNull(File[] files)
+	{
+		if (files==null)
+		{
+			return new File[0];
+		}
+		else
+		{
+			return files;
+		}
 	}
 }

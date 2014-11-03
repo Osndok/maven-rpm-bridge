@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
@@ -101,14 +102,20 @@ class RPM
 
 	private static final Logger log = LoggerFactory.getLogger(RPM.class);
 
+	//TODO: fix presumption that spec dir is writable, ATM we place the spec next to the jar, and 'out' can collide.
 	public static
 	File build(File spec, File jar) throws IOException
 	{
-		File writable = spec.getParentFile();
+		File writable = spec.getParentFile().getCanonicalFile();
+		File out=new File(writable, "out");
+		out.mkdir();
 
-		String lines = Exec.toString("rpmbuild", "--define", "_rpmdir " + writable, "--define",
-										"_sourcedir " + jar.getParentFile(), "-bb", spec.getAbsolutePath());
+		String lines = Exec.toString("rpmbuild", "--define", "_rpmdir " + out, "--define",
+										"_sourcedir " + jar.getParentFile().getCanonicalPath(), "-bb", spec.getAbsolutePath());
 
+		log.info("rpmbuild output:\n{}", lines);
+
+		/*
 		BufferedReader br = new BufferedReader(new StringReader(lines));
 
 		String line;
@@ -122,5 +129,16 @@ class RPM
 		}
 
 		throw new IOException("could not recover rpm name from rpmbuild output");
+		*/
+
+		File noarch=new File(out, "noarch");
+		File[] onlyRpm = noarch.listFiles();
+
+		if (onlyRpm==null || onlyRpm.length!=1)
+		{
+			throw new IOException("rpmbuild should have produced one RPM, but got: "+ Arrays.toString(onlyRpm));
+		}
+
+		return onlyRpm[0];
 	}
 }
