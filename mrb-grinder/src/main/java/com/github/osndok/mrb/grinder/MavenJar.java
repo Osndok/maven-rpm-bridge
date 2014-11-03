@@ -341,7 +341,11 @@ class MavenJar
 		final
 		Set<Dependency> retval=new HashSet<Dependency>();
 
-		retval.add(Version.JAVAX_MODULE.asDependencyOf(moduleKey));
+		//Read: everything but the module loader requires the module loader.
+		if (!moduleKey.getModuleName().equals("javax-module"))
+		{
+			retval.add(Version.JAVAX_MODULE.asDependencyOf(moduleKey));
+		}
 
 		for (MavenInfo info : listMavenDependenciesFromPomXml())
 		{

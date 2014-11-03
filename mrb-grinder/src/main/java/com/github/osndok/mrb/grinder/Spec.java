@@ -74,6 +74,7 @@ class Spec
 
 		try
 		{
+			//TODO: minor version is not being picked carried here (inside moduleKey)
 			dependencies=mavenJar.listRpmDependencies(moduleKey, rpmRepo);
 		}
 		catch (DependencyNotProcessedException e)
@@ -314,6 +315,7 @@ class Spec
 	byte[] requiresLine(Dependency dependency)
 	{
 		StringBuilder sb=new StringBuilder("Requires: ");
+		sb.append(RPM_NAME_PREFIX);
 		sb.append(dependency.toString());
 
 		String minor=dependency.getMinorVersion();
