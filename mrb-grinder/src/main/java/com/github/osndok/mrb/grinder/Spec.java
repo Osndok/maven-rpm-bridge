@@ -140,8 +140,8 @@ class Spec
 		Map<String, String> retval=new HashMap<String, String>();
 
 		retval.put("@DEPS_FILE_CONTENTS@", depsFile(moduleKey, dependencies));
-		retval.put("@BUILD_EXEC_FILES@", buildExecFiles(execClassesByToolName, generalInfos));
-		retval.put("@EXEC_PATHS@", execPaths(execClassesByToolName));
+		retval.put("@BUILD_EXEC_FILES@", buildExecFiles(execClassesByToolName, generalInfos, mavenJar, moduleKey));
+		retval.put("@EXEC_PATHS@", execPaths(execClassesByToolName, moduleKey));
 
 		return retval;
 	}
@@ -201,7 +201,11 @@ class Spec
 	}
 
 	private static
-	String buildExecFiles(Map<String, String> execClassesByToolName, Map<String, String> generalInfos) throws IOException
+	String buildExecFiles(
+							 Map<String, String> execClassesByToolName,
+							 Map<String, String> generalInfos,
+							 MavenJar mavenJar, ModuleKey moduleKey
+	) throws IOException
 	{
 		final
 		StringBuilder retval=new StringBuilder();
@@ -211,27 +215,44 @@ class Spec
 			String toolName = me.getKey();
 			String className = me.getValue();
 
-			StringBuilder sb=readTemplate("spec.exec");
+			if (toolName.equals("sysconfig"))
+			{
+				retval.append("\n\nmkdir -p ./etc/sysconfig\ncat -> ./etc/sysconfig/").append(moduleKey).append(" <<\"EOF\"\n");
+				mavenJar.appendSysconfig(retval);
+				retval.append("\nEOF\n");
+			}
+			else
+			{
+				StringBuilder sb = readTemplate("spec.exec");
 
-			replace(sb, generalInfos);
-			replace(sb, "@TOOL_NAME@", toolName);
-			replace(sb, "@CLASS@", className);
+				replace(sb, generalInfos);
+				replace(sb, "@TOOL_NAME@", toolName);
+				replace(sb, "@CLASS@", className);
 
-			retval.append(sb.toString());
+				retval.append(sb.toString());
+			}
 		}
 
 		return retval.toString();
 	}
 
 	private static
-	String execPaths(Map<String, String> execClassesByToolName)
+	String execPaths(Map<String, String> execClassesByToolName, ModuleKey moduleKey)
 	{
 		StringBuilder sb=new StringBuilder();
 
 		for (Map.Entry<String, String> me : execClassesByToolName.entrySet())
 		{
 			String toolName=me.getKey();
-			sb.append("/usr/bin/").append(toolName).append("\n");
+
+			if (toolName.equals("sysconfig"))
+			{
+				sb.append("/etc/sysconfig/").append(moduleKey).append('\n');
+			}
+			else
+			{
+				sb.append("/usr/bin/").append(toolName).append('\n');
+			}
 		}
 
 		return sb.toString();

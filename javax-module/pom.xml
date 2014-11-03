@@ -19,14 +19,7 @@
     <artifactId>javax-module</artifactId>
     <packaging>jar</packaging>
 
-	<!--
-	WARNING: changing the major version number requires that it also be changed:
-	* in the "sysconfig" resource
-	* in the grinder, as the dependency link(s)
-	* in the grinder, as the spec.exec source/include
-	* in the Version.JAVAX_MODULE key (which might let us not load a duplicate javax-module at runtime)
-	-->
-    <version>1.0.0</version>
+    <version>${javax.module.version}</version>
 
     <dependencies>
 
@@ -36,6 +29,7 @@
 			<groupId>org.testng</groupId>
 			<artifactId>testng</artifactId>
 			<version>6.8.8</version>
+			<scope>test</scope>
 		</dependency>
 
 	</dependencies>

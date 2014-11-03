@@ -24,6 +24,7 @@ import java.net.MalformedURLException;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
 
 /**
  * Created by robert on 10/30/14.
@@ -191,7 +192,20 @@ class MavenJar
 			retval.put(retval.keySet().iterator().next(), moduleKey.toString());
 		}
 
+		//TODO: fixme: this is a bit hackish...
+		if (hasSysconfigResource())
+		{
+			retval.put("sysconfig", "true");
+		}
+
 		return retval;
+	}
+
+	private
+	boolean hasSysconfigResource()
+	{
+		ZipEntry entry = jarFile.getEntry("sysconfig");
+		return (entry!=null);
 	}
 
 	private
@@ -375,4 +389,22 @@ class MavenJar
 		return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
 	}
 
+	public
+	void appendSysconfig(StringBuilder sb) throws IOException
+	{
+		InputStream in = jarFile.getInputStream(jarFile.getEntry("sysconfig"));
+		try
+		{
+			//TODO: forbid "EOF" line
+			int i;
+			while ((i=in.read())>0)
+			{
+				sb.append((char)i);
+			}
+		}
+		finally
+		{
+			in.close();
+		}
+	}
 }
