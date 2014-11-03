@@ -1,17 +1,28 @@
 package com.github.osndok.mrb.grinder;
 
-import com.google.common.collect.Multimap;
+import com.github.osndok.mrb.grinder.aether.ConsoleRepositoryListener;
+import com.github.osndok.mrb.grinder.aether.ConsoleTransferListener;
+import com.github.osndok.mrb.grinder.aether.ManualRepositorySystemFactory;
+import org.apache.maven.repository.internal.MavenRepositorySystemSession;
 import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
 import org.reflections.Store;
-import org.reflections.scanners.ResourcesScanner;
 import org.reflections.scanners.SubTypesScanner;
-import org.reflections.scanners.TypesScanner;
 import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonatype.aether.RepositorySystem;
+import org.sonatype.aether.RepositorySystemSession;
+import org.sonatype.aether.artifact.Artifact;
+import org.sonatype.aether.repository.LocalRepository;
+import org.sonatype.aether.repository.RemoteRepository;
+import org.sonatype.aether.resolution.ArtifactDescriptorException;
+import org.sonatype.aether.resolution.ArtifactDescriptorRequest;
+import org.sonatype.aether.resolution.ArtifactDescriptorResult;
+import org.sonatype.aether.util.artifact.DefaultArtifact;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -188,7 +199,7 @@ class MavenJar
 			}
 			catch (Throwable t)
 			{
-				log.error("unable to load {}", name, t);
+				log.error("unable to load {}: {}", name, t.toString());
 				continue;
 			}
 
@@ -293,6 +304,12 @@ class MavenJar
 		{
 			return false;
 		}
+		catch (Throwable t)
+		{
+			//TODO: *often* a module will have methods with missing parameter/return types, and the getDeclaredMethods throws, even though we only ask for the one type... workaround: if you want your main functions exposed as CLI objects, put your main methods in 'safe' classes.
+			log.warn("can't inspect class: {}", t.toString());
+			return false;
+		}
 	}
 
 	private
@@ -328,7 +345,21 @@ class MavenJar
 
 		for (MavenInfo info : listMavenDependenciesFromPomXml())
 		{
-			retval.add(rpmRepo.getFullModuleDependency(moduleKey, info));
+			try
+			{
+				retval.add(rpmRepo.getFullModuleDependency(moduleKey, info));
+			}
+			catch (IOException e)
+			{
+				if (info.isOptional())
+				{
+					log.error("skipping optional maven dependency: {}", info, e);
+				}
+				else
+				{
+					throw new IOException();
+				}
+			}
 		}
 
 		return retval;
@@ -355,40 +386,145 @@ class MavenJar
 
 		pom.getDocumentElement().normalize();
 
-		NodeList dependencies = ((Element) pom.getElementsByTagName("dependencies").item(0)).getElementsByTagName("dependency");
+
+		Node depsGroup = pom.getElementsByTagName("dependencies").item(0);
+
+		if (!(depsGroup instanceof Element))
+		{
+			//usually null...
+			log.info("dependencies is not an element: {}", depsGroup);
+			return Collections.emptySet();
+		}
+
+		NodeList dependencies = ((Element)depsGroup).getElementsByTagName("dependency");
 
 		int l=dependencies.getLength();
 
-		final
-		Set<MavenInfo> retval=new HashSet<MavenInfo>();
+		String context=file.getName()+"::pom.xml";
 
-		for (int i=0; i<l; i++)
+		try
 		{
-			Element e = (Element) dependencies.item(i);
+			final
+			Set<MavenInfo> retval = new HashSet<MavenInfo>();
 
-			MavenInfo mavenInfo=parseMavenDependency(e);
+			for (int i = 0; i < l; i++)
+			{
+				Element e = (Element) dependencies.item(i);
 
-			if (isTestOrProvidedScope(e))
-			{
-				log.debug("ignoring test/provided scope: {}", mavenInfo);
+				MavenInfo mavenInfo = parseMavenDependency(context, e);
+
+				if (isTestOrProvidedScope(e))
+				{
+					log.debug("ignoring test/provided scope: {}", mavenInfo);
+				}
+				else
+				{
+					retval.add(mavenInfo);
+				}
 			}
-			else
-			{
-				retval.add(mavenInfo);
-			}
+
+			return retval;
 		}
+		catch (AetherRequiredException e)
+		{
+			if (log.isInfoEnabled())
+			{
+				log.info("moving to aether backup plan: {}", e.toString());
+			}
 
-		return retval;
+			RepositorySystem system = ManualRepositorySystemFactory.newRepositorySystem();
+
+			RepositorySystemSession session = newRepositorySystemSession(system);
+
+			Artifact artifact = new DefaultArtifact( getInfo().toString() );
+
+			RemoteRepository repo = new RemoteRepository( "central", "default", "http://repo1.maven.org/maven2/" );
+
+			ArtifactDescriptorRequest descriptorRequest = new ArtifactDescriptorRequest();
+			descriptorRequest.setArtifact( artifact );
+			descriptorRequest.addRepository( repo );
+
+			ArtifactDescriptorResult descriptorResult;
+
+			try
+			{
+				descriptorResult=system.readArtifactDescriptor( session, descriptorRequest );
+			}
+			catch (ArtifactDescriptorException e1)
+			{
+				throw new IOException("unable to read artifact descriptor", e1);
+			}
+
+			final
+			Set<MavenInfo> retval = new HashSet<MavenInfo>();
+
+			for ( org.sonatype.aether.graph.Dependency dependency : descriptorResult.getDependencies() )
+			{
+				System.out.println( dependency );
+				String scope=dependency.getScope();
+				Artifact aetherArtifact = dependency.getArtifact();
+
+				if (!isTestOrProvidedScope(scope))
+				{
+					retval.add(new MavenInfo(aetherArtifact.getGroupId(), aetherArtifact.getArtifactId(), aetherArtifact.getVersion(), dependency.isOptional()));
+				}
+			}
+
+			return retval;
+		}
 	}
 
 	private
-	MavenInfo parseMavenDependency(Element dep)
+	RepositorySystemSession newRepositorySystemSession(RepositorySystem system)
 	{
-		String groupId=dep.getElementsByTagName("groupId").item(0).getTextContent();
-		String artifactId=dep.getElementsByTagName("artifactId").item(0).getTextContent();
-		String version=dep.getElementsByTagName("version").item(0).getTextContent();
+		MavenRepositorySystemSession session = new MavenRepositorySystemSession();
+		LocalRepository localRepo = new LocalRepository( "target/local-repo" );
+		session.setLocalRepositoryManager( system.newLocalRepositoryManager( localRepo ) );
+		session.setTransferListener( new ConsoleTransferListener() );
+		session.setRepositoryListener( new ConsoleRepositoryListener() );
+		// uncomment to generate dirty trees
+		// session.setDependencyGraphTransformer( null );
+		return session;
+	}
 
-		return new MavenInfo(groupId, artifactId, version);
+	private
+	MavenInfo parseMavenDependency(String context, Element dep) throws AetherRequiredException
+	{
+		String artifactId= getPomTag(context, dep, "artifactId");
+		context+=" dependency/artifact '"+artifactId+"'";
+		String groupId= getPomTag(context, dep, "groupId");
+		String version= getPomTag(context, dep, "version");
+
+		boolean optional=false;
+
+		Node node=dep.getElementsByTagName("optional").item(0);
+
+		if (node!=null)
+		{
+			optional=node.getTextContent().equals("true");
+		}
+
+		return new MavenInfo(groupId, artifactId, version, optional);
+	}
+
+	private
+	String getPomTag(String context, Element element, String tagName) throws AetherRequiredException
+	{
+		NodeList nodeList = element.getElementsByTagName(tagName);
+
+		Node node = nodeList.item(0);
+		if (node==null)
+		{
+			throw new AetherRequiredException(context+" does not have a "+tagName+" tag");
+		}
+
+		String retval=node.getTextContent();
+		if (retval.contains("{"))
+		{
+			throw new AetherRequiredException(context+" '"+tagName+"' tag contains a macro expansion");
+		}
+
+		return retval;
 	}
 
 	private
@@ -400,14 +536,7 @@ class MavenJar
 		{
 			String scope=list.item(0).getTextContent().toLowerCase();
 
-			if (scope.equals("test") || scope.equals("provided"))
-			{
-				return true;
-			}
-			else
-			{
-				log.info("scope={}", scope);
-			}
+			return isTestOrProvidedScope(scope);
 		}
 		else
 		{
@@ -418,6 +547,12 @@ class MavenJar
 		}
 
 		return false;
+	}
+
+	private
+	boolean isTestOrProvidedScope(String scope)
+	{
+		return scope!=null && (scope.equals("test") || scope.equals("provided"));
 	}
 
 	private

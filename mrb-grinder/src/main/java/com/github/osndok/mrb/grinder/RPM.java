@@ -47,6 +47,8 @@ class RPM
 		if (moduleKey == null)
 		{
 			String rpmName = Exec.toString("rpm", "--queryformat", "%{NAME}", "-qp", file.getAbsolutePath());
+			String noPrefix=removePrefix(rpmName, Spec.RPM_NAME_PREFIX);
+			log.debug("{} -> {}", rpmName, noPrefix);
 			try
 			{
 				moduleKey = ModuleKey.parseModuleKey(rpmName);
@@ -58,6 +60,12 @@ class RPM
 		}
 
 		return moduleKey;
+	}
+
+	private
+	String removePrefix(String rpmName, String rpmNamePrefix)
+	{
+		return rpmName.substring(rpmNamePrefix.length());
 	}
 
 	public

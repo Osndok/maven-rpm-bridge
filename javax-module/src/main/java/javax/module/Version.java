@@ -61,7 +61,19 @@ class Version implements Comparable<Version>, Serializable
 	public static
 	int compare(String a, String b)
 	{
-		return new Version(a).compareTo(new Version(b));
+		if (a==null)
+		{
+			return (b==null?0:-1);
+		}
+		else
+		if (b==null)
+		{
+			return 1;
+		}
+		else
+		{
+			return new Version(a).compareTo(new Version(b));
+		}
 	}
 
 	private static

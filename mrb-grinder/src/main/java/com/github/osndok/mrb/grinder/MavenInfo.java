@@ -21,16 +21,33 @@ class MavenInfo implements Serializable
 	private transient
 	String parsablePrefix;
 
+	private final
+	boolean optional;
+
 	public
 	MavenInfo(String groupId, String artifactId, String version)
 	{
 		if (groupId == null) throw new NullPointerException("groupIp is missing");
-		if (artifactId==null) throw new NullPointerException("artifactId is missing");
+		if (artifactId == null) throw new NullPointerException("artifactId is missing");
 		if (version   ==null) throw new NullPointerException("version is missing");
 
 		this.groupId = groupId;
 		this.artifactId = artifactId;
 		this.version = version;
+		this.optional = false;
+	}
+
+	public
+	MavenInfo(String groupId, String artifactId, String version, boolean optional)
+	{
+		if (groupId == null) throw new NullPointerException("groupIp is missing");
+		if (artifactId == null) throw new NullPointerException("artifactId is missing");
+		if (version   ==null) throw new NullPointerException("version is missing");
+
+		this.groupId = groupId;
+		this.artifactId = artifactId;
+		this.version = version;
+		this.optional=optional;
 	}
 
 	public
@@ -163,5 +180,11 @@ class MavenInfo implements Serializable
 		{
 			return null;
 		}
+	}
+
+	public
+	boolean isOptional()
+	{
+		return optional;
 	}
 }

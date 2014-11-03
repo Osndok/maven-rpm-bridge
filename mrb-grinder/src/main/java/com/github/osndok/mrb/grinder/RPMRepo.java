@@ -53,15 +53,30 @@ class RPMRepo
 	public
 	ModuleKey mostSpecificCompatibleAndPreExistingVersion(MavenJar mavenJar) throws ObsoleteJarException, IOException
 	{
+		final
 		MavenInfo mavenInfo=mavenJar.getInfo();
+
 		final
 		Object[] bits= Version.split(mavenInfo.getVersion());
 
+		final
+		int length=bits.length;
+
+		if (length==0)
+		{
+			throw new IOException("empty version string? parsed to zero segment! "+mavenInfo);
+		}
+
+		if (length==1)
+		{
+			return new ModuleKey(mavenInfo.getModuleNameCandidate(), bits[0].toString(), null);
+		}
+
 		ModuleKey guess=null;
 
-		log.debug("split into {} bits", bits.length);
+		log.debug("split into {} bits", length);
 
-		for (int i=bits.length-1; i>0; i--)
+		for (int i=length-1; i>0; i--)
 		{
 			guess = deriveVersionGuess(bits, i, mavenInfo);
 
@@ -98,6 +113,11 @@ class RPMRepo
 	private
 	boolean equalOrOlder(ModuleKey guess, ModuleKey existing)
 	{
+		if (existing==null)
+		{
+			throw new NullPointerException("existing cannot be null");
+		}
+
 		//Both fetchable by the same key... (equal module name & major version)
 		assert(guess.equals(existing));
 

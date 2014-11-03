@@ -64,6 +64,7 @@
 		-->
 		<javax.module.version>1.0.0</javax.module.version>
 
+		<aether.version>1.13.1</aether.version>
     </properties>
 
 </project>
