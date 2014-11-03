@@ -55,7 +55,7 @@ class Spec
 		{
 			generalInfos=new HashMap<String, String>();
 			generalInfos.put("@NAME@", moduleKey.toString());
-			generalInfos.put("@VERSION@", moduleKey.getMajorVersion() + "." + moduleKey.getMinorVersion());
+			generalInfos.put("@VERSION@", rpmVersionString(moduleKey));
 			generalInfos.put("@RELEASE@", RELEASE);
 
 			//TODO: extract license information from embedded pom.xml
@@ -126,6 +126,38 @@ class Spec
 		}
 
 		return spec;
+	}
+
+	private static
+	String rpmVersionString(ModuleKey moduleKey)
+	{
+		final
+		String majorVersion=moduleKey.getMajorVersion();
+
+		final
+		String minorVersion=moduleKey.getMinorVersion();
+
+		if (majorVersion==null)
+		{
+			if (minorVersion==null)
+			{
+				//NB: "snapshot is already in the rpm name
+				return "0";
+			}
+			else
+			{
+				return "0."+minorVersion;
+			}
+		}
+		else
+		if (minorVersion==null)
+		{
+			return majorVersion;
+		}
+		else
+		{
+			return majorVersion+"."+minorVersion;
+		}
 	}
 
 	private static

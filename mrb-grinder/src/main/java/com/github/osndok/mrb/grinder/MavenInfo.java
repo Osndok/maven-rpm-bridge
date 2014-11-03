@@ -156,7 +156,14 @@ class MavenInfo implements Serializable
 	public
 	String toParsableLine(String majorVersion)
 	{
-		return getParsablePrefix() + majorVersion + "\n";
+		if (majorVersion==null)
+		{
+			return getParsablePrefix() + "snapshot\n";
+		}
+		else
+		{
+			return getParsablePrefix() + majorVersion + "\n";
+		}
 	}
 
 	private
