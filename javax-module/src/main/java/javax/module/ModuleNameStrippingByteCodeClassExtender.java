@@ -19,6 +19,7 @@ import java.io.IOException;
  */
 class ModuleNameStrippingByteCodeClassExtender
 {
+	public static final String JAVAX_MODULE_EXEC=Version.JAVAX_MODULE+"-bytecode-extension-test";
 
 	private final String oldName;
 	private final String newName;

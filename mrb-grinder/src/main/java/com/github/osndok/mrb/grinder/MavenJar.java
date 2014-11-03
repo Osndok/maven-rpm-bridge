@@ -1,6 +1,12 @@
 package com.github.osndok.mrb.grinder;
 
+import com.google.common.collect.Multimap;
+import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
+import org.reflections.Store;
+import org.reflections.scanners.ResourcesScanner;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.TypesScanner;
 import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +27,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -135,17 +142,60 @@ class MavenJar
 		Map<String,String> retval=new HashMap<String, String>();
 		String mainClassName=getMainClassName();
 
+		URL url=file.toURI().toURL();
+
+		log.debug("listing classes in: {}", url);
+
 		//And the sad thing is... this unreadable glob is actually *much-easier* than any "standard" way of doing it...
-		Reflections reflections = new Reflections(new ConfigurationBuilder().setUrls(Collections.singleton(file.toURI().toURL())));
+		Reflections reflections = new Reflections(
+			new ConfigurationBuilder()
+				.setScanners(new SubTypesScanner(false))
+				//.setScanners(new SubTypesScanner(false), new ResourcesScanner())
+				//.setScanners(new TypesScanner())
+				.setUrls(Collections.singleton(url))
+		);
 
 		boolean hasOverride=false;
 
-		for (Class<?> aClass : reflections.getSubTypesOf(Object.class))
+		Store store=reflections.getStore();
+		//Collection<Class<?>> classes=reflections.getSubTypesOf(Object.class);
+		//Set<String> jarContents = store.keySet();
+		//log.debug("found {} classes & resources", jarContents.size());
+
+		//for (Class<?> aClass : classes)
+		//for (Map.Entry<String, String> me : store.get("SubTypesScanner").entries())
+		//for (Map.Entry<String, String> me : store.get("TypesScanner").entries())
+		//for (String name : reflections.getAllTypes())
+		for (String name : store.get("SubTypesScanner").values())
 		{
+			log.trace("class name: {}", name);
+			//Multimap<String, String> multiValue = store.get(name);
+
+			/*
+			for (Map.Entry<String, String> me : multiValue.entries())
+			{
+				String key=me.getKey();
+				String value=me.getValue();
+				log.debug("{} -> {}", key, value);
+			}
+			*/
+			//TODO: initializing a class might throw an exception, or run static code (e.g. JDBC driver installation)
+			Class<?> aClass;
+
+			try
+			{
+				aClass=ReflectionUtils.forName(name, reflections.getConfiguration().getClassLoaders());
+			}
+			catch (Throwable t)
+			{
+				log.error("unable to load {}", name, t);
+				continue;
+			}
+
 			if (hasPublicStaticMainMethod(aClass))
 			{
 				String className=aClass.getName();
-				log.debug("has main: {}", className);
+				log.info("has main class: {}", className);
 
 				String toolName=moduleKey.toString()+(className.equals(mainClassName)?"":"-"+aClass.getSimpleName());
 
@@ -184,6 +234,10 @@ class MavenJar
 					retval.put(override, className);
 				}
 			}
+			else
+			{
+				log.debug("no main class: {}", aClass);
+			}
 		}
 
 		if (retval.size()==1 && !hasOverride)
@@ -219,7 +273,10 @@ class MavenJar
 		}
 		catch (Exception e)
 		{
-			log.info("can't get javax-module-exec field", e);
+			if (log.isDebugEnabled())
+			{
+				log.debug("can't get javax-module-exec field: {}", e.toString());
+			}
 			return null;
 		}
 	}
@@ -234,7 +291,6 @@ class MavenJar
 		}
 		catch (NoSuchMethodException e)
 		{
-			log.debug("hasPublicStaticMainMethod?", e);
 			return false;
 		}
 	}
