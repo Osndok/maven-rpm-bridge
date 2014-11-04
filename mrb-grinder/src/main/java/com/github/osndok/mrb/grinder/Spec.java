@@ -194,7 +194,7 @@ class Spec
 		}
 		else
 		{
-			sb.append("\n# ").append(moduleKey).append(" dependencies:\n");
+			sb.append("\n# ... and its dependencies:\n");
 
 			for (Dependency dependency : dependencies)
 			{

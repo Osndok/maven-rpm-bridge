@@ -6,10 +6,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.text.ParseException;
-import java.util.Map;
 
 /**
- * Created by robert on 10/30/14.
+ * TODO: the startup context should be such that, if a submodule (say slf4j-api) does not have a direct class match (say, for LoggerFactory), then it can be satisfied by the Startup context (which has slf4j-simple). This might also fix the most common Class.forName() issues.
  */
 public
 class Startup extends ClassLoader
