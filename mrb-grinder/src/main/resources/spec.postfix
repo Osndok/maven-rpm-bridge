@@ -4,12 +4,12 @@ rm -rf $RPM_BUILD_ROOT
 mkdir  $RPM_BUILD_ROOT
 cd     $RPM_BUILD_ROOT
 
-mkdir -p  ./usr/java/@NAME@
-chmod 700 ./usr/java/@NAME@
+mkdir -p  ./usr/share/java/@NAME@
+chmod 700 ./usr/share/java/@NAME@
 
-cp -v %{SOURCE0} ./usr/java/@NAME@/@MODULE_NAME@.jar
+cp -v %{SOURCE0} ./usr/share/java/@NAME@/@MODULE_NAME@.jar
 
-cat -> ./usr/java/@NAME@/@MODULE_NAME@.deps <<EOF
+cat -> ./usr/share/java/@NAME@/@MODULE_NAME@.deps <<EOF
 @DEPS_FILE_CONTENTS@
 EOF
 
@@ -20,7 +20,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-/usr/java/@NAME@
-%config /usr/java/@NAME@/@MODULE_NAME@.deps
+/usr/share/java/@NAME@
+%config /usr/share/java/@NAME@/@MODULE_NAME@.deps
 
 @EXEC_PATHS@

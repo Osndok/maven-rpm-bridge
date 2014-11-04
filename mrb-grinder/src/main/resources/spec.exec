@@ -12,10 +12,10 @@ cat ->    ./usr/bin/@TOOL_NAME@ <<"EOF"
 
 . /etc/sysconfig/javax-module-v1
 
-MODULE=%{name}
+MODULE=@NAME@
 CLASS=@CLASS@
 
-test -r /etc/sysconfig/%{name} && . /etc/sysconfig/%{name}
+test -r /etc/sysconfig/@NAME@ && . /etc/sysconfig/@NAME@
 
 unset CLASSPATH
 

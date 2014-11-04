@@ -174,7 +174,7 @@ class Startup extends ClassLoader
 			}
 			else
 			{
-				return new File("/usr/lib/java");
+				return new File("/usr/share/java");
 			}
 		}
 	}
