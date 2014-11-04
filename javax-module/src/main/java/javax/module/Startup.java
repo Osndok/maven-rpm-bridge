@@ -261,7 +261,7 @@ class Startup extends ClassLoader
 
 		Method method=aClass.getMethod("main", String[].class);
 
-		method.invoke(args);
+		method.invoke(null, new Object[]{args});
 	}
 
 }
