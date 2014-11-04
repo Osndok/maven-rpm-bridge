@@ -72,8 +72,18 @@ class RPM
 	{
 		try
 		{
-			String minor = maybeRemovePrefix(rpmVersion, moduleKey.getMajorVersion() + ".");
-			return new ModuleKey(moduleKey.getModuleName(), moduleKey.getMajorVersion(), minor);
+			String majorVersion=moduleKey.getMajorVersion();
+
+			if (rpmVersion.equals(majorVersion))
+			{
+				//e.g. "javax.inject-v1-1" rpmVersion does not include minor b/c it DNE.
+				return moduleKey;
+			}
+			else
+			{
+				String minor = maybeRemovePrefix(rpmVersion, moduleKey.getMajorVersion() + ".");
+				return new ModuleKey(moduleKey.getModuleName(), majorVersion, minor);
+			}
 		}
 		catch (Exception e)
 		{

@@ -40,8 +40,10 @@ import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
+import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
 /**
@@ -322,7 +324,15 @@ class MavenJar
 		{
 			try
 			{
-				mainClassName = jarFile.getManifest().getMainAttributes().getValue("Main-Class");
+				//TODO: there is a NPE in here somewhere...
+				Manifest manifest = jarFile.getManifest();
+				Attributes mainAttributes = manifest.getMainAttributes();
+				mainClassName = mainAttributes.getValue("Main-Class");
+
+				if (mainClassName==null)
+				{
+					mainClassName="dne; do not match any class"; //fix me, if thisb ecomes a public method...
+				}
 			}
 			catch (Exception e)
 			{
