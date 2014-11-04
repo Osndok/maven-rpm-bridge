@@ -324,8 +324,14 @@ class MavenJar
 		{
 			try
 			{
-				//TODO: there is a NPE in here somewhere...
 				Manifest manifest = jarFile.getManifest();
+
+				if (manifest==null)
+				{
+					mainClassName="dne; do not match any class"; //fix me, if thisb ecomes a public method...
+					return mainClassName;
+				}
+
 				Attributes mainAttributes = manifest.getMainAttributes();
 				mainClassName = mainAttributes.getValue("Main-Class");
 
