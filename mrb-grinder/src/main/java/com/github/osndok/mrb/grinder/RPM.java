@@ -9,14 +9,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.module.ModuleKey;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Created by robert on 10/30/14.
@@ -25,6 +24,7 @@ public
 class RPM
 {
 	private static final String RPMBUILD_INDICATOR_PREFIX = "Wrote: ";
+	private static final String REGEX_SAFE_PIPING_SYMBOL  = Pattern.quote("|");
 
 	private final
 	File file;
@@ -46,12 +46,17 @@ class RPM
 	{
 		if (moduleKey == null)
 		{
-			String rpmName = Exec.toString("rpm", "--queryformat", "%{NAME}", "-qp", file.getAbsolutePath());
-			String noPrefix=removePrefix(rpmName, Spec.RPM_NAME_PREFIX);
-			log.debug("{} -> {}", rpmName, noPrefix);
+			String namePipeVersion = Exec.toString("rpm", "--queryformat", "%{NAME}|%{VERSION}", "-qp",
+													  file.getAbsolutePath());
+			log.debug("namePipeVersion='{}'", namePipeVersion);
+			String[] bits = namePipeVersion.split(REGEX_SAFE_PIPING_SYMBOL);
+			String rpmName = bits[0];
+			String rpmVersion = bits[1];
+			String noPrefix = maybeRemovePrefix(rpmName, Spec.RPM_NAME_PREFIX);
+			log.debug("rpm name ('{}') -to-module-name-> '{}'", rpmName, noPrefix);
 			try
 			{
-				moduleKey = ModuleKey.parseModuleKey(rpmName);
+				moduleKey = addMinorVersion(ModuleKey.parseModuleKey(noPrefix), rpmVersion);
 			}
 			catch (ParseException e)
 			{
@@ -63,9 +68,32 @@ class RPM
 	}
 
 	private
-	String removePrefix(String rpmName, String rpmNamePrefix)
+	ModuleKey addMinorVersion(ModuleKey moduleKey, String rpmVersion)
 	{
-		return rpmName.substring(rpmNamePrefix.length());
+		try
+		{
+			String minor = maybeRemovePrefix(rpmVersion, moduleKey.getMajorVersion() + ".");
+			return new ModuleKey(moduleKey.getModuleName(), moduleKey.getMajorVersion(), minor);
+		}
+		catch (Exception e)
+		{
+			log.error("unable to add minor version to module key: {} / {}", moduleKey, rpmVersion, e);
+			return moduleKey;
+		}
+	}
+
+	private
+	String maybeRemovePrefix(String s, String sPrefix)
+	{
+		if (s.startsWith(sPrefix))
+		{
+			return s.substring(sPrefix.length());
+		}
+		else
+		{
+			log.warn("'{}' does not start with '{}' prefix", s, sPrefix);
+			return s;
+		}
 	}
 
 	public

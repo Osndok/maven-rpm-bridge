@@ -323,6 +323,9 @@ class Spec
 		if (minor!=null)
 		{
 			sb.append(" >= ");
+			//NB: the "rpm version" is "{major}.{minor}" for increased readability... so we need to re-add the major number.
+			sb.append(dependency.getMajorVersion());
+			sb.append('.');
 			sb.append(minor);
 		}
 

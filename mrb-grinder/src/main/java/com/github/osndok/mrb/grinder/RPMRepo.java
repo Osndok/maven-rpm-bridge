@@ -260,6 +260,7 @@ class RPMRepo
 		String majorVersion = getRegistry().getMajorVersionFor(mavenInfo, this);
 		//The guess might actually be enough, but it would be better to verify the RPM's presence.
 		ModuleKey guess = new ModuleKey(mavenInfo.getModuleNameCandidate(), majorVersion, null);
+		log.debug("{} requires {} -> {}", requestor, mavenInfo, guess);
 		RPM rpm = get(guess);
 		return rpm.getModuleKey().asDependencyOf(requestor);
 	}

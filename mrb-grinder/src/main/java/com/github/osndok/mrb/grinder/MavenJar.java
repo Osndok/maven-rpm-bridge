@@ -247,7 +247,7 @@ class MavenJar
 			}
 			else
 			{
-				log.debug("no main class: {}", aClass);
+				log.trace("no main class: {}", aClass);
 			}
 		}
 
@@ -351,7 +351,9 @@ class MavenJar
 		{
 			try
 			{
-				retval.add(rpmRepo.getFullModuleDependency(moduleKey, info));
+				Dependency dependency = rpmRepo.getFullModuleDependency(moduleKey, info);
+				log.debug("rpmRepo.getFullModuleDependency({}, {}) -> {}", moduleKey, info, dependency);
+				retval.add(dependency);
 			}
 			catch (IOException e)
 			{
