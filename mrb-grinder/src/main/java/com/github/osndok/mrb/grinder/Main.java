@@ -69,9 +69,16 @@ class Main
 	private
 	void grind(File file) throws IOException, ObsoleteJarException
 	{
-		if (!isWritableDirectory(file.getParentFile()))
+		File parentFile = file.getParentFile();
+
+		if (parentFile==null)
 		{
-			throw new IOException("not a writable directory: "+file.getParent());
+			parentFile=new File(".");
+		}
+
+		if (!isWritableDirectory(parentFile))
+		{
+			throw new IOException("not a writable directory: "+parentFile);
 		}
 
 		if (isWarFile(file))
