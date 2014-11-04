@@ -8,14 +8,19 @@ import org.semver.Delta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.module.Dependency;
+import javax.module.ModuleInfo;
 import javax.module.ModuleKey;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
+import java.util.jar.JarFile;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
 
 /**
  * Created by robert on 10/30/14.
@@ -186,5 +191,45 @@ class RPM
 		}
 
 		return onlyRpm[0];
+	}
+
+	public
+	boolean innerJarContainsEntry(ModuleKey moduleKey, String entryName) throws IOException
+	{
+		File innerJar=File.createTempFile(moduleKey.toString(), ".jar");
+
+		try
+		{
+			Exec.andWait("bash", "-c", "rpm2cpio "+file+" | cpio -i --to-stdout '*.jar' > "+innerJar);
+
+			JarFile jarFile=new JarFile(innerJar);
+			ZipEntry entry = jarFile.getEntry(entryName);
+			return (entry!=null);
+		}
+		finally
+		{
+			innerJar.delete();
+		}
+	}
+
+	public
+	Set<Dependency> listModuleDependencies(ModuleKey moduleKey) throws IOException
+	{
+		//NB: must match spec templates!
+		String depsName=moduleKey.getModuleName()+".deps";
+
+		File innerDeps=File.createTempFile(moduleKey.toString(), ".deps");
+
+		try
+		{
+			String lines=Exec.toString("bash", "-c", "rpm2cpio "+file+" | cpio -i --to-stdout '*/"+depsName+"'");
+			log.trace("listing {} deps:\n{}", moduleKey, lines);
+
+			return ModuleInfo.read(new ByteArrayInputStream(lines.getBytes()), moduleKey).getDependencies();
+		}
+		finally
+		{
+			innerDeps.delete();
+		}
 	}
 }

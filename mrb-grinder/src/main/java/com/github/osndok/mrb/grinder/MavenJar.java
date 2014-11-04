@@ -3,6 +3,7 @@ package com.github.osndok.mrb.grinder;
 import com.github.osndok.mrb.grinder.aether.ConsoleRepositoryListener;
 import com.github.osndok.mrb.grinder.aether.ConsoleTransferListener;
 import com.github.osndok.mrb.grinder.aether.ManualRepositorySystemFactory;
+import org.apache.bcel.classfile.*;
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
 import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
@@ -355,13 +356,7 @@ class MavenJar
 	Set<Dependency> listRpmDependencies(ModuleKey moduleKey, RPMRepo rpmRepo) throws DependencyNotProcessedException, IOException, ParserConfigurationException, SAXException
 	{
 		final
-		Set<Dependency> retval=new HashSet<Dependency>();
-
-		//Read: everything but the module loader requires the module loader.
-		if (!moduleKey.getModuleName().equals("javax-module"))
-		{
-			retval.add(Version.JAVAX_MODULE.asDependencyOf(moduleKey));
-		}
+		Set<Dependency> declaredDependencies=new HashSet<Dependency>();
 
 		for (MavenInfo info : listMavenDependenciesFromPomXml())
 		{
@@ -369,7 +364,7 @@ class MavenJar
 			{
 				Dependency dependency = rpmRepo.getFullModuleDependency(moduleKey, info);
 				log.debug("rpmRepo.getFullModuleDependency({}, {}) -> {}", moduleKey, info, dependency);
-				retval.add(dependency);
+				declaredDependencies.add(dependency);
 			}
 			catch (IOException e)
 			{
@@ -384,7 +379,180 @@ class MavenJar
 			}
 		}
 
+		final
+		Set<Dependency> retval=new HashSet<Dependency>(declaredDependencies);
+
+		/*
+		Maven allows for implicit transitive dependencies. While convenient for coding, they are quite
+		sloppy when modularizing. Therefore, we must (at least) make a best-effort check to ensure that
+		our jar has all the *ACTUAL* dependencies that it needs, otherwise there will be CNF thrown at
+		runtime.
+		 */
+		for(JavaClass javaClass : allJavaClasses())
+		{
+			ConstantPool constantPool = javaClass.getConstantPool();
+			int l=constantPool.getLength();
+
+			for (int i=0; i<l; i++)
+			{
+				Constant constant = constantPool.getConstant(i);
+
+				if (constant instanceof ConstantClass)
+				{
+					ConstantClass cClass=(ConstantClass)constant;
+					String className=constantPool.constantToString(constantPool.getConstant(cClass.getNameIndex()));
+					log.debug("parsed {} -> {}", cClass, className);
+
+					if (className.charAt(0)=='[')
+					{
+						//it's an array type... don't bother.
+					}
+					else
+					{
+						ensurePossiblyTransitiveDependencyIsIncluded(className + ".class", declaredDependencies,
+																		rpmRepo, retval);
+					}
+				}
+			}
+		}
+
+		//Everything but the module loader requires the module loader at install time (in order to run).
+		if (!moduleKey.getModuleName().equals("javax-module"))
+		{
+			retval.add(Version.JAVAX_MODULE.asDependencyOf(moduleKey));
+		}
+
 		return retval;
+	}
+
+	private
+	void ensurePossiblyTransitiveDependencyIsIncluded(
+														 String classEntryName,
+														 Set<Dependency> declaredDependencies,
+														 RPMRepo rpmRepo,
+														 Set<Dependency> actualDependencies
+	) throws IOException
+	{
+		if (isSystemClass(classEntryName))
+		{
+			log.trace("system: {}", classEntryName);
+		}
+		else
+		if (inThisJar(classEntryName))
+		{
+			log.trace("in-jar: {}", classEntryName);
+		}
+		else
+		{
+			for (Dependency dependency : declaredDependencies)
+			{
+				RPM rpm=rpmRepo.get(dependency);
+
+				if (rpm.innerJarContainsEntry(dependency, classEntryName))
+				{
+					log.trace("in-dep: {}", classEntryName);
+					return;
+				}
+
+				//To be nice, we go one level deep... beyond that, and you are on your own!
+				for (Dependency transitive:rpm.listModuleDependencies(dependency))
+				{
+					if (rpmRepo.get(transitive).innerJarContainsEntry(transitive, classEntryName))
+					{
+						log.warn("use of {} implies transitive dependency: {}", transitive);
+						actualDependencies.add(transitive);
+					}
+				}
+			}
+
+			//We don't make this fatal, because there *are* ways to use undeclared classes via reflection and whatnot.
+			log.error("{} not found in dependencies, this module may therefore be broken", classEntryName);
+		}
+	}
+
+	private
+	boolean isSystemClass(String classEntryName)
+	{
+		//TODO: there are probably more system packages now... but our classpath is probably too clouded to check directly.
+		return classEntryName.startsWith("java/");
+	}
+
+	private
+	boolean inThisJar(String classEntryName)
+	{
+		ZipEntry entry = jarFile.getEntry(classEntryName);
+		return (entry!=null);
+	}
+
+	private
+	Iterable<JavaClass> allJavaClasses()
+	{
+		final
+		Map<String,JarEntry> entriesByNames=new HashMap<String, JarEntry>();
+
+		Enumeration e = jarFile.entries();
+
+		while (e.hasMoreElements())
+		{
+			JarEntry je = (JarEntry) e.nextElement();
+			String name = je.getName();
+
+			if (name.endsWith(".class"))
+			{
+				entriesByNames.put(name, je);
+			}
+		}
+
+		final
+		Iterator<Map.Entry<String, JarEntry>> nameIterator=entriesByNames.entrySet().iterator();
+
+		final
+		Iterator<JavaClass> metaIterator=new Iterator<JavaClass>()
+		{
+			@Override
+			public
+			boolean hasNext()
+			{
+				return nameIterator.hasNext();
+			}
+
+			@Override
+			public
+			JavaClass next()
+			{
+				Map.Entry<String, JarEntry> me=nameIterator.next();
+				String name=me.getKey();
+				JarEntry jarEntry=me.getValue();
+				log.debug("parse class: {}", name);
+				try
+				{
+					InputStream inputStream = jarFile.getInputStream(jarEntry);
+					return new ClassParser(inputStream, file.getName()).parse();
+				}
+				catch (IOException e)
+				{
+					throw new RuntimeException("cannot parse class file", e);
+				}
+			}
+
+			@Override
+			public
+			void remove()
+			{
+				throw new UnsupportedOperationException();
+			}
+		};
+
+		//NB: this iterable can only be iterated once per function call.
+		return new Iterable<JavaClass>()
+		{
+			@Override
+			public
+			Iterator<JavaClass> iterator()
+			{
+				return metaIterator;
+			}
+		};
 	}
 
 	private transient

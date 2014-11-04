@@ -215,13 +215,13 @@ class ModuleInfo
 		return c==' ' || c=='\t';
 	}
 
-	static
+	public static
 	ModuleInfo blank(ModuleKey self)
 	{
 		return new ModuleInfo(self, new HashSet<Dependency>());
 	}
 
-	static
+	public static
 	ModuleInfo read(InputStream inputStream, ModuleKey originalSelf) throws IOException
 	{
 		final

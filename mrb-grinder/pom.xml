@@ -89,6 +89,12 @@
 			<version>1.7</version>
 		</dependency>
 
+		<dependency>
+			<groupId>bcel</groupId>
+			<artifactId>bcel</artifactId>
+			<version>5.1</version>
+		</dependency>
+
 	</dependencies>
 
 </project>

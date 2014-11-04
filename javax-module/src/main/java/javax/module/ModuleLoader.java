@@ -13,6 +13,8 @@ import java.util.Iterator;
 final
 class ModuleLoader extends ClassLoader
 {
+	private static final boolean DEBUG = Boolean.getBoolean("debug.module.loader");
+
 	private final Module  module;
 	private final ModuleContext context;
 
@@ -241,10 +243,9 @@ class ModuleLoader extends ClassLoader
 		{
 			System.err.println(name + ":\t*DNE*  [ " + context + " :: " + getModuleKey() + " ]");
 		}
-		throw new ClassNotFoundException(name + " in " + context + " / " + getModuleKey());
-	}
 
-	private static final boolean DEBUG = Boolean.getBoolean("debug.module.loader");
+		throw new ClassNotFoundException(name + " is not in " + getModuleKey() + " or its direct dependencies.");
+	}
 
 	private static
 	byte[] getBytes(InputStream is) throws IOException

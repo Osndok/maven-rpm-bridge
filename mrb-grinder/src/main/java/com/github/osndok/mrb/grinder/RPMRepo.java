@@ -133,7 +133,6 @@ class RPMRepo
 
 	private static final Logger log = LoggerFactory.getLogger(RPMRepo.class);
 
-	private
 	RPM get(ModuleKey moduleKey)
 	{
 		final
