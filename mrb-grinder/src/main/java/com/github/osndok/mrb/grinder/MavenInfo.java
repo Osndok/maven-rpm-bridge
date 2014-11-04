@@ -71,7 +71,7 @@ class MavenInfo implements Serializable
 	public
 	String getModuleNameCandidate()
 	{
-		if (isTooCommonOrSimpleToBeAModuleName(artifactId))
+		if (isTooCommonOrSimpleToBeAModuleName(artifactId) && !groupId.equals(artifactId))
 		{
 			return groupId+"-"+artifactId;
 		}
