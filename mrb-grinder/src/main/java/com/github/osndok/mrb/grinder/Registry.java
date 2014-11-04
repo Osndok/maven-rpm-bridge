@@ -75,6 +75,46 @@ class Registry
 	public
 	String getMajorVersionFor(MavenInfo mavenInfo, RPMRepo rpmRepo) throws DependencyNotProcessedException, IOException
 	{
+		String retval=majorFromFirstLineThatMatches(mavenInfo);
+
+		if (retval!=null) return retval;
+
+		log.warn("unable to locate dependency: {}", mavenInfo);
+
+		//TODO: make this into a depth counter (e.g. to bomb out [eventually] on circular dependencies), and on by default?
+		if (Main.RECURSIVE)
+		{
+			try
+			{
+				return new Main(rpmRepo).grindMavenArtifact(mavenInfo).getMajorVersion();
+			}
+			catch (ObsoleteJarException e)
+			{
+				//This can happen, for example, if we have a newer jar than the given dep... so it's not always an error.
+				log.warn("did not find item in registry, but claimedly obsolete: {}", e.toString());
+
+				//Is it in the registry now?
+				retval=majorFromFirstLineThatMatches(mavenInfo);
+
+				if (retval==null)
+				{
+					throw new IOException("did not find item in registry (before *or* after), but obsolete?", e);
+				}
+				else
+				{
+					return retval;
+				}
+			}
+		}
+		else
+		{
+			throw new DependencyNotProcessedException(mavenInfo);
+		}
+	}
+
+	private
+	String majorFromFirstLineThatMatches(MavenInfo mavenInfo) throws IOException
+	{
 		BufferedReader br=new BufferedReader(new FileReader(file));
 		try
 		{
@@ -94,25 +134,7 @@ class Registry
 			br.close();
 		}
 
-		log.warn("unable to locate dependency: {}", mavenInfo);
-
-		//TODO: make this into a depth counter (e.g. to bomb out [eventually] on circular dependencies), and on by default?
-		if (Main.RECURSIVE)
-		{
-			try
-			{
-				return new Main(rpmRepo).grindMavenArtifact(mavenInfo).getMajorVersion();
-			}
-			catch (ObsoleteJarException e)
-			{
-				//TODO: We can handle this better, it's probably a race condition of some kind.
-				throw new AssertionError("did not find item in registry, but claimedly obsolete?", e);
-			}
-		}
-		else
-		{
-			throw new DependencyNotProcessedException(mavenInfo);
-		}
+		return null;
 	}
 
 	private static final Logger log = LoggerFactory.getLogger(Registry.class);
