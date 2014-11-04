@@ -425,6 +425,9 @@ class MavenJar
 		return retval;
 	}
 
+	/**
+	 * @url http://maven.apache.org/guides/introduction/introduction-to-dependency-mechanism.html#Transitive_Dependencies
+	 */
 	private
 	void ensurePossiblyTransitiveDependencyIsIncluded(
 														 String classEntryName,
