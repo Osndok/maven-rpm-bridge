@@ -267,4 +267,10 @@ class Module
 	{
 		return getModuleInfo().getDependencies();
 	}
+
+	public
+	File getPluginDirectory()
+	{
+		return new File(directory, "plugins.d");
+	}
 }
