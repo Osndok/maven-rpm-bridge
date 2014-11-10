@@ -49,7 +49,7 @@ class Plugins
 		final
 		Collection<T> retval=new ArrayList<T>(l);
 
-		for (Class<T> tClass : classes(anInterface))
+		for (Class<T> tClass : getClasses(anInterface))
 		{
 			try
 			{
@@ -72,7 +72,7 @@ class Plugins
 	}
 
 	public static <T>
-	Set<Class<T>> classes(Class<T> anInterface)
+	Set<Class<T>> getClasses(Class<T> anInterface)
 	{
 		final
 		ModuleLoader moduleLoader = ModuleLoader.forClass(anInterface);
