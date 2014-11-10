@@ -39,8 +39,33 @@ class Plugins
 		{
 			try
 			{
-				final
-				Constructor<T> constructor = tClass.getDeclaredConstructor(constructorArgClasses);
+				Constructor<T> constructor;
+				{
+					try
+					{
+						constructor=tClass.getConstructor(constructorArgClasses);
+					}
+					catch (NoSuchMethodException e)
+					{
+						if (l>0)
+						{
+							//Maybe they have/want a no-args constructor? makes the arguments optional?
+							try
+							{
+								constructor=tClass.getConstructor();
+							}
+							catch (NoSuchMethodException e2)
+							{
+								//somewhat expected, I suppose.
+								throw e;
+							}
+						}
+						else
+						{
+							throw e;
+						}
+					}
+				}
 
 				final
 				T t=constructor.newInstance(constructorArgs);
