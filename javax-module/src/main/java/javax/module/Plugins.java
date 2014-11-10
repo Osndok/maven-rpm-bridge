@@ -8,7 +8,7 @@ import java.util.*;
  * Created by robert on 11/9/14.
  */
 public
-class Plugin
+class Plugins
 {
 	private static final
 	String DOT_PLUGIN=".plugin";
@@ -187,7 +187,7 @@ class Plugin
 	}
 
 	private
-	Plugin()
+	Plugins()
 	{
 		//tbd.
 	}
