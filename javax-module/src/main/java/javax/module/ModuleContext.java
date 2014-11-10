@@ -24,30 +24,20 @@ class ModuleContext
 	ModuleContext getContext()
 	{
 		Class c = sun.reflect.Reflection.getCallerClass(2);
-		ClassLoader cl = c.getClassLoader();
-		if (cl instanceof ModuleLoader)
-		{
-			return ((ModuleLoader) cl).getContext();
-		}
-		return null;
+		return ModuleLoader.forClass(c).getContext();
 	}
 
 	/**
 	 * Returns the module key (i.e. name and version) of the calling class's module,
 	 * or null if operating outside of a module system execution context. If the
 	 * module was first loaded as a dependency, the returned module key will actually
-	 * be a Dependency oject, wherefrom the requesting module can be decerned.
+	 * be a Dependency object, wherefrom the requesting module can be decerned.
 	 */
 	public static
 	ModuleKey getModuleKey()
 	{
 		Class c = sun.reflect.Reflection.getCallerClass(2);
-		ClassLoader cl = c.getClassLoader();
-		if (cl instanceof ModuleLoader)
-		{
-			return ((ModuleLoader) cl).getModuleKey();
-		}
-		return null;
+		return ModuleLoader.forClass(c).getModuleKey();
 	}
 
 	/**
@@ -59,16 +49,14 @@ class ModuleContext
 	Module getModule()
 	{
 		Class c = sun.reflect.Reflection.getCallerClass(2);
-		ClassLoader cl = c.getClassLoader();
-		if (cl instanceof ModuleLoader)
-		{
-			return ((ModuleLoader) cl).getModule();
-		}
-		return null;
+		return ModuleLoader.forClass(c).getModule();
 	}
 
-	private String        name;
-	private ContextLoader contextLoader;
+	private final
+	String name;
+
+	private
+	ContextLoader contextLoader;
 
 	public
 	ModuleContext(String name, File moduleDirectory)
@@ -89,7 +77,8 @@ class ModuleContext
 		return name;
 	}
 
-	private List<File> moduleDirs = new ArrayList();
+	private final
+	List<File> moduleDirs = new ArrayList<File>();
 
 	public
 	void addModuleDirectory(File moduleDirectory, boolean priority)
@@ -305,15 +294,10 @@ class ModuleContext
 		}
 	}
 
-	private
+	private static
 	ModuleKey getModuleKey(Class c)
 	{
-		ClassLoader cl = c.getClassLoader();
-		if (cl instanceof ModuleLoader)
-		{
-			return ((ModuleLoader) cl).getModuleKey();
-		}
-		return null;
+		return ModuleLoader.forClass(c).getModuleKey();
 	}
 
 	public

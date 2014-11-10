@@ -13,6 +13,21 @@ import java.util.Iterator;
 final
 class ModuleLoader extends ClassLoader
 {
+	public static
+	ModuleLoader forClass(Class c)
+	{
+		ClassLoader classLoader = c.getClassLoader();
+
+		if (classLoader instanceof ModuleLoader)
+		{
+			return (ModuleLoader)classLoader;
+		}
+		else
+		{
+			throw new IllegalArgumentException(c+" was not loaded from a module");
+		}
+	}
+
 	private static final boolean DEBUG = Boolean.getBoolean("debug.module.loader");
 
 	private final Module  module;
