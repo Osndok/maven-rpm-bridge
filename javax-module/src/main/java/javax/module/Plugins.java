@@ -10,20 +10,6 @@ import java.util.*;
 public
 class Plugins
 {
-	private static final
-	String DOT_PLUGIN=".plugin";
-
-	private static final
-	FilenameFilter endingInDotPlugin = new FilenameFilter()
-	{
-		@Override
-		public
-		boolean accept(File file, String s)
-		{
-			return s.endsWith(DOT_PLUGIN);
-		}
-	};
-
 	/**
 	 * Limitations: cannot use primitives (or null-values) in the constructor args.
 	 *
@@ -133,6 +119,20 @@ class Plugins
 
 		return retval;
 	}
+
+	private static final
+	String DOT_PLUGIN=".plugin";
+
+	private static final
+	FilenameFilter endingInDotPlugin = new FilenameFilter()
+	{
+		@Override
+		public
+		boolean accept(File file, String s)
+		{
+			return s.endsWith(DOT_PLUGIN);
+		}
+	};
 
 	private static <T>
 	Set<String> classNamesFromPluginFile(Class<T> anInterface, File pluginFile) throws IOException
