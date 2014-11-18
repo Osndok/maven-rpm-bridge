@@ -184,7 +184,7 @@ class MavenJar
 		for(JavaClass javaClass : allJavaClasses())
 		{
 			String name=javaClass.getClassName();
-			log.trace("class name: {}", name);
+			log.trace("class name: {} ( {} / {} )", name, javaClass.getMajor(), javaClass.getMinor());
 			//Multimap<String, String> multiValue = store.get(name);
 
 			if (hasPluginAnnotation(javaClass))
@@ -210,7 +210,7 @@ class MavenJar
 			if (hasPublicStaticMainMethod(javaClass))
 			{
 				String className=name;//aClass.getName();
-				log.info("has main class: {}", className);
+				log.info("a main class: {} ( {} / {} )", className, javaClass.getMajor(), javaClass.getMinor());
 
 				String toolName=moduleKey.toString()+(className.equals(mainClassName)?"":"-"+getSimpleName(className));
 
@@ -246,6 +246,7 @@ class MavenJar
 				else
 				{
 					hasOverride=true;
+					override=replaceModuleInfoMacros(override, moduleKey);
 					execClassesByToolName.put(override, className);
 				}
 			}
@@ -266,6 +267,17 @@ class MavenJar
 		{
 			execClassesByToolName.put("sysconfig", "true");
 		}
+	}
+
+	private
+	String replaceModuleInfoMacros(String string, ModuleKey moduleKey)
+	{
+		string=string.replace("{m}", moduleKey.getModuleName());
+		string=string.replace("{v}", moduleKey.vMajor());
+
+		//TODO: major? minor? toString()... ???
+
+		return string;
 	}
 
 	private
@@ -319,6 +331,11 @@ class MavenJar
 
 			if (field!=null)
 			{
+				for (Attribute attribute : field.getAttributes())
+				{
+					log.debug("attribute: {} -> {}", attribute.getName(), attribute);
+				}
+
 				return field.getConstantValue().toString();
 			}
 
@@ -328,18 +345,16 @@ class MavenJar
 		}
 		catch (Exception e)
 		{
-			if (log.isDebugEnabled())
-			{
-				log.debug("can't get javax-module-exec field: {}", e.toString());
-			}
+			//TODO: fix null pointer exception... how can we get (even a constant) value without actually loading the class?
+			log.error("can't get javax-module-exec field", e);
 		}
 		return null;
 	}
 
 	private
-	org.apache.bcel.classfile.Field staticFieldNamed(String fieldName, JavaClass javaClass)
+	Field staticFieldNamed(String fieldName, JavaClass javaClass)
 	{
-		for (org.apache.bcel.classfile.Field field : javaClass.getFields())
+		for (Field field : javaClass.getFields())
 		{
 			if (field.isStatic() && field.getName().equals(fieldName))
 			{
@@ -475,7 +490,7 @@ class MavenJar
 				{
 					ConstantClass cClass=(ConstantClass)constant;
 					String className=constantPool.constantToString(constantPool.getConstant(cClass.getNameIndex()));
-					log.debug("parsed {} -> {}", cClass, className);
+					log.trace("parsed {} -> {}", cClass, className);
 
 					if (className.charAt(0)=='[')
 					{
