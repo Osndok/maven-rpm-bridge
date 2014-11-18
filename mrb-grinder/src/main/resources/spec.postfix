@@ -19,7 +19,7 @@ EOF
 rm -rf $RPM_BUILD_ROOT
 
 %files
-%defattr(-,root,root,-)
+%defattr(755,root,root,-)
 /usr/share/java/@NAME@
 %config /usr/share/java/@NAME@/@MODULE_NAME@.deps
 
