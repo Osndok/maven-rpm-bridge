@@ -174,7 +174,7 @@ class Spec
 
 		retval.put("@DEPS_FILE_CONTENTS@", depsFile(moduleKey, dependencies));
 		retval.put("@BUILD_EXEC_FILES@", buildExecFiles(execClassesByToolName, generalInfos, mavenJar, moduleKey));
-		retval.put("@EXEC_PATHS@", execPaths(execClassesByToolName, moduleKey));
+		retval.put("@EXEC_PATHS@", execPaths(execClassesByToolName, moduleKey, mavenJar));
 
 		return retval;
 	}
@@ -266,11 +266,40 @@ class Spec
 			}
 		}
 
+		for (Map.Entry<ModuleKey, Map<String, Set<String>>> me : mavenJar.getPluginMapping(moduleKey).entrySet())
+		{
+			final
+			ModuleKey targetModule=me.getKey();
+
+			final
+			Map<String, Set<String>> implementationsByInterfaceName = me.getValue();
+
+			retval.append("\n\nmkdir -p ./usr/share/java/").append(targetModule).append("/plugins.d\n");
+			retval.append("cat -> ./usr/share/java/").append(targetModule).append("/plugins.d/").append(moduleKey).append(".plugin <<\"EOF\"\n");
+
+			for (Map.Entry<String, Set<String>> me2 : implementationsByInterfaceName.entrySet())
+			{
+				final
+				String interfaceName=me2.getKey();
+
+				for (String implementationClass : me2.getValue())
+				{
+					retval.append(interfaceName);
+					retval.append("\t");
+					retval.append(implementationClass);
+					retval.append("\n");
+				}
+			}
+
+			retval.append("EOF\n\n");
+		}
+
+
 		return retval.toString();
 	}
 
 	private static
-	String execPaths(Map<String, String> execClassesByToolName, ModuleKey moduleKey)
+	String execPaths(Map<String, String> execClassesByToolName, ModuleKey moduleKey, MavenJar mavenJar)
 	{
 		StringBuilder sb=new StringBuilder();
 
@@ -286,6 +315,12 @@ class Spec
 			{
 				sb.append("/usr/bin/").append(toolName).append('\n');
 			}
+		}
+
+		for (Map.Entry<ModuleKey, Map<String, Set<String>>> me : mavenJar.getPluginMapping(moduleKey).entrySet())
+		{
+			ModuleKey targetModule=me.getKey();
+			sb.append("/usr/share/java/").append(targetModule).append("/plugins.d/").append(moduleKey).append(".plugin\n");
 		}
 
 		return sb.toString();

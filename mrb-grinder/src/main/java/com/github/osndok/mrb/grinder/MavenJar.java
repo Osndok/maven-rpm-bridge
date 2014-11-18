@@ -54,6 +54,24 @@ class MavenJar
 	Map<String, String> execClassesByToolName;
 
 	public
+	Map<ModuleKey, Map<String, Set<String>>> getPluginMapping(ModuleKey moduleKey)
+	{
+		if (execClassesByToolName == null)
+		{
+			//TODO: complete the factor-out operation....
+			scanModuleClasses(moduleKey);
+		}
+
+		return pluginMapping;
+	}
+
+	private final
+	Map<ModuleKey, Map<String, Set<String>>> pluginMapping = new HashMap<ModuleKey, Map<String, Set<String>>>();
+
+	private
+	Set<Dependency> dependencies;
+
+	public
 	MavenJar(File file) throws IOException
 	{
 		this.file = file;
@@ -147,7 +165,7 @@ class MavenJar
 	public
 	Map<String, String> getExecClassesByToolName(ModuleKey moduleKey)
 	{
-		if (execClassesByToolName==null)
+		if (execClassesByToolName == null)
 		{
 			//TODO: complete the factor-out operation....
 			scanModuleClasses(moduleKey);
@@ -158,6 +176,8 @@ class MavenJar
 	private
 	void scanModuleClasses(ModuleKey moduleKey)
 	{
+		log.debug("scanModuleClasses: {}", moduleKey);
+
 		execClassesByToolName = new HashMap<String, String>();
 		String mainClassName = getMainClassName();
 
@@ -191,6 +211,50 @@ class MavenJar
 			{
 				log.info("is a modular plugin class...");
 
+				//TODO: support inheritance? cross module boundaries?
+				//TODO: don't stride across deps, do that only once (inefficient if many plugins).
+
+				for (String interfaceName : javaClass.getInterfaceNames())
+				{
+					String entryName=classEntryName(interfaceName);
+					ModuleKey targetModuleKey;
+
+					if (inThisJar(entryName))
+					{
+						targetModuleKey=moduleKey;
+					}
+					else
+					{
+						targetModuleKey = dependencyForClassName(entryName);
+					}
+
+					if (targetModuleKey==null)
+					{
+						log.debug("plugin target not found: {}", entryName);
+					}
+					else
+					{
+						log.info("plugin: {} implements {} :: {}", name, targetModuleKey, interfaceName);
+
+						Map<String, Set<String>> implementationsByInterface = pluginMapping.get(targetModuleKey);
+
+						if (implementationsByInterface==null)
+						{
+							implementationsByInterface=new HashMap<String, Set<String>>();
+							pluginMapping.put(targetModuleKey, implementationsByInterface);
+						}
+
+						Set<String> implementations=implementationsByInterface.get(interfaceName);
+
+						if (implementations==null)
+						{
+							implementations=new HashSet<String>();
+							implementationsByInterface.put(interfaceName, implementations);
+						}
+
+						implementations.add(name);
+					}
+				}
 			}
 
 			/*
@@ -270,6 +334,57 @@ class MavenJar
 	}
 
 	private
+	ModuleKey dependencyForClassName(String classEntryName)
+	{
+		if (dependencies==null) throw new IllegalStateException("dependencies have not yet been listed");
+
+		for (Dependency dependency : dependencies)
+		{
+			try
+			{
+				if (dependencyHasEntry(dependency, classEntryName))
+				{
+					return dependency;
+				}
+			}
+			catch (IOException e)
+			{
+				log.error("reading {}", dependency, e);
+			}
+		}
+
+		return null;
+	}
+
+	private
+	RPMRepo rpmRepo;
+
+	private
+	boolean dependencyHasEntry(Dependency dependency, String classEntryName) throws IOException
+	{
+		if (rpmRepo==null) throw new IllegalStateException("rpmRepo is null");
+
+		final
+		RPM rpm=rpmRepo.get(dependency);
+
+		if (rpm==null)
+		{
+			log.error("unable to locate dependency: {}", dependency);
+			return false;
+		}
+		else
+		{
+			return rpm.innerJarContainsEntry(dependency, classEntryName);
+		}
+	}
+
+	private
+	String classEntryName(String className)
+	{
+		return className.replaceAll("\\.", "/")+".class";
+	}
+
+	private
 	String replaceModuleInfoMacros(String string, ModuleKey moduleKey)
 	{
 		string=string.replace("{m}", moduleKey.getModuleName());
@@ -301,17 +416,25 @@ class MavenJar
 	{
 		for (AnnotationEntry annotationEntry : javaClass.getAnnotationEntries())
 		{
-			if (annotationEntry.getAnnotationType().equals("javax.module.Plugin"))
+			log.debug("annotation type: {}", annotationEntry.getAnnotationType());
+
+			if (annotationEntry.getAnnotationType().equals("Ljavax/module/Plugin;"))
 			{
 				return true;
 			}
-			/*
-			ElementValuePair[] elementValuePairs = annotationEntry.getElementValuePairs();
-			ElementValuePair evp=elementValuePairs[0];
-			log.debug("annotation: {} -> {}", evp.getNameString(), evp.getValue());
-			*/
+
+			for (ElementValuePair elementValuePair : annotationEntry.getElementValuePairs())
+			{
+				log.debug("evp: {} -> {}", elementValuePair.getNameString(), elementValuePair.getValue());
+			}
 		}
 
+		for (Attribute attribute : javaClass.getAttributes())
+		{
+			log.debug("attribute: {}", attribute);
+		}
+
+		//javaClass.
 		return false;
 	}
 
@@ -443,6 +566,10 @@ class MavenJar
 	public
 	Set<Dependency> listRpmDependencies(ModuleKey moduleKey, RPMRepo rpmRepo) throws DependencyNotProcessedException, IOException, ParserConfigurationException, SAXException
 	{
+		log.debug("listRpmDependencies: {}", moduleKey);
+
+		this.rpmRepo=rpmRepo;
+
 		final
 		Set<Dependency> declaredDependencies=new HashSet<Dependency>();
 
@@ -510,6 +637,8 @@ class MavenJar
 		{
 			retval.add(Version.JAVAX_MODULE.asDependencyOf(moduleKey));
 		}
+
+		dependencies=retval;
 
 		return retval;
 	}
@@ -900,5 +1029,11 @@ class MavenJar
 		{
 			in.close();
 		}
+	}
+
+	public
+	void setRpmRepo(RPMRepo rpmRepo)
+	{
+		this.rpmRepo = rpmRepo;
 	}
 }
