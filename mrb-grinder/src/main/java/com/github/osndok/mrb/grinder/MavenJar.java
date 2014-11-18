@@ -5,11 +5,7 @@ import com.github.osndok.mrb.grinder.aether.ConsoleTransferListener;
 import com.github.osndok.mrb.grinder.aether.ManualRepositorySystemFactory;
 import org.apache.bcel.classfile.*;
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
-import org.reflections.ReflectionUtils;
-import org.reflections.Reflections;
-import org.reflections.Store;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.util.ConfigurationBuilder;
+import org.codehaus.plexus.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.aether.RepositorySystem;
@@ -35,11 +31,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.*;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
@@ -58,6 +49,9 @@ class MavenJar
 
 	private final
 	JarFile jarFile;
+
+	private
+	Map<String, String> execClassesByToolName;
 
 	public
 	MavenJar(File file) throws IOException
@@ -117,12 +111,12 @@ class MavenJar
 				}
 			}
 
-			if (retval==null)
+			if (retval == null)
 			{
-				throw new IllegalStateException(file+": does not contain pom.properties");
+				throw new IllegalStateException(file + ": does not contain pom.properties");
 			}
 
-			this.mavenInfo=retval;
+			this.mavenInfo = retval;
 		}
 
 		return retval;
@@ -151,12 +145,26 @@ class MavenJar
 	 *         with the module key (e.g. "alpha-v3"), unless specified otherwise (which might lead to collisions).
 	 */
 	public
-	Map<String, String> getExecClassesByToolName(ModuleKey moduleKey) throws MalformedURLException
+	Map<String, String> getExecClassesByToolName(ModuleKey moduleKey)
 	{
-		Map<String,String> retval=new HashMap<String, String>();
-		String mainClassName=getMainClassName();
+		if (execClassesByToolName==null)
+		{
+			//TODO: complete the factor-out operation....
+			scanModuleClasses(moduleKey);
+		}
+		return execClassesByToolName;
+	}
 
-		URL url=file.toURI().toURL();
+	private
+	void scanModuleClasses(ModuleKey moduleKey)
+	{
+		execClassesByToolName = new HashMap<String, String>();
+		String mainClassName = getMainClassName();
+
+		boolean hasOverride=false;
+
+		/*
+		URL url = file.toURI().toURL();
 
 		log.debug("listing classes in: {}", url);
 
@@ -169,55 +177,48 @@ class MavenJar
 				.setUrls(Collections.singleton(url))
 		);
 
-		boolean hasOverride=false;
-
 		Store store=reflections.getStore();
-		//Collection<Class<?>> classes=reflections.getSubTypesOf(Object.class);
-		//Set<String> jarContents = store.keySet();
-		//log.debug("found {} classes & resources", jarContents.size());
-
-		//for (Class<?> aClass : classes)
-		//for (Map.Entry<String, String> me : store.get("SubTypesScanner").entries())
-		//for (Map.Entry<String, String> me : store.get("TypesScanner").entries())
-		//for (String name : reflections.getAllTypes())
 		for (String name : store.get("SubTypesScanner").values())
+		*/
+
+		for(JavaClass javaClass : allJavaClasses())
 		{
+			String name=javaClass.getClassName();
 			log.trace("class name: {}", name);
 			//Multimap<String, String> multiValue = store.get(name);
 
-			/*
-			for (Map.Entry<String, String> me : multiValue.entries())
+			if (hasPluginAnnotation(javaClass))
 			{
-				String key=me.getKey();
-				String value=me.getValue();
-				log.debug("{} -> {}", key, value);
+				log.info("is a modular plugin class...");
+
 			}
-			*/
-			//TODO: initializing a class might throw an exception, or run static code (e.g. JDBC driver installation)
+
+			/*
 			Class<?> aClass;
 
 			try
 			{
-				aClass=ReflectionUtils.forName(name, reflections.getConfiguration().getClassLoaders());
+				aClass= ReflectionUtils.forName(name, reflections.getConfiguration().getClassLoaders());
 			}
 			catch (Throwable t)
 			{
 				log.error("unable to load {}: {}", name, t.toString());
 				continue;
 			}
+			*/
 
-			if (hasPublicStaticMainMethod(aClass))
+			if (hasPublicStaticMainMethod(javaClass))
 			{
-				String className=aClass.getName();
+				String className=name;//aClass.getName();
 				log.info("has main class: {}", className);
 
-				String toolName=moduleKey.toString()+(className.equals(mainClassName)?"":"-"+aClass.getSimpleName());
+				String toolName=moduleKey.toString()+(className.equals(mainClassName)?"":"-"+getSimpleName(className));
 
-				String override=staticJavaXModuleField(aClass);
+				String override=staticJavaXModuleField(javaClass);
 
 				if (override==null)
 				{
-					if (retval.containsKey(toolName))
+					if (execClassesByToolName.containsKey(toolName))
 					{
 						String[] segments=className.split("\\.");
 						int start=segments.length-2;
@@ -235,38 +236,71 @@ class MavenJar
 							toolName=sb.toString();
 							start--;
 						}
-						while (retval.containsKey(toolName));
+						while (execClassesByToolName.containsKey(toolName));
 
 						log.info("from tool-name contention: {}", toolName);
 					}
 
-					retval.put(toolName, className);
+					execClassesByToolName.put(toolName, className);
 				}
 				else
 				{
 					hasOverride=true;
-					retval.put(override, className);
+					execClassesByToolName.put(override, className);
 				}
 			}
 			else
 			{
-				log.trace("no main class: {}", aClass);
+				log.trace("no main class: {} / {}", name, javaClass);
 			}
 		}
 
-		if (retval.size()==1 && !hasOverride)
+		if (execClassesByToolName.size()==1 && !hasOverride)
 		{
 			//If there is only one main class in the jar, and they did not specify a cli-tool name... grant "the big one"
-			retval.put(retval.keySet().iterator().next(), moduleKey.toString());
+			execClassesByToolName.put(execClassesByToolName.keySet().iterator().next(), moduleKey.toString());
 		}
 
 		//TODO: fixme: this is a bit hackish...
 		if (hasSysconfigResource())
 		{
-			retval.put("sysconfig", "true");
+			execClassesByToolName.put("sysconfig", "true");
+		}
+	}
+
+	private
+	String getSimpleName(String className)
+	{
+		final
+		int period=className.lastIndexOf('.');
+
+		if (period>0)
+		{
+			return className.substring(period+1);
+		}
+		else
+		{
+			return className;
+		}
+	}
+
+	private
+	boolean hasPluginAnnotation(JavaClass javaClass)
+	{
+		for (AnnotationEntry annotationEntry : javaClass.getAnnotationEntries())
+		{
+			if (annotationEntry.getAnnotationType().equals("javax.module.Plugin"))
+			{
+				return true;
+			}
+			/*
+			ElementValuePair[] elementValuePairs = annotationEntry.getElementValuePairs();
+			ElementValuePair evp=elementValuePairs[0];
+			log.debug("annotation: {} -> {}", evp.getNameString(), evp.getValue());
+			*/
 		}
 
-		return retval;
+		return false;
 	}
 
 	private
@@ -277,13 +311,20 @@ class MavenJar
 	}
 
 	private
-	String staticJavaXModuleField(Class<?> aClass)
+	String staticJavaXModuleField(JavaClass javaClass)
 	{
 		try
 		{
-			Field field = aClass.getDeclaredField("JAVAX_MODULE_EXEC");
-			field.setAccessible(true);
-			return field.get(null).toString();
+			Field field = staticFieldNamed("JAVAX_MODULE_EXEC", javaClass);
+
+			if (field!=null)
+			{
+				return field.getConstantValue().toString();
+			}
+
+			//Field field = javaClass.getDeclaredField("JAVAX_MODULE_EXEC");
+			//field.setAccessible(true);
+			//return field.get(null).toString();
 		}
 		catch (Exception e)
 		{
@@ -291,28 +332,60 @@ class MavenJar
 			{
 				log.debug("can't get javax-module-exec field: {}", e.toString());
 			}
-			return null;
 		}
+		return null;
 	}
 
 	private
-	boolean hasPublicStaticMainMethod(Class<?> aClass)
+	org.apache.bcel.classfile.Field staticFieldNamed(String fieldName, JavaClass javaClass)
+	{
+		for (org.apache.bcel.classfile.Field field : javaClass.getFields())
+		{
+			if (field.isStatic() && field.getName().equals(fieldName))
+			{
+				return field;
+			}
+		}
+
+		return null;
+	}
+
+	private
+	boolean hasPublicStaticMainMethod(JavaClass aClass)
 	{
 		try
 		{
-			Method main = aClass.getMethod("main", String[].class);
-			return Modifier.isStatic(main.getModifiers()) && Modifier.isPublic(main.getModifiers());
+			org.apache.bcel.classfile.Method method=publicStaticMethod(aClass, "main");
+			//Method main = aClass.getMethod("main", String[].class);
+			//return Modifier.isStatic(main.getModifiers()) && Modifier.isPublic(main.getModifiers());
+			return (method!=null);
 		}
+		/*
 		catch (NoSuchMethodException e)
 		{
 			return false;
 		}
+		*/
 		catch (Throwable t)
 		{
 			//TODO: *often* a module will have methods with missing parameter/return types, and the getDeclaredMethods throws, even though we only ask for the one type... workaround: if you want your main functions exposed as CLI objects, put your main methods in 'safe' classes.
 			log.warn("can't inspect class: {}", t.toString());
 			return false;
 		}
+	}
+
+	private
+	Method publicStaticMethod(JavaClass javaClass, String methodName)
+	{
+		for (Method method : javaClass.getMethods())
+		{
+			if (method.isStatic() && method.isPublic() && method.getName().equals(methodName))
+			{
+				return method;
+			}
+		}
+
+		return null;
 	}
 
 	private
@@ -382,6 +455,7 @@ class MavenJar
 		final
 		Set<Dependency> retval=new HashSet<Dependency>(declaredDependencies);
 
+		//TODO: combine this with the scanModuleClasses above...
 		/*
 		Maven allows for implicit transitive dependencies. While convenient for coding, they are quite
 		sloppy when modularizing. Therefore, we must (at least) make a best-effort check to ensure that
