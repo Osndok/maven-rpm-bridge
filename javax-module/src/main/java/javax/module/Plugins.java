@@ -13,6 +13,8 @@ class Plugins
 	/**
 	 * Limitations: cannot use primitives (or null-values) in the constructor args.
 	 *
+	 * TODO: rather than "all or nothing", consider making this a "longest prefix" match.
+	 *
 	 * @param anInterface
 	 * @param constructorArgs
 	 * @param <T>
