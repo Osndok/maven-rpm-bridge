@@ -323,7 +323,7 @@ class MavenJar
 		if (execClassesByToolName.size()==1 && !hasOverride)
 		{
 			//If there is only one main class in the jar, and they did not specify a cli-tool name... grant "the big one"
-			execClassesByToolName.put(execClassesByToolName.keySet().iterator().next(), moduleKey.toString());
+			execClassesByToolName.put(moduleKey.toString(), execClassesByToolName.values().iterator().next());
 		}
 
 		//TODO: fixme: this is a bit hackish...
