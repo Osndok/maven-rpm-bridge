@@ -39,11 +39,13 @@ class Plugins
 		{
 			try
 			{
+				boolean noArgs;
 				Constructor<T> constructor;
 				{
 					try
 					{
 						constructor=tClass.getConstructor(constructorArgClasses);
+						noArgs=false;
 					}
 					catch (NoSuchMethodException e)
 					{
@@ -53,6 +55,7 @@ class Plugins
 							try
 							{
 								constructor=tClass.getConstructor();
+								noArgs=true;
 							}
 							catch (NoSuchMethodException e2)
 							{
@@ -67,10 +70,20 @@ class Plugins
 					}
 				}
 
-				final
-				T t=constructor.newInstance(constructorArgs);
+				if (noArgs)
+				{
+					final
+					T t = constructor.newInstance();
 
-				retval.add(t);
+					retval.add(t);
+				}
+				else
+				{
+					final
+					T t = constructor.newInstance(constructorArgs);
+
+					retval.add(t);
+				}
 			}
 			catch (Throwable t)
 			{
@@ -100,7 +113,7 @@ class Plugins
 			return Collections.emptySet();
 		}
 
-		if (pluginDir.canRead())
+		if (!pluginDir.canRead())
 		{
 			System.err.println(pluginDir+": is not readable");
 			return Collections.emptySet();
