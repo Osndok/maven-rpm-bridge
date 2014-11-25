@@ -248,6 +248,8 @@ class Spec
 			String toolName = me.getKey();
 			String className = me.getValue();
 
+			log.debug("cli tool: {} -> {}", toolName, className);
+
 			if (toolName.equals("sysconfig"))
 			{
 				retval.append("\n\nmkdir -p ./etc/sysconfig\ncat -> ./etc/sysconfig/").append(moduleKey).append(" <<\"EOF\"\n");
@@ -313,7 +315,7 @@ class Spec
 			}
 			else
 			{
-				sb.append("/usr/bin/").append(toolName).append('\n');
+				sb.append("%attr(755,root,root) /usr/bin/").append(toolName).append('\n');
 			}
 		}
 
