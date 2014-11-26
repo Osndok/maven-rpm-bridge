@@ -194,4 +194,18 @@ class MavenInfo implements Serializable
 	{
 		return optional;
 	}
+
+	private transient
+	Boolean snapshot;
+
+	public
+	boolean isSnapshot()
+	{
+		if (snapshot==null)
+		{
+			snapshot=version.toLowerCase().contains("snap");
+		}
+
+		return snapshot;
+	}
 }

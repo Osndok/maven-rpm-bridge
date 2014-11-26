@@ -77,7 +77,7 @@
 		* in the grinder, as the spec.exec source/include
 		* in the Version.JAVAX_MODULE key (which might let us not load a duplicate javax-module at runtime)
 		-->
-		<javax.module.version>1.0.0</javax.module.version>
+		<javax.module.version>1.0-SNAPSHOT</javax.module.version>
 
 		<aether.version>1.13.1</aether.version>
     </properties>

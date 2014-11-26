@@ -232,4 +232,17 @@ class RPM
 			innerDeps.delete();
 		}
 	}
+
+	public
+	boolean isSnapshot() throws IOException
+	{
+		return isSnapshot(getModuleKey());
+	}
+
+	public static
+	boolean isSnapshot(ModuleKey moduleKey)
+	{
+		String minorVersion = moduleKey.getMinorVersion();
+		return minorVersion!=null && minorVersion.contains("snap");
+	}
 }

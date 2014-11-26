@@ -13,6 +13,8 @@ import java.io.*;
  *
  * This is required to solve an otherwise-insurmountable problem of "given a modules version number,
  * what is it's 'compatible' major version number [given the history of created rpms]".
+ *
+ * TODO: improve Registry performance on large data-sets with an embedded database, rather than scanning a flat file.
  */
 public
 class Registry
@@ -27,9 +29,42 @@ class Registry
 	}
 
 	public
+	boolean contains(MavenInfo mavenInfo) throws IOException
+	{
+		if (!file.exists())
+		{
+			//file.createNewFile();
+			return false;
+		}
+
+		BufferedReader br=new BufferedReader(new FileReader(file));
+		try
+		{
+			String line;
+			while ((line=br.readLine())!=null)
+			{
+				if (mavenInfo.majorVersionFromParsableLineMatch(line)!=null)
+				{
+					return true;
+				}
+			}
+		}
+		finally
+		{
+			br.close();
+		}
+
+		return false;
+	}
+
+	public
 	void shouldNotContain(MavenInfo mavenInfo) throws ObsoleteJarException, IOException
 	{
-		if (!file.exists()) file.createNewFile();
+		if (!file.exists())
+		{
+			//file.createNewFile();
+			return;
+		}
 
 		BufferedReader br=new BufferedReader(new FileReader(file));
 		try

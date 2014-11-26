@@ -114,16 +114,35 @@ class Main
 	private
 	ModuleKey grindJar(File jar, MavenJar mavenJar, MavenInfo mavenInfo) throws IOException, ObsoleteJarException
 	{
+		final
+		Registry registry=rpmRepo.getRegistry();
 
-		rpmRepo.getRegistry().shouldNotContain(mavenInfo);
+		if (!mavenInfo.isSnapshot())
+		{
+			registry.shouldNotContain(mavenInfo);
+		}
 
 		ModuleKey moduleKey=rpmRepo.mostSpecificCompatibleAndPreExistingVersion(mavenJar);
 
 		File spec=Spec.write(moduleKey, mavenJar, rpmRepo);
 		File rpm=RPM.build(spec, jar);
 
-		rpmRepo.add(rpm);
-		rpmRepo.getRegistry().append(mavenInfo, moduleKey);
+		if (mavenInfo.isSnapshot())
+		{
+			rpmRepo.add(rpm);
+
+			//We need to check first, to avoid reduplicated entries...
+			if (!registry.contains(mavenInfo))
+			{
+				registry.append(mavenInfo, moduleKey);
+			}
+		}
+		else
+		{
+			//We already checked via the shouldNotContain() call... albiet, a bit racy.
+			rpmRepo.add(rpm);
+			registry.append(mavenInfo, moduleKey);
+		}
 
 		spec.delete();
 		rpm.delete();

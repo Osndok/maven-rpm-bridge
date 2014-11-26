@@ -87,6 +87,24 @@ class RPMRepo
 				//keep going...
 			}
 			else
+			if (rpm.isSnapshot())
+			{
+				//No appending to the registry...
+				//No compatibility check...
+				//TODO: Snapshots are always replaced with incoming snapshots (or releases)... even if they are out of order...
+				//Snapshots... are... therefore... unreliable! ... SURPRISE!
+				return guess;
+			}
+			else
+			if (mavenInfo.isSnapshot())
+			{
+				//We hold a snapshot, but the repo contains a bonafide release! Upgrade time...
+				//Again... no compatibility check, because we are dealing with a snapshot here.
+				//In general, if you want a repo of snapshots, it is expected that you make a separate repo of snapshots.
+				//TODO: explain (and document) why releases are always preferred over snapshots, wrt version compatibility and artifacts with the same id.
+				return guess;
+			}
+			else
 			if (equalOrOlder(guess, rpm.getModuleKey()))
 			{
 				getRegistry().append(mavenInfo, guess);
