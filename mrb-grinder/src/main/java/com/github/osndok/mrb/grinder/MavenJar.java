@@ -3,6 +3,7 @@ package com.github.osndok.mrb.grinder;
 import com.github.osndok.mrb.grinder.aether.ConsoleRepositoryListener;
 import com.github.osndok.mrb.grinder.aether.ConsoleTransferListener;
 import com.github.osndok.mrb.grinder.aether.ManualRepositorySystemFactory;
+import org.apache.bcel.Constants;
 import org.apache.bcel.classfile.*;
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
 import org.slf4j.Logger;
@@ -270,16 +271,17 @@ class MavenJar
 			}
 			*/
 
-			if (hasPublicStaticMainMethod(javaClass))
+			boolean hasMainMethod=hasPublicStaticMainMethod(javaClass);
+			String requestedCommandLineToolName= staticJavaXModuleExecField(javaClass);
+
+			if (hasMainMethod || requestedCommandLineToolName!=null)
 			{
 				String className=name;//aClass.getName();
 				log.info("a main class: {} ( {} / {} )", className, javaClass.getMajor(), javaClass.getMinor());
 
 				String toolName=moduleKey.toString()+(className.equals(mainClassName)?"":"-"+getSimpleName(className));
 
-				String override=staticJavaXModuleField(javaClass);
-
-				if (override==null)
+				if (requestedCommandLineToolName==null)
 				{
 					if (execClassesByToolName.containsKey(toolName))
 					{
@@ -309,8 +311,8 @@ class MavenJar
 				else
 				{
 					hasOverride=true;
-					override=replaceModuleInfoMacros(override, moduleKey);
-					execClassesByToolName.put(override, className);
+					requestedCommandLineToolName=replaceModuleInfoMacros(requestedCommandLineToolName, moduleKey);
+					execClassesByToolName.put(requestedCommandLineToolName, className);
 				}
 			}
 			else
@@ -445,7 +447,7 @@ class MavenJar
 	}
 
 	private
-	String staticJavaXModuleField(JavaClass javaClass)
+	String staticJavaXModuleExecField(JavaClass javaClass)
 	{
 		try
 		{
@@ -458,7 +460,13 @@ class MavenJar
 					log.debug("attribute: {} -> {}", attribute.getName(), attribute);
 				}
 
-				return field.getConstantValue().toString();
+				ConstantValue constantValue = field.getConstantValue();
+				ConstantPool constantPool = constantValue.getConstantPool();
+				Constant constant = constantPool.getConstant(constantValue.getConstantValueIndex());
+				int stringIndex=((ConstantString)constant).getStringIndex();
+				ConstantUtf8 inner = (ConstantUtf8) constantPool.getConstant(stringIndex, Constants.CONSTANT_Utf8);
+
+				return inner.getBytes();
 			}
 
 			//Field field = javaClass.getDeclaredField("JAVAX_MODULE_EXEC");

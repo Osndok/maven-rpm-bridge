@@ -1,4 +1,4 @@
-package com.github.osndok.mrb.plugin.b;
+package com.github.osndok.mrb.plugin.a;
 
 import com.github.osndok.mrb.plugin.test.Main;
 import com.github.osndok.mrb.plugin.test.NeedsMainArgument;

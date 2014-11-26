@@ -2,8 +2,12 @@ package javax.module;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.math.BigInteger;
 import java.net.URL;
 import java.text.ParseException;
 
@@ -283,11 +287,257 @@ class Startup extends ClassLoader
 
 		Startup startup=new Startup(moduleDirectory, rootModule, null);
 
-		Class<?> aClass = startup.loadClass(mainClassName);
+		Class aClass = startup.loadClass(mainClassName);
 
-		Method method=aClass.getMethod("main", String[].class);
+		try
+		{
+			//Always try to find a main method first...
+			Method method = aClass.getMethod("main", String[].class);
+			method.invoke(null, new Object[]{args});
+		}
+		catch (NoSuchMethodException e)
+		{
+			//So... they do not have a main(String[] args) method... maybe they are a new-fangled "runnable"?
+			if (Runnable.class.isAssignableFrom(aClass))
+			{
+				constructAndExecuteStaticRunnable(aClass, args);
+			}
+			else
+			{
+				throw e;
+			}
+		}
+	}
 
-		method.invoke(null, new Object[]{args});
+	/**
+	 * TODO: support constructors with varargs
+	 * @param aClass
+	 * @param args
+	 */
+	private static
+	void constructAndExecuteStaticRunnable(Class<? extends Runnable> aClass, String[] args) throws NoSuchMethodException
+	{
+		for (Constructor constructor : aClass.getConstructors())
+		{
+			Class<?>[] parameterTypes = constructor.getParameterTypes();
+
+			if (parameterTypes.length == args.length)
+			{
+				try
+				{
+					constructAndExecuteStaticRunnable(aClass, constructor, args, parameterTypes);
+					return;
+				}
+				catch (InvocationTargetException e)
+				{
+					e.getCause().printStackTrace();
+					System.exit(1);
+				}
+				catch (Throwable t)
+				{
+					//TODO: include at least the parameter index that such exceptions occur with...
+					System.err.println(t.toString());
+					maybeDoUsage(aClass);
+				}
+			}
+		}
+
+		maybeDoUsage(aClass);
+
+		throw new NoSuchMethodException(aClass+" does not have a constructor with "+args.length+" parameters");
+	}
+
+	/**
+	 * TODO: if the first argument looks like a flag, then parse them as longopts and pass them into the constructor as a Map.
+	 *
+	 * @param aClass
+	 * @param constructor
+	 * @param args
+	 * @param parameterTypes
+	 * @throws IllegalAccessException
+	 * @throws InvocationTargetException
+	 * @throws InstantiationException
+	 */
+	private static
+	void constructAndExecuteStaticRunnable(
+											  Class<? extends Runnable> aClass,
+											  Constructor<? extends Runnable> constructor,
+											  String[] args,
+											  Class<?>[] parameterTypes
+	) throws IllegalAccessException, InvocationTargetException, InstantiationException
+	{
+		final
+		int l=args.length;
+
+		final
+		Object[] parameters=new Object[l];
+
+		for (int i=0; i<l; i++)
+		{
+			parameters[i]=convertStringToPrimitiveClass(args[i], parameterTypes[i]);
+		}
+
+		Runnable runnable = constructor.newInstance(parameters);
+
+		runnable.run();
+	}
+
+	private static
+	Object convertStringToPrimitiveClass(String stringValue, Class targetType)
+	{
+		//TODO: primitive types cannot be null, can probably give a much better message therefor.
+		if (stringValue.equals("null")) return null;
+
+		if (targetType==String  .class) return stringValue;
+
+		if (targetType==short   .class || targetType==Short    .class) return new Short(stringValue);
+		if (targetType==int     .class || targetType==Integer  .class) return new Integer(stringValue);
+		if (targetType==long    .class || targetType==Long     .class) return new Long(stringValue);
+		if (targetType==float   .class || targetType==Float    .class) return new Float(stringValue);
+		if (targetType==double  .class || targetType==Double   .class) return new Double(stringValue);
+		if (targetType==boolean .class || targetType==Boolean  .class) return betterStringToBoolean(stringValue);
+
+		if (targetType==char    .class || targetType==Character.class)
+		{
+			assert(stringValue.length()==1);
+			return stringValue.charAt(0);
+		}
+
+		if (targetType==byte    .class || targetType==Byte     .class)
+		{
+			//Byte::decode() has sign issues... can't do 0xFF, for example.
+			//return Byte.decode(stringValue);
+
+			if (stringValue.startsWith("0x"))
+			{
+				stringValue=stringValue.substring(2);
+			}
+
+			//TODO: make this less ugly.
+			assert(stringValue.length()<=2);
+			return hexStringToByteArray(stringValue)[0];
+		}
+
+		if (targetType==byte[]  .class)
+		{
+			if (stringValue.startsWith("0x"))
+			{
+				stringValue=stringValue.substring(2);
+			}
+
+			//BigInteger drops leading zeros...
+			//return new BigInteger(stringValue, 16).toByteArray();
+			return hexStringToByteArray(stringValue);
+		}
+
+		throw new UnsupportedOperationException(targetType+" constructor parameters are not supported");
+	}
+
+	/*
+	http://stackoverflow.com/questions/140131/convert-a-string-representation-of-a-hex-dump-to-a-byte-array-using-java
+	 */
+	private static
+	byte[] hexStringToByteArray(String s)
+	{
+		int len = s.length();
+
+		if (len%2==1)
+		{
+			s="0"+s;
+			len++;
+		}
+
+		byte[] data = new byte[len / 2];
+		for (int i = 0; i < len; i += 2) {
+			data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+									  + Character.digit(s.charAt(i+1), 16));
+		}
+		return data;
+	}
+
+	private static
+	Boolean betterStringToBoolean(String s)
+	{
+		if (s.length()==1)
+		{
+			char c=s.charAt(0);
+			if (c=='0' ||c=='f' ||c=='F' ||c=='n' ||c=='N') return Boolean.FALSE;
+			if (c=='1' ||c=='t' ||c=='T' ||c=='y' ||c=='Y') return Boolean.TRUE;
+			if (c=='x' ||c=='u' ||c=='U') return null;
+			throw new IllegalArgumentException("unable to interpret single-character boolean parameter: "+c);
+		}
+		else
+		{
+			//To avoid accidentally interpreting a misplaced string as a boolean, we require the full string (except for the one-char options above).
+			s=s.toLowerCase();
+
+			/*
+			Matching this fine specification (missing 'undefined' strings, though):
+			http://www.postgresql.org/docs/9.1/static/datatype-boolean.html
+			 */
+
+			if (s.equals("true" ) || s.equals("yes") || s.equals("on") ) return Boolean.TRUE;
+			if (s.equals("false") || s.equals("no" ) || s.equals("off")) return Boolean.FALSE;
+			if (s.equals("undefined") || s.equals("maybe")) return null;
+			throw new IllegalArgumentException("unable to interpret boolean parameter: "+s);
+		}
+	}
+
+	private static
+	void maybeDoUsage(Class<?> aClass)
+	{
+		Method method;
+		boolean withPrintStream;
+
+		try
+		{
+			method=aClass.getMethod("usage", PrintStream.class);
+			withPrintStream=true;
+		}
+		catch (NoSuchMethodException e)
+		{
+			try
+			{
+				method=aClass.getMethod("usage");
+				withPrintStream=false;
+			}
+			catch (NoSuchMethodException e1)
+			{
+				return;
+			}
+		}
+
+		final
+		int modifiers = method.getModifiers();
+
+		if (!Modifier.isStatic(modifiers) || !Modifier.isPublic(modifiers))
+		{
+			return;
+		}
+
+		try
+		{
+			if (withPrintStream)
+			{
+				method.invoke(null, System.err);
+			}
+			else
+			{
+				method.invoke(null);
+			}
+
+			System.exit(1);
+		}
+		catch (IllegalAccessException e)
+		{
+			e.printStackTrace();
+			//fall-though... probably will get a more meaningful message.
+		}
+		catch (InvocationTargetException e)
+		{
+			e.printStackTrace();
+			//fall-through...
+		}
 	}
 
 }
