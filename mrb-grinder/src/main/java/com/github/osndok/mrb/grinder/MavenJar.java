@@ -5,7 +5,6 @@ import com.github.osndok.mrb.grinder.aether.ConsoleTransferListener;
 import com.github.osndok.mrb.grinder.aether.ManualRepositorySystemFactory;
 import org.apache.bcel.classfile.*;
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
-import org.codehaus.plexus.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonatype.aether.RepositorySystem;
@@ -842,12 +841,14 @@ class MavenJar
 			for (int i = 0; i < l; i++)
 			{
 				Element e = (Element) dependencies.item(i);
+				String scope=getScope(e);
+				boolean optional=isTestOrProvidedScope(scope);
 
-				MavenInfo mavenInfo = parseMavenDependency(context, e);
+				MavenInfo mavenInfo = parseMavenDependency(context, e, optional);
 
-				if (isTestOrProvidedScope(e))
+				if (scope.equals("test"))
 				{
-					log.debug("ignoring test/provided scope: {}", mavenInfo);
+					log.debug("ignoring test scope: {}", mavenInfo);
 				}
 				else
 				{
@@ -920,20 +921,19 @@ class MavenJar
 	}
 
 	private
-	MavenInfo parseMavenDependency(String context, Element dep) throws AetherRequiredException
+	MavenInfo parseMavenDependency(String context, Element dep, boolean optional) throws AetherRequiredException
 	{
 		String artifactId= getPomTag(context, dep, "artifactId");
 		context+=" dependency/artifact '"+artifactId+"'";
 		String groupId= getPomTag(context, dep, "groupId");
 		String version= getPomTag(context, dep, "version");
 
-		boolean optional=false;
+		Node optionalTag=dep.getElementsByTagName("optional").item(0);
 
-		Node node=dep.getElementsByTagName("optional").item(0);
-
-		if (node!=null)
+		if (optionalTag!=null && optionalTag.getTextContent().equals("true"))
 		{
-			optional=node.getTextContent().equals("true");
+			//TODO: maybe the logic would be clearer if we test the scope in here, and conditionally add it to the list in here?
+			optional=true;
 		}
 
 		return new MavenInfo(groupId, artifactId, version, optional);
@@ -960,7 +960,7 @@ class MavenJar
 	}
 
 	private
-	boolean isTestOrProvidedScope(Element dep)
+	String getScope(Element dep)
 	{
 		NodeList list = dep.getElementsByTagName("scope");
 
@@ -968,7 +968,8 @@ class MavenJar
 		{
 			String scope=list.item(0).getTextContent().toLowerCase();
 
-			return isTestOrProvidedScope(scope);
+			//return isTestOrProvidedScope(scope);
+			return scope;
 		}
 		else
 		{
@@ -976,9 +977,10 @@ class MavenJar
 			//Is it worth the trouble to support?
 			//I suppose that it doesn't hurt TOO much to have the test harness at runtime.
 			log.debug("no scope");
+			return "compile";
 		}
 
-		return false;
+		//return false;
 	}
 
 	private
