@@ -47,12 +47,25 @@ class Main
 		//This parallels the way that tapestry-ioc scans for it's modules...
 		//For a proper implementation, it must list all the manifest files for our immediate dependencies
 		//***AND*** everything in our startup context.
-		Enumeration<URL> urls = Main.class.getClassLoader().getResources("META-INF/MANIFEST.MF");
+		Enumeration<URL> urls = LoggerFactory.class.getClassLoader().getResources("META-INF/MANIFEST.MF");
+
+		boolean foundLoggerImpl=false;
 
 		while (urls.hasMoreElements())
 		{
 			URL url = urls.nextElement();
-			System.out.println(url);
+			String urlString = url.toString();
+			System.out.println(urlString);
+
+			if (urlString.contains("slf4j-simple"))
+			{
+				foundLoggerImpl=true;
+			}
+		}
+
+		if (!foundLoggerImpl)
+		{
+			throw new AssertionError("getResources() should locate all resources in module *AND* context");
 		}
 	}
 }

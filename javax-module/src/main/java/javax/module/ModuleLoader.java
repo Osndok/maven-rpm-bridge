@@ -4,8 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 
 /**
  * Created by robert on 10/30/14.
@@ -516,5 +515,58 @@ class ModuleLoader extends ClassLoader
 			return c;
 		}
 	}
+
+	@Override
+	public
+	Enumeration<URL> getResources(String name) throws IOException
+	{
+		final
+		Set<URL> retval = new LinkedHashSet<URL>();
+
+		retval.addAll(Collections.list(super.getResources(name)));
+
+		{
+			final
+			URL url = findResourceInThisModule(name);
+
+			if (url!=null)
+			{
+				retval.add(url);
+			}
+		}
+
+		for (Dependency dep : module.getDependencies())
+		{
+			try
+			{
+				final
+				ModuleLoader m2 = context.getModuleLoaderFor(dep);
+
+				final
+				URL url = m2.findResourceInThisModule(name);
+
+				if (url != null)
+				{
+					retval.add(url);
+					//???: usingDependency(m2);
+				}
+			}
+			catch (IOException e)
+			{
+				//no-op... maybe emit a warning?
+			}
+			catch (ModuleNotFoundException e)
+			{
+				//no-op... maybe emit a warning?
+			}
+			catch (ModuleAccessDeniedException e)
+			{
+				//no-op... maybe emit a warning?
+			}
+		}
+
+		return Collections.enumeration(retval);
+	}
+
 }
 

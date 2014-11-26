@@ -16,6 +16,9 @@ class Startup extends ClassLoader
 	private static final
 	boolean ROOT_MODULE_DEFINES_CONTEXT = Boolean.parseBoolean(System.getProperty("ROOT_MODULE_DEFINES_CONTEXT", "true"));
 
+	//TODO: how can we reliably detect this at runtime? is it enough to set it to true in the main() method?
+	public static final boolean MODULAR_VM_STARTUP = true;
+
 	private final
 	File moduleDirectory;
 

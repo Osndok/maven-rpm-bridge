@@ -3,8 +3,7 @@ package javax.module;
 import java.io.IOException;
 import java.net.URL;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by robert on 10/30/14.
@@ -266,5 +265,49 @@ class ContextLoader extends ClassLoader
 			}
 		}
 		return null;
+	}
+
+	/*
+	TODO: esp. if called from a module loader, this should enforce allow/deny rules per module.
+	 */
+	@Override
+	public
+	Enumeration<URL> getResources(String name) throws IOException
+	{
+		final
+		ClassLoader parent=getParent();
+
+		final
+		Set<URL> retval=new LinkedHashSet<URL>();
+		{
+			if (parent instanceof ContextLoader)
+			{
+				retval.addAll(Collections.list(super.getResources(name)));
+			}
+			else
+			if (Startup.MODULAR_VM_STARTUP)
+			{
+				//If we *started* in "modular mode"... then we don't what to break out of the modular class loaders when listing resources.
+				//no-op...
+			}
+			else
+			{
+				//If we started *subordinate* to an existing app that is using modules as a sub-loader, then we *do* what to include resources of non-modular-classloaders.
+				retval.addAll(Collections.list(super.getResources(name)));
+			}
+		}
+
+		for (ModuleLoader m : moduleLoaders)
+		{
+			final
+			URL url = m.findResourceInThisModule(name);
+
+			if (url!=null)
+			{
+				retval.add(url);
+			}
+		}
+
+		return Collections.enumeration(retval);
 	}
 }
