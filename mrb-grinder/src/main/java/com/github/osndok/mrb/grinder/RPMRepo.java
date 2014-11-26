@@ -82,26 +82,29 @@ class RPMRepo
 
 			RPM rpm=get(guess);
 
+			if (mavenInfo.isSnapshot())
+			{
+				//Even if there is no rpm, we return... thus forcing "1.0-SNAPSHOT" to have majorVersion=1.0
+				//We hold a snapshot, but the repo contains a bonafide release! Upgrade time...
+				//Again... no compatibility check, because we are dealing with a snapshot here.
+				//In general, if you want a repo of snapshots, it is expected that you make a separate repo of snapshots.
+				//TODO: explain (and document) why releases are always preferred over snapshots, wrt version compatibility and artifacts with the same id.
+				return guess;
+			}
+			else
 			if (rpm==null)
 			{
-				//keep going...
+				//keep going... will loop.
+				log.debug("rpm dne: {}", guess);
 			}
 			else
 			if (rpm.isSnapshot())
 			{
 				//No appending to the registry...
 				//No compatibility check...
+				//No version comparison either... (unlike version numbers, you can't really tell if "SNAPSHOT" >= "SNAPSHOT" ?)
 				//TODO: Snapshots are always replaced with incoming snapshots (or releases)... even if they are out of order...
 				//Snapshots... are... therefore... unreliable! ... SURPRISE!
-				return guess;
-			}
-			else
-			if (mavenInfo.isSnapshot())
-			{
-				//We hold a snapshot, but the repo contains a bonafide release! Upgrade time...
-				//Again... no compatibility check, because we are dealing with a snapshot here.
-				//In general, if you want a repo of snapshots, it is expected that you make a separate repo of snapshots.
-				//TODO: explain (and document) why releases are always preferred over snapshots, wrt version compatibility and artifacts with the same id.
 				return guess;
 			}
 			else
@@ -213,18 +216,22 @@ class RPMRepo
 	{
 		String moduleName = mavenInfo.getModuleNameCandidate();
 
-		StringBuilder sb = new StringBuilder();
-
-		for (int i = 0; i < transition; i++)
+		final
+		String majorVersion;
 		{
-			if (i != 0) sb.append('.');
-			log.info("so far: {}/{} -> {}", i, transition, sb);
-			sb.append(bits[i].toString());
+			StringBuilder sb = new StringBuilder();
+
+			for (int i = 0; i < transition; i++)
+			{
+				if (i != 0) sb.append('.');
+				log.info("so far: {}/{} -> {}", i, transition, sb);
+				sb.append(bits[i].toString());
+			}
+
+			majorVersion = sb.toString();
 		}
 
-		String majorVersion = sb.toString();
-
-		sb.delete(0, sb.length());
+		StringBuilder sb = new StringBuilder();
 
 		for (int i = transition; i < bits.length; i++)
 		{
