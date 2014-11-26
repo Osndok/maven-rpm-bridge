@@ -8,23 +8,29 @@ import java.net.URL;
 import java.text.ParseException;
 
 /**
- * TODO: the startup context should be such that, if a submodule (say slf4j-api) does not have a direct class match (say, for LoggerFactory), then it can be satisfied by the Startup context (which has slf4j-simple). This might also fix the most common Class.forName() issues.
+ *
  */
 public
 class Startup extends ClassLoader
 {
+	private static final
+	boolean ROOT_MODULE_DEFINES_CONTEXT = Boolean.parseBoolean(System.getProperty("ROOT_MODULE_DEFINES_CONTEXT", "true"));
+
 	private final
 	File moduleDirectory;
 
 	private final
 	ModuleKey rootModuleKey;
 
+	private
+	ModuleContext context;
+
 	public
 	Startup(File moduleDirectory, ModuleKey rootModule, ClassLoader fallback)
 	{
 		super(fallback);
-		this.moduleDirectory=moduleDirectory;
-		this.rootModuleKey=rootModule;
+		this.moduleDirectory = moduleDirectory;
+		this.rootModuleKey = rootModule;
 	}
 
 	private static
@@ -48,8 +54,6 @@ class Startup extends ClassLoader
 		}
 		return ModuleKey.parseModuleKey(module);
 	}
-
-	private ModuleContext context;
 
 	protected
 	URL findResource(String name)
@@ -93,17 +97,37 @@ class Startup extends ClassLoader
 					context = new ModuleContext(rootModuleKey.getModuleName(), moduleDirectory);
 					//addExtraModuleDirectories(context);
 					context.addModule(rootModuleKey);
+
 					/*
 					for (ModuleKey extra : getExtraModules())
 					{
 						context.addModule(extra);
 					}
 					*/
+
+					if (ROOT_MODULE_DEFINES_CONTEXT)
+					{
+						try
+						{
+							ModuleLoader moduleLoader = context.getModuleLoaderFor(rootModuleKey);
+
+							for (Dependency dependency : moduleLoader.getModule().getDependencies())
+							{
+								context.addModule(dependency);
+							}
+						}
+						catch (ModuleNotFoundException e)
+						{
+							throw new RuntimeException(e);
+						}
+					}
 				}
-				else if (!CHECK_ALL)
+				else
+				if (!CHECK_ALL)
 				{
 					throw new ClassNotFoundException(name + ": via module-startup class loader (try setting 'root.module.open' property to 'true')");
 				}
+
 				Class retval = context.findClassTopFirst(name, rootModuleKey);
 				if (retval == null)
 				{
