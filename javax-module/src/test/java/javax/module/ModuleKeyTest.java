@@ -84,6 +84,9 @@ class ModuleKeyTest extends Assert
 		//Yeah... nothing to go on...
 		x("");
 		x(null);
+
+		//This one had some trouble in testing...
+		p("org.apache.bcel-v6.0", "org.apache.bcel", "6.0");
 	}
 
 	private

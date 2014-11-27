@@ -258,17 +258,12 @@ class ModuleKey implements Serializable
 
 			if (moduleReference.charAt(lastHyphen+1)=='v')
 			{
-				try
+				final
+				String majorVersion=moduleReference.substring(lastHyphen+2);
+
+				if (entirelyNumbersAndPeriods(majorVersion))
 				{
-					final
-					Integer majorVersion=new Integer(moduleReference.substring(lastHyphen+2));
-					//NB: a subtlety here... if the suffix starts with a v, but is not a number, we want to throw to *include* the 'v'.
-					return new ModuleKey(moduleName, majorVersion.toString(), null);
-				}
-				catch (Exception e)
-				{
-					//ignore... or log.debug() it...
-					//e.printStackTrace();
+					return new ModuleKey(moduleName, majorVersion, null);
 				}
 			}
 
@@ -278,5 +273,25 @@ class ModuleKey implements Serializable
 		{
 			return new ModuleKey(moduleReference, null, null);
 		}
+	}
+
+	private static
+	boolean entirelyNumbersAndPeriods(String s)
+	{
+		final
+		int l=s.length();
+
+		for (int i=0; i<l; i++)
+		{
+			final
+			char c=s.charAt(i);
+
+			if (!Character.isDigit(c) && c!='.')
+			{
+				return false;
+			}
+		}
+
+		return (l>0);
 	}
 }
