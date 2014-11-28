@@ -390,6 +390,11 @@ class Startup extends ClassLoader
 
 		if (targetType==String  .class) return stringValue;
 
+		if (Enum.class.isAssignableFrom(targetType))
+		{
+			return Enum.valueOf(targetType, stringValue);
+		}
+
 		if (targetType==short   .class || targetType==Short    .class) return new Short(stringValue);
 		if (targetType==int     .class || targetType==Integer  .class) return new Integer(stringValue);
 		if (targetType==long    .class || targetType==Long     .class) return new Long(stringValue);

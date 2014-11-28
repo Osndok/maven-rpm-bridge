@@ -225,6 +225,11 @@ class RPM
 			String lines=Exec.toString("bash", "-c", "rpm2cpio "+file+" | cpio -i --to-stdout '*/"+depsName+"'");
 			log.trace("listing {} deps:\n{}", moduleKey, lines);
 
+			log.debug("MODULE_NAME={}", moduleKey.getModuleName());
+			log.debug("MAJOR_VERSION={}", moduleKey.getMajorVersion());
+			log.debug("MINOR_VERSION={}", moduleKey.getMinorVersion());
+			log.debug("TO_STRING={}", moduleKey);
+
 			return ModuleInfo.read(new ByteArrayInputStream(lines.getBytes()), moduleKey).getDependencies();
 		}
 		finally

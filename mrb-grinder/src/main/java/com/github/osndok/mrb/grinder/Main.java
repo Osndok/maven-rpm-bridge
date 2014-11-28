@@ -8,6 +8,8 @@ import javax.module.ModuleKey;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Given a JAR file (or eventually a WAR file) grind it (and it's dependencies) into
@@ -162,10 +164,56 @@ class Main
 	}
 
 	private
-	ModuleKey grindWar(File jar, MavenJar mavenJar, MavenInfo mavenInfo) throws IOException, ObsoleteJarException
+	ModuleKey grindWar(File warFile, MavenJar mavenJar, MavenInfo mavenInfo) throws IOException, ObsoleteJarException
 	{
 		//(1) Expand the war to a temporary directory (such that we can re-jar it, or rpmbuild it?)
+		final
+		File dir=new File(Exec.toString("/usr/bin/mktemp", "-d", "/tmp/mrb-grinder-war-XXXXXXXX"));
+
+		assert(dir.isDirectory());
+
+		Exec.andWait("/usr/bin/unzip", warFile.getAbsolutePath(), "-d", dir.getAbsolutePath());
+
 		//(2) convert every jar in the libs directory to a module dependency (ignore javax-servlet?)
+		final
+		File lib=new File(dir, "WEB-INF/lib");
+
+		final
+		Set<ModuleKey> additionalDepsFromLibs=new HashSet<ModuleKey>();
+
+		if (lib.isDirectory())
+		{
+			for (File jarFile : notNull(lib.listFiles()))
+			{
+				log.debug("processing: {}", jarFile);
+
+				try
+				{
+					ModuleKey moduleKey;
+					{
+						try
+						{
+							moduleKey=grindJar(jarFile);
+						}
+						catch (ObsoleteJarException e)
+						{
+							moduleKey = e.getModuleKey();
+						}
+
+						jarFile.delete();
+					}
+
+					additionalDepsFromLibs.add(moduleKey);
+				}
+				catch (Exception e)
+				{
+					log.error("unable to modularize {}", jarFile.getName(), e);
+				}
+			}
+		}
+
+		log.info("got {} module deps from libs directory", additionalDepsFromLibs.size());
+
 		//(3) convert the classes inside the war to a new module
 		//(4a) HOW: can we get the production (or development?) port number from the WAR? pom.xml? and the uncompliant ones?
 		//(4b) MAYBE: just install them tomcat-style with the module/version prefix?

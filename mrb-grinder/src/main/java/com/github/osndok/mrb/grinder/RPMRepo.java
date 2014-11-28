@@ -111,7 +111,7 @@ class RPMRepo
 			if (equalOrOlder(guess, rpm.getModuleKey()))
 			{
 				getRegistry().append(mavenInfo, guess);
-				throw new ObsoleteJarException("already have "+guess+" @ "+rpm.getModuleKey().getMinorVersion()+", so don't need to install @ "+guess.getMinorVersion());
+				throw new ObsoleteJarException("already have "+guess+" @ "+rpm.getModuleKey().getMinorVersion()+", so don't need to install @ "+guess.getMinorVersion(), rpm.getModuleKey());
 			}
 			else
 			if (rpm.innerJarIsCompatibleWithNewer(mavenJar))

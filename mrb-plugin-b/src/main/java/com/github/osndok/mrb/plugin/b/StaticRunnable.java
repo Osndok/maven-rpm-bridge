@@ -8,6 +8,10 @@ import java.util.Arrays;
  * The purpose of this class is to test the ability to create a command-line-tool without a
  * main method, by mapping primitive (and string) conversion into a constructor of the same
  * number of parameters.
+ *
+ * Some example/test vectors:
+ * mrb-plugin-b-static string 0x3e 0xff 123 1234 12345 123456 1234567 12345678 1.11 1.12 1.23 1.234 t f a b 0x00ff00ff ALPHA
+ * mrb-plugin-b-static null 0x3e null 123 null 12345 null 1234567 null 1.11 null 1.23 null t null a null null null
  */
 public
 class StaticRunnable implements Runnable
@@ -68,6 +72,9 @@ class StaticRunnable implements Runnable
 	private final
 	byte[] bytes;
 
+	private final
+	EnumParameter anEnum;
+
 	public
 	StaticRunnable(
 					  String s,
@@ -87,7 +94,8 @@ class StaticRunnable implements Runnable
 					  Boolean bool2,
 					  char c,
 					  Character c2,
-					  byte[] bytes
+					  byte[] bytes,
+					  EnumParameter anEnum
 	)
 	{
 		this.s = s;
@@ -108,6 +116,7 @@ class StaticRunnable implements Runnable
 		this.c = c;
 		this.c2 = c2;
 		this.bytes = bytes;
+		this.anEnum = anEnum;
 	}
 
 	public
@@ -118,6 +127,7 @@ class StaticRunnable implements Runnable
 		bool=false;
 		d2=null; f2=null; l2=null; i2=null; aShort2=null; b2=null; bool2=null; c2=null;
 		bytes=null;
+		anEnum=null;
 	}
 
 	public
@@ -128,6 +138,7 @@ class StaticRunnable implements Runnable
 		bool=false;
 		d2=null; f2=null; l2=null; i2=null; aShort2=null; b2=null; bool2=null; c2=null;
 		bytes=null;
+		anEnum=null;
 	}
 
 	@Override
@@ -153,6 +164,7 @@ class StaticRunnable implements Runnable
 				   ", c=" + c +
 				   ", c2=" + c2 +
 				   ", bytes=" + Arrays.toString(bytes) +
+				   ", anEnum=" + anEnum +
 				   '}';
 	}
 
@@ -168,5 +180,14 @@ class StaticRunnable implements Runnable
 	void run()
 	{
 		System.out.println("got: "+toString());
+	}
+
+	public
+	enum EnumParameter
+	{
+		ALPHA,
+		BETA,
+		GAMMA,
+		DELTA
 	}
 }

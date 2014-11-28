@@ -14,7 +14,7 @@ import java.io.*;
  * This is required to solve an otherwise-insurmountable problem of "given a modules version number,
  * what is it's 'compatible' major version number [given the history of created rpms]".
  *
- * TODO: improve Registry performance on large data-sets with an embedded database, rather than scanning a flat file.
+ * TODO: improve Registry performance on large data-sets with an embedded database, rather than scanning a flat file. Maybe we can hook directly into the yum sqlite database???
  */
 public
 class Registry
@@ -72,9 +72,12 @@ class Registry
 			String line;
 			while ((line=br.readLine())!=null)
 			{
-				if (mavenInfo.majorVersionFromParsableLineMatch(line)!=null)
+				String majorVersion=mavenInfo.majorVersionFromParsableLineMatch(line);
+
+				if (majorVersion!=null)
 				{
-					throw new ObsoleteJarException(mavenInfo+" is already in Registry: "+file);
+					ModuleKey moduleKey=new ModuleKey(mavenInfo.getModuleNameCandidate(), majorVersion, null);
+					throw new ObsoleteJarException(mavenInfo+" is already in Registry: "+file, moduleKey);
 				}
 			}
 		}
