@@ -596,7 +596,7 @@ class MavenJar
 				}
 				else
 				{
-					throw new IOException();
+					throw e;
 				}
 			}
 		}
