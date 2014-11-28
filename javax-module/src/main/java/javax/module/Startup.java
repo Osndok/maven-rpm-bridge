@@ -337,6 +337,7 @@ class Startup extends ClassLoader
 				{
 					//TODO: include at least the parameter index that such exceptions occur with...
 					System.err.println(t.toString());
+					System.err.println();
 					maybeDoUsage(aClass);
 				}
 			}
@@ -392,7 +393,14 @@ class Startup extends ClassLoader
 
 		if (Enum.class.isAssignableFrom(targetType))
 		{
-			return Enum.valueOf(targetType, stringValue);
+			try
+			{
+				return Enum.valueOf(targetType, stringValue);
+			}
+			catch (IllegalArgumentException e)
+			{
+				throw new IllegalArgumentException(targetType.getSimpleName()+" paramater cannot be '"+stringValue+"', valid values are: "+listEnumValues(targetType));
+			}
 		}
 
 		if (targetType==short   .class || targetType==Short    .class) return new Short(stringValue);
@@ -436,6 +444,36 @@ class Startup extends ClassLoader
 		}
 
 		throw new UnsupportedOperationException(targetType+" constructor parameters are not supported");
+	}
+
+	private static
+	String listEnumValues(Class<? extends Enum> enumClass)
+	{
+		try
+		{
+			Method method = enumClass.getMethod("values");
+			Object[] enumValues = (Object[]) method.invoke(null);
+
+			StringBuilder sb=new StringBuilder();
+
+			for (Object o : enumValues)
+			{
+				sb.append(o);
+				sb.append(',');
+				sb.append(' ');
+			}
+
+			//clip off the last comma... and space...
+			sb.deleteCharAt(sb.length()-1);
+			sb.deleteCharAt(sb.length()-1);
+
+			return sb.toString();
+		}
+		catch (Throwable t)
+		{
+			t.printStackTrace();
+			return "<unable-to-determine>";
+		}
 	}
 
 	/*
