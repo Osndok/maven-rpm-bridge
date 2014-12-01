@@ -161,8 +161,22 @@ class RPM
 		File out=new File(writable, "out");
 		out.mkdir();
 
+		String sourceDir;
+		{
+			if (jar==null)
+			{
+				//Shouldn't be reading anything anyway...
+				sourceDir="/tmp";
+			}
+			else
+			{
+				//We need to pull the jar file in...
+				sourceDir=jar.getParentFile().getCanonicalPath();
+			}
+		}
+
 		String lines = Exec.toString("rpmbuild", "--define", "_rpmdir " + out, "--define",
-										"_sourcedir " + jar.getParentFile().getCanonicalPath(), "-bb", spec.getAbsolutePath());
+										"_sourcedir " + sourceDir, "-bb", spec.getAbsolutePath());
 
 		log.info("rpmbuild output:\n{}", lines);
 

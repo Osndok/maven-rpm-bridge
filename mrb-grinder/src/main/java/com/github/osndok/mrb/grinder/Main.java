@@ -50,7 +50,14 @@ class Main
 		{
 			try
 			{
-				main.grind(new File(arg));
+				if (arg.equals("tools"))
+				{
+					main.getSunTools();
+				}
+				else
+				{
+					main.grind(new File(arg));
+				}
 			}
 			catch (Exception e)
 			{
@@ -330,5 +337,24 @@ class Main
 		{
 			return files;
 		}
+	}
+
+	public
+	ModuleKey getSunTools() throws IOException
+	{
+		ModuleKey retval=new ModuleKey("com.sun-tools", "1", null);
+
+		RPM rpm=rpmRepo.get(retval);
+
+		if (rpm==null)
+		{
+			log.info("call for sun's tools.jar");
+
+			File spec = Spec.writeSunTools(retval, rpmRepo);
+			File rpmFile = RPM.build(spec, null);
+			rpmRepo.add(rpmFile);
+		}
+
+		return retval;
 	}
 }

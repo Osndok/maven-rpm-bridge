@@ -3,6 +3,7 @@ package com.github.osndok.mrb.grinder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
+import sun.tools.jar.resources.jar;
 
 import javax.module.Dependency;
 import javax.module.ModuleKey;
@@ -31,6 +32,42 @@ class Spec
 	Spec(File file)
 	{
 		this.file = file;
+	}
+
+	public static
+	File writeSunTools(ModuleKey moduleKey, RPMRepo rpmRepo) throws IOException
+	{
+		final
+		File spec=File.createTempFile("mrb-sun-tools-",".spec");
+
+		final
+		Map<String,String> generalInfos;
+		{
+			generalInfos=new HashMap<String, String>();
+			generalInfos.put("@NAME@", moduleKey.toString());
+			generalInfos.put("@VERSION@", rpmVersionString(moduleKey));
+			generalInfos.put("@RELEASE@", RELEASE);
+
+			generalInfos.put("@MODULE_NAME@", moduleKey.getModuleName());
+			generalInfos.put("@MAJOR_VERSION@", moduleKey.getMajorVersion());
+			generalInfos.put("@MINOR_VERSION@", moduleKey.getMinorVersion());
+		}
+
+		generalInfos.put("@DEPS_FILE_CONTENTS@",moduleKey.getModuleName()+" "+moduleKey.getMajorVersion()+"\n");
+
+		StringBuilder sb=readTemplate("com.sun-tools.spec");
+
+		replace(sb, generalInfos);
+
+		final
+		OutputStream out=new FileOutputStream(spec);
+
+		out.write(sb.toString().getBytes());
+
+		out.flush();
+		out.close();
+
+		return spec;
 	}
 
 	public static
