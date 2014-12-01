@@ -205,9 +205,15 @@ class Main
 
 					additionalDepsFromLibs.add(moduleKey);
 				}
+				/*
 				catch (Exception e)
 				{
 					log.error("unable to modularize {}", jarFile.getName(), e);
+				}
+				*/
+				finally
+				{
+
 				}
 			}
 		}

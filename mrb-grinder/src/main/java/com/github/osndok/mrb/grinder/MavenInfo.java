@@ -1,5 +1,7 @@
 package com.github.osndok.mrb.grinder;
 
+import com.github.osndok.mrb.grinder.util.MavenDepRange;
+
 import javax.module.ModuleKey;
 import java.io.Serializable;
 
@@ -33,7 +35,7 @@ class MavenInfo implements Serializable
 
 		this.groupId = groupId;
 		this.artifactId = artifactId;
-		this.version = version;
+		this.version = noVersionRanges(version);
 		this.optional = false;
 	}
 
@@ -46,8 +48,32 @@ class MavenInfo implements Serializable
 
 		this.groupId = groupId;
 		this.artifactId = artifactId;
-		this.version = version;
+		this.version = noVersionRanges(version);
 		this.optional=optional;
+	}
+
+	private static
+	String noVersionRanges(String version)
+	{
+		if (MavenDepRange.isLikely(version))
+		{
+			try
+			{
+				return MavenDepRange.getAnyValidVersionFromRange(version);
+			}
+			catch (RuntimeException e)
+			{
+				throw e;
+			}
+			catch (Exception e)
+			{
+				throw new RuntimeException(e);
+			}
+		}
+		else
+		{
+			return version;
+		}
 	}
 
 	public
