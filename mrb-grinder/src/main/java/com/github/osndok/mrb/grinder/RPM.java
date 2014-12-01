@@ -115,7 +115,7 @@ class RPM
 	boolean innerJarIsCompatibleWithNewer(MavenJar mavenJar) throws IOException
 	{
 		MavenInfo mavenInfo=mavenJar.getInfo();
-		File innerJar=File.createTempFile(mavenInfo.getArtifactId(), ".jar");
+		File innerJar=File.createTempFile(mavenInfo.getArtifactId()+"-", ".jar");
 
 		try
 		{
@@ -196,7 +196,7 @@ class RPM
 	public
 	boolean innerJarContainsEntry(ModuleKey moduleKey, String entryName) throws IOException
 	{
-		File innerJar=File.createTempFile(moduleKey.toString(), ".jar");
+		File innerJar=File.createTempFile(moduleKey.toString()+"-", ".jar");
 
 		try
 		{
@@ -218,7 +218,7 @@ class RPM
 		//NB: must match spec templates!
 		String depsName=moduleKey.getModuleName()+".deps";
 
-		File innerDeps=File.createTempFile(moduleKey.toString(), ".deps");
+		File innerDeps=File.createTempFile(moduleKey.toString()+"-", ".deps");
 
 		try
 		{
