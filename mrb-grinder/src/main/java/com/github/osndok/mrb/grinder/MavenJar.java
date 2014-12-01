@@ -608,17 +608,24 @@ class MavenJar
 	private static final Logger log = LoggerFactory.getLogger(MavenJar.class);
 
 	public
-	Set<Dependency> listRpmDependencies(ModuleKey moduleKey, RPMRepo rpmRepo) throws DependencyNotProcessedException, IOException, ParserConfigurationException, SAXException
+	Set<Dependency> listRpmDependencies(ModuleKey moduleKey, Main main) throws DependencyNotProcessedException, IOException, ParserConfigurationException, SAXException
 	{
 		log.debug("listRpmDependencies: {}", moduleKey);
 
-		this.rpmRepo=rpmRepo;
+		final
+		RPMRepo rpmRepo=this.rpmRepo=main.getRPMRepo();
 
 		final
 		Set<Dependency> declaredDependencies=new HashSet<Dependency>();
 
 		for (MavenInfo info : listMavenDependenciesFromPomXml())
 		{
+			if (main.looksLikeSunTools(info))
+			{
+				declaredDependencies.add(main.getSunTools().asDependencyOf(moduleKey));
+				continue;
+			}
+
 			try
 			{
 				Dependency dependency = rpmRepo.getFullModuleDependency(moduleKey, info);
@@ -705,6 +712,8 @@ class MavenJar
 		{
 			if (transitiveDependenciesByEntryName==null)
 			{
+				log.info("indexing transitive dependencies...");
+
 				directDependenciesByEntryName=new HashMap<String, Dependency>();
 				transitiveDependenciesByEntryName=new HashMap<String, Dependency>();
 
@@ -836,222 +845,45 @@ class MavenJar
 		};
 	}
 
-	private transient
-	String description;
-
 	public
-	String kludge_getDescription_onlyAfterListingDependencies()
+	String getDescription() throws IOException
 	{
-		return description;
+		return getMavenPom().getDescription();
 	}
 
 	private
 	Set<MavenInfo> listMavenDependenciesFromPomXml() throws ParserConfigurationException, SAXException, IOException
 	{
-		Document pom = getPomXmlDom();
+		return getMavenPom().getDependencies();
+	}
 
-		/*
-		Without a pom.xml, we have to way of determining what a jar's dependencies are.
-		However... some (particularly low-level) apis simply don't have deps, or are built
-		from the ant tool, and injected manually into the maven repo.
+	private
+	MavenPom mavenPom;
 
-		TODO: is there a way to get a pom.xml for a jar given only it's MavenInfo? It's worth trying.
-
-		 */
-		if (pom==null)
+	public
+	MavenPom getMavenPom() throws IOException
+	{
+		if (mavenPom==null)
 		{
-			log.warn("could not find embedded pom.xml in: {}",file);
-			return Collections.emptySet();
-		}
-
-		pom.getDocumentElement().normalize();
-
-		Node description = pom.getElementsByTagName("description").item(0);
-
-		if (description==null)
-		{
-			log.debug("no description");
-		}
-		else
-		{
-			//TODO: if a multiline description, trim each line to avoid indentation issues.
-			this.description=description.getTextContent().trim();
-			log.debug("description: {}", this.description);
-		}
-
-		Node depsGroup = pom.getElementsByTagName("dependencies").item(0);
-
-		if (!(depsGroup instanceof Element))
-		{
-			//usually null...
-			log.info("dependencies is not an element: {}", depsGroup);
-			return Collections.emptySet();
-		}
-
-		NodeList dependencies = ((Element)depsGroup).getElementsByTagName("dependency");
-
-		int l=dependencies.getLength();
-
-		String context=file.getName()+"::pom.xml";
-
-		try
-		{
-			final
-			Set<MavenInfo> retval = new HashSet<MavenInfo>();
-
-			for (int i = 0; i < l; i++)
-			{
-				Element e = (Element) dependencies.item(i);
-				String scope=getScope(e);
-				boolean optional=isTestOrProvidedScope(scope);
-
-				MavenInfo mavenInfo = parseMavenDependency(context, e, optional);
-
-				if (scope.equals("test"))
-				{
-					log.debug("ignoring test scope: {}", mavenInfo);
-				}
-				else
-				{
-					retval.add(mavenInfo);
-				}
-			}
-
-			return retval;
-		}
-		catch (AetherRequiredException e)
-		{
-			if (log.isInfoEnabled())
-			{
-				log.info("moving to aether backup plan: {}", e.toString());
-			}
-
-			RepositorySystem system = ManualRepositorySystemFactory.newRepositorySystem();
-
-			RepositorySystemSession session = newRepositorySystemSession(system);
-
-			Artifact artifact = new DefaultArtifact( getInfo().toString() );
-
-			RemoteRepository repo = new RemoteRepository( "central", "default", "http://repo1.maven.org/maven2/" );
-
-			ArtifactDescriptorRequest descriptorRequest = new ArtifactDescriptorRequest();
-			descriptorRequest.setArtifact( artifact );
-			descriptorRequest.addRepository( repo );
-
-			ArtifactDescriptorResult descriptorResult;
-
 			try
 			{
-				descriptorResult=system.readArtifactDescriptor( session, descriptorRequest );
+				mavenPom=new MavenPom(getInfo(), pomXmlInputStream());
 			}
-			catch (ArtifactDescriptorException e1)
+			catch (ParserConfigurationException e)
 			{
-				throw new IOException("unable to read artifact descriptor", e1);
+				throw new IOException(e);
 			}
-
-			final
-			Set<MavenInfo> retval = new HashSet<MavenInfo>();
-
-			for ( org.sonatype.aether.graph.Dependency dependency : descriptorResult.getDependencies() )
+			catch (SAXException e)
 			{
-				System.out.println( dependency );
-				String scope=dependency.getScope();
-				Artifact aetherArtifact = dependency.getArtifact();
-
-				if (!isTestOrProvidedScope(scope))
-				{
-					retval.add(new MavenInfo(aetherArtifact.getGroupId(), aetherArtifact.getArtifactId(), aetherArtifact.getVersion(), dependency.isOptional()));
-				}
+				throw new IOException(e);
 			}
-
-			return retval;
 		}
+
+		return mavenPom;
 	}
 
 	private
-	RepositorySystemSession newRepositorySystemSession(RepositorySystem system)
-	{
-		MavenRepositorySystemSession session = new MavenRepositorySystemSession();
-		LocalRepository localRepo = new LocalRepository( "target/local-repo" );
-		session.setLocalRepositoryManager( system.newLocalRepositoryManager( localRepo ) );
-		session.setTransferListener( new ConsoleTransferListener() );
-		session.setRepositoryListener( new ConsoleRepositoryListener() );
-		// uncomment to generate dirty trees
-		// session.setDependencyGraphTransformer( null );
-		return session;
-	}
-
-	private
-	MavenInfo parseMavenDependency(String context, Element dep, boolean optional) throws AetherRequiredException
-	{
-		String artifactId= getPomTag(context, dep, "artifactId");
-		context+=" dependency/artifact '"+artifactId+"'";
-		String groupId= getPomTag(context, dep, "groupId");
-		String version= getPomTag(context, dep, "version");
-
-		Node optionalTag=dep.getElementsByTagName("optional").item(0);
-
-		if (optionalTag!=null && optionalTag.getTextContent().equals("true"))
-		{
-			//TODO: maybe the logic would be clearer if we test the scope in here, and conditionally add it to the list in here?
-			optional=true;
-		}
-
-		return new MavenInfo(groupId, artifactId, version, optional);
-	}
-
-	private
-	String getPomTag(String context, Element element, String tagName) throws AetherRequiredException
-	{
-		NodeList nodeList = element.getElementsByTagName(tagName);
-
-		Node node = nodeList.item(0);
-		if (node==null)
-		{
-			throw new AetherRequiredException(context+" does not have a "+tagName+" tag");
-		}
-
-		String retval=node.getTextContent();
-		if (retval.contains("{"))
-		{
-			throw new AetherRequiredException(context+" '"+tagName+"' tag contains a macro expansion");
-		}
-
-		return retval;
-	}
-
-	private
-	String getScope(Element dep)
-	{
-		NodeList list = dep.getElementsByTagName("scope");
-
-		if (list.getLength()>=1)
-		{
-			String scope=list.item(0).getTextContent().toLowerCase();
-
-			//return isTestOrProvidedScope(scope);
-			return scope;
-		}
-		else
-		{
-			//BUG? Dependency scope might be declarable in a parent pom...
-			//Is it worth the trouble to support?
-			//I suppose that it doesn't hurt TOO much to have the test harness at runtime.
-			log.debug("no scope");
-			return "compile";
-		}
-
-		//return false;
-	}
-
-	private
-	boolean isTestOrProvidedScope(String scope)
-	{
-		return scope!=null && (scope.equals("test") || scope.equals("provided"));
-	}
-
-	private
-	Document getPomXmlDom() throws IOException, ParserConfigurationException, SAXException
+	InputStream pomXmlInputStream() throws IOException
 	{
 		Enumeration e = jarFile.entries();
 
@@ -1062,17 +894,11 @@ class MavenJar
 
 			if (name.endsWith("/pom.xml"))
 			{
-				return domFromInputStream(jarFile.getInputStream(je));
+				return jarFile.getInputStream(je);
 			}
 		}
 
-		return null;
-	}
-
-	private
-	Document domFromInputStream(InputStream inputStream) throws ParserConfigurationException, IOException, SAXException
-	{
-		return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
+		throw new IllegalStateException(file+" does not have a pom.xml entry");
 	}
 
 	public

@@ -121,9 +121,9 @@ class MavenInfo implements Serializable
 		int l=s.length();
 
 		//NB: should at least catch "api", "parent", "test"...
-		//NB: the desire to have at least five-character words can be subverted with english suffixes (like 'tools' has only 4 meaningful characters)
+		//NB: the desire to have at least five-character words can be subverted with english suffixes (like 'tools' or 'utils', which have only 4 meaningful characters)
 		//TODO: needs more analysis/time; e.g. list all artifactIds on maven central, to find those "too short", or "too common" (across groups).
-		return l<5 || (l==5 && s.endsWith("s")) || s.equals("parent");
+		return l<5 || (l==5 && s.endsWith("s")) || s.equals("parent") || s.equals("plugin");
 	}
 
 	@Override

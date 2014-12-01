@@ -3,7 +3,6 @@ package com.github.osndok.mrb.grinder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
-import sun.tools.jar.resources.jar;
 
 import javax.module.Dependency;
 import javax.module.ModuleKey;
@@ -71,8 +70,11 @@ class Spec
 	}
 
 	public static
-	File write(ModuleKey moduleKey, MavenJar mavenJar, RPMRepo rpmRepo) throws IOException
+	File write(ModuleKey moduleKey, MavenJar mavenJar, Main main) throws IOException
 	{
+		final
+		RPMRepo rpmRepo=main.getRPMRepo();
+
 		final
 		File jar=mavenJar.getFile().getCanonicalFile();
 
@@ -113,7 +115,7 @@ class Spec
 		try
 		{
 			//TODO: minor version is not being picked carried here (inside moduleKey)
-			dependencies=mavenJar.listRpmDependencies(moduleKey, rpmRepo);
+			dependencies=mavenJar.listRpmDependencies(moduleKey, main);
 		}
 		catch (DependencyNotProcessedException e)
 		{
@@ -380,7 +382,7 @@ class Spec
 	{
 		StringBuilder sb=new StringBuilder("\n%description\n");
 
-		String descriptionFromPom=mavenJar.kludge_getDescription_onlyAfterListingDependencies();
+		String descriptionFromPom=mavenJar.getDescription();
 
 		if (descriptionFromPom==null)
 		{

@@ -271,6 +271,11 @@ class RPM
 	public
 	void dumpInnerJarClassEntries(Dependency dependency, Map<String, Dependency> dependenciesByEntryName) throws IOException
 	{
+		if (knownToNotContainAJarFile())
+		{
+			return;
+		}
+
 		final
 		File innerJar=File.createTempFile("mrb-gather-deps-", ".jar");
 
@@ -303,5 +308,11 @@ class RPM
 		{
 			innerJar.delete();
 		}
+	}
+
+	private
+	boolean knownToNotContainAJarFile()
+	{
+		return file.getName().contains("com.sun-tools");
 	}
 }

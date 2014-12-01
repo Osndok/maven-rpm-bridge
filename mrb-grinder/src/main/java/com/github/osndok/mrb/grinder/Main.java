@@ -133,7 +133,7 @@ class Main
 
 		ModuleKey moduleKey=rpmRepo.mostSpecificCompatibleAndPreExistingVersion(mavenJar);
 
-		File spec=Spec.write(moduleKey, mavenJar, rpmRepo);
+		File spec=Spec.write(moduleKey, mavenJar, this);
 		File rpm=RPM.build(spec, jar);
 
 		if (mavenInfo.isSnapshot())
@@ -255,6 +255,11 @@ class Main
 	public
 	ModuleKey grindMavenArtifact(MavenInfo mavenInfo) throws IOException, ObsoleteJarException
 	{
+		if (looksLikeSunTools(mavenInfo))
+		{
+			return getSunTools();
+		}
+
 		final
 		File dir=new File(Exec.toString("mktemp", "-d", "/tmp/mrb-maven-dep-copy-XXXXXXXX").trim());
 
@@ -326,6 +331,15 @@ class Main
 		}
 	}
 
+	public
+	boolean looksLikeSunTools(MavenInfo mavenInfo)
+	{
+		String groupId=mavenInfo.getGroupId();
+		String artifactId=mavenInfo.getArtifactId();
+
+		return (groupId.equals("com.sun") || groupId.equals("sun.jdk")) && mavenInfo.getArtifactId().equals("tools");
+	}
+
 	private
 	File[] notNull(File[] files)
 	{
@@ -356,5 +370,11 @@ class Main
 		}
 
 		return retval;
+	}
+
+	public
+	RPMRepo getRPMRepo()
+	{
+		return rpmRepo;
 	}
 }
