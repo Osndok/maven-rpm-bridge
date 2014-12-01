@@ -302,7 +302,7 @@ class MavenJar
 				{
 					if (execClassesByToolName.containsKey(toolName))
 					{
-						String[] segments=className.split("\\.");
+						String[] segments=className.split("[\\.\\$]");
 						int start=segments.length-2;
 
 						do
@@ -419,13 +419,34 @@ class MavenJar
 		final
 		int period=className.lastIndexOf('.');
 
+		if (className.endsWith("Main") || className.contains("Main$"))
+		{
+			return getSimpleName(className.substring(0,  period));
+		}
+
+		final
+		int end;
+		{
+			final
+			int dollarSign=className.lastIndexOf('$');
+
+			if (dollarSign<=0)
+			{
+				end=className.length();
+			}
+			else
+			{
+				end=dollarSign;
+			}
+		}
+
 		if (period>0)
 		{
-			return className.substring(period+1);
+			return className.substring(period+1, end);
 		}
 		else
 		{
-			return className;
+			return className.substring(0, end);
 		}
 	}
 
