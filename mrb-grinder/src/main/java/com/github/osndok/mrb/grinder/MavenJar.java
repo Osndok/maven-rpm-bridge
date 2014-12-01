@@ -677,12 +677,6 @@ class MavenJar
 			}
 		}
 
-		//Everything but the module loader requires the module loader at install time (in order to run).
-		if (!moduleKey.getModuleName().equals("javax-module"))
-		{
-			retval.add(Version.JAVAX_MODULE.asDependencyOf(moduleKey));
-		}
-
 		dependencies=retval;
 
 		return retval;

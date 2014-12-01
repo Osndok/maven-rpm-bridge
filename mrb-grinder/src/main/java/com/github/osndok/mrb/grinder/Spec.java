@@ -6,6 +6,7 @@ import org.xml.sax.SAXException;
 
 import javax.module.Dependency;
 import javax.module.ModuleKey;
+import javax.module.Version;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.util.HashMap;
@@ -107,6 +108,15 @@ class Spec
 			for (Dependency dependency : dependencies)
 			{
 				out.write(requiresLine(dependency));
+			}
+
+			/*
+			NB: a bit of a 'hidden' dependency... every javax module *RPM* implicitly depends on the module
+			loader (so that it can run). Except for the module loader itself (which would make it depend on itself).
+			 */
+			if (!moduleKey.equals(Version.JAVAX_MODULE) && !dependencies.contains(Version.JAVAX_MODULE))
+			{
+				out.write(requiresLine(Version.JAVAX_MODULE));
 			}
 
 			out.write(kludgy_descriptionFromPomFile(mavenJar));
@@ -349,7 +359,7 @@ class Spec
 	}
 
 	private static
-	byte[] requiresLine(Dependency dependency)
+	byte[] requiresLine(ModuleKey dependency)
 	{
 		StringBuilder sb=new StringBuilder("Requires: ");
 		sb.append(RPM_NAME_PREFIX);
