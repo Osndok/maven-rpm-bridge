@@ -168,7 +168,7 @@ class Main
 	{
 		//(1) Expand the war to a temporary directory (such that we can re-jar it, or rpmbuild it?)
 		final
-		File dir=new File(Exec.toString("/usr/bin/mktemp", "-d", "/tmp/mrb-grinder-war-XXXXXXXX"));
+		File dir=new File(Exec.toString("/usr/bin/mktemp", "-d", "/tmp/mrb-grinder-war-XXXXXXXX").trim());
 
 		assert(dir.isDirectory());
 
