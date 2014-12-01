@@ -23,7 +23,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import javax.module.Version;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.module.Dependency;
 import javax.module.ModuleKey;
@@ -704,31 +703,53 @@ class MavenJar
 		}
 		else
 		{
-			for (Dependency dependency : declaredDependencies)
+			if (transitiveDependenciesByEntryName==null)
 			{
-				RPM rpm=rpmRepo.get(dependency);
+				directDependenciesByEntryName=new HashMap<String, Dependency>();
+				transitiveDependenciesByEntryName=new HashMap<String, Dependency>();
 
-				if (rpm.innerJarContainsEntry(dependency, classEntryName))
+				for (Dependency dependency : declaredDependencies)
 				{
-					log.trace("in-dep: {}", classEntryName);
-					return;
-				}
+					RPM rpm = rpmRepo.get(dependency);
 
-				//To be nice, we go one level deep... beyond that, and you are on your own!
-				for (Dependency transitive:rpm.listModuleDependencies(dependency))
-				{
-					if (rpmRepo.get(transitive).innerJarContainsEntry(transitive, classEntryName))
+					rpm.dumpInnerJarClassEntries(dependency, directDependenciesByEntryName);
+
+					//To be nice, we go one level deep... beyond that, and you are on your own!
+					for (Dependency transitive : rpm.listModuleDependencies(dependency))
 					{
-						log.warn("use of {} implies transitive dependency: {}", transitive);
-						actualDependencies.add(transitive);
+						rpmRepo.get(transitive).dumpInnerJarClassEntries(transitive, transitiveDependenciesByEntryName);
 					}
 				}
 			}
 
-			//We don't make this fatal, because there *are* ways to use undeclared classes via reflection and whatnot.
-			log.error("{} not found in dependencies, this module may therefore be broken", classEntryName);
+			Dependency dependency=directDependenciesByEntryName.get(classEntryName);
+
+			if (dependency!=null)
+			{
+				log.trace("in-dep: {}: {}", dependency, classEntryName);
+				return;
+			}
+
+			dependency=transitiveDependenciesByEntryName.get(classEntryName);
+
+			if (dependency==null)
+			{
+				//We don't make this fatal, because there *are* ways to use undeclared classes via reflection and whatnot.
+				log.error("{} not found in dependencies, this module may therefore be broken", classEntryName);
+			}
+			else
+			{
+				log.warn("use of {} implies transitive dependency: {}", classEntryName, dependency);
+				actualDependencies.add(dependency);
+			}
 		}
 	}
+
+	private
+	Map<String,Dependency> directDependenciesByEntryName;
+
+	private
+	Map<String,Dependency> transitiveDependenciesByEntryName;
 
 	private
 	boolean isSystemClass(String classEntryName)

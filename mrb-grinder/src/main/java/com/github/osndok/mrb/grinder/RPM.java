@@ -7,6 +7,7 @@ import org.semver.Comparer;
 import org.semver.Delta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.tools.jar.resources.jar;
 
 import javax.module.Dependency;
 import javax.module.ModuleInfo;
@@ -17,7 +18,9 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -263,5 +266,42 @@ class RPM
 	{
 		String minorVersion = moduleKey.getMinorVersion();
 		return minorVersion!=null && minorVersion.contains("snap");
+	}
+
+	public
+	void dumpInnerJarClassEntries(Dependency dependency, Map<String, Dependency> dependenciesByEntryName) throws IOException
+	{
+		final
+		File innerJar=File.createTempFile("mrb-gather-deps-", ".jar");
+
+		try
+		{
+			Exec.andWait("bash", "-c", "rpm2cpio " + file + " | cpio -i --to-stdout '*.jar' > " + innerJar);
+
+			final
+			JarFile jar=new JarFile(innerJar);
+
+			try
+			{
+				for (JarEntry jarEntry : Collections.list(jar.entries()))
+				{
+					final
+					String entryName=jarEntry.getName();
+
+					if (entryName.endsWith(".class"))
+					{
+						dependenciesByEntryName.put(entryName, dependency);
+					}
+				}
+			}
+			finally
+			{
+				jar.close();
+			}
+		}
+		finally
+		{
+			innerJar.delete();
+		}
 	}
 }
