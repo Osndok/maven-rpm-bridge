@@ -117,9 +117,13 @@ class MavenInfo implements Serializable
 	private static
 	boolean isTooCommonOrSimpleToBeAModuleName(String s)
 	{
+		final
+		int l=s.length();
+
 		//NB: should at least catch "api", "parent", "test"...
-		//TODO: list all artifactIds on maven central, to find those "too short", or "too common" (across groups).
-		return s.length()<5 || s.equals("parent");
+		//NB: the desire to have at least five-character words can be subverted with english suffixes (like 'tools' has only 4 meaningful characters)
+		//TODO: needs more analysis/time; e.g. list all artifactIds on maven central, to find those "too short", or "too common" (across groups).
+		return l<5 || (l==5 && s.endsWith("s")) || s.equals("parent");
 	}
 
 	@Override
