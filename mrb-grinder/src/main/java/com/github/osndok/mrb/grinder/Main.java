@@ -108,7 +108,7 @@ class Main
 	ModuleKey grindJar(File jar) throws IOException, ObsoleteJarException
 	{
 		MavenJar mavenJar = new MavenJar(jar);
-		MavenInfo mavenInfo = mavenJar.getInfo();
+		MavenInfo mavenInfo = mavenJar.getInfo(rpmRepo.getRegistry());
 
 		return grindJar(jar, mavenJar, mavenInfo);
 	}

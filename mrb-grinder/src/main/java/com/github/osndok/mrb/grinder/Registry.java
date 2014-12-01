@@ -20,17 +20,24 @@ public
 class Registry
 {
 	private final
-	File file;
+	File infoToMajorMap;
+
+	private final
+	File jarToInfoMap;
 
 	public
 	Registry(RPMRepo rpmRepo)
 	{
-		this.file=new File(rpmRepo.getDirectory(), "maven-rpms.map");
+		this.infoToMajorMap=new File(rpmRepo.getDirectory(), "maven-rpms.map");
+		this.jarToInfoMap=new File(rpmRepo.getDirectory(), "maven-jars.map");
 	}
 
 	public
 	boolean contains(MavenInfo mavenInfo) throws IOException
 	{
+		final
+		File file=infoToMajorMap;
+
 		if (!file.exists())
 		{
 			//file.createNewFile();
@@ -60,6 +67,9 @@ class Registry
 	public
 	void shouldNotContain(MavenInfo mavenInfo) throws ObsoleteJarException, IOException
 	{
+		final
+		File file=infoToMajorMap;
+
 		if (!file.exists())
 		{
 			//file.createNewFile();
@@ -90,6 +100,9 @@ class Registry
 	public
 	void append(MavenInfo mavenInfo, ModuleKey moduleKey) throws IOException
 	{
+		final
+		File file=infoToMajorMap;
+
 		final
 		String line=mavenInfo.toParsableLine(moduleKey.getMajorVersion());
 
@@ -153,7 +166,12 @@ class Registry
 	private
 	String majorFromFirstLineThatMatches(MavenInfo mavenInfo) throws IOException
 	{
+		final
+		File file=infoToMajorMap;
+
+		final
 		BufferedReader br=new BufferedReader(new FileReader(file));
+
 		try
 		{
 			String line;
@@ -176,4 +194,54 @@ class Registry
 	}
 
 	private static final Logger log = LoggerFactory.getLogger(Registry.class);
+
+	public
+	MavenInfo getMavenInfoOverrideForJarName(String jarFileName) throws IOException
+	{
+		final
+		File file=jarToInfoMap;
+
+		if (!file.exists())
+		{
+			return null;
+		}
+
+		final
+		BufferedReader br=new BufferedReader(new FileReader(file));
+
+		try
+		{
+			String line;
+			while ((line=br.readLine())!=null)
+			{
+				if (line.startsWith(jarFileName))
+				{
+					return mavenInfoFromRestOfLine(line.substring(jarFileName.length()+1));
+				}
+			}
+		}
+		finally
+		{
+			br.close();
+		}
+
+		return null;
+	}
+
+	private
+	MavenInfo mavenInfoFromRestOfLine(String s) throws IOException
+	{
+		String[] bits=s.split(":");
+
+		if (bits.length!=3)
+		{
+			throw new IOException("Expecting exactly three fields, got "+bits.length+" for: "+s);
+		}
+
+		String groupId=bits[0].trim();
+		String artifactId=bits[1].trim();
+		String version=bits[2].trim();
+
+		return new MavenInfo(groupId, artifactId, version);
+	}
 }

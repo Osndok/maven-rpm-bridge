@@ -102,9 +102,26 @@ class MavenJar
 	MavenInfo mavenInfo;
 
 	public
+	MavenInfo getInfo(Registry r) throws IOException
+	{
+		MavenInfo retval = this.mavenInfo;
+
+		if (retval == null)
+		{
+			retval = this.mavenInfo = r.getMavenInfoOverrideForJarName(file.getName());
+
+			if (retval == null)
+			{
+				return getInfo();
+			}
+		}
+
+		return retval;
+	}
+
+	public
 	MavenInfo getInfo() throws IOException
 	{
-
 		MavenInfo retval = this.mavenInfo;
 
 		if (retval == null)

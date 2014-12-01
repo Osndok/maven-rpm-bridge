@@ -281,6 +281,8 @@ class RPMRepo
 	public
 	Dependency getFullModuleDependency(ModuleKey requestor, MavenInfo mavenInfo) throws DependencyNotProcessedException, IOException
 	{
+		log.info("getFullModuleDependency: {} -> {}", requestor, mavenInfo);
+
 		String majorVersion = getRegistry().getMajorVersionFor(mavenInfo, this);
 		//The guess might actually be enough, but it would be better to verify the RPM's presence.
 		ModuleKey guess = new ModuleKey(mavenInfo.getModuleNameCandidate(), majorVersion, null);
