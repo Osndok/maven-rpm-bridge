@@ -1,29 +1,11 @@
 package com.github.osndok.mrb.grinder;
 
-import com.github.osndok.mrb.grinder.aether.ConsoleRepositoryListener;
-import com.github.osndok.mrb.grinder.aether.ConsoleTransferListener;
-import com.github.osndok.mrb.grinder.aether.ManualRepositorySystemFactory;
 import org.apache.bcel.Constants;
 import org.apache.bcel.classfile.*;
-import org.apache.maven.repository.internal.MavenRepositorySystemSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.sonatype.aether.RepositorySystem;
-import org.sonatype.aether.RepositorySystemSession;
-import org.sonatype.aether.artifact.Artifact;
-import org.sonatype.aether.repository.LocalRepository;
-import org.sonatype.aether.repository.RemoteRepository;
-import org.sonatype.aether.resolution.ArtifactDescriptorException;
-import org.sonatype.aether.resolution.ArtifactDescriptorRequest;
-import org.sonatype.aether.resolution.ArtifactDescriptorResult;
-import org.sonatype.aether.util.artifact.DefaultArtifact;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.module.Dependency;
 import javax.module.ModuleKey;
 import javax.xml.parsers.ParserConfigurationException;
@@ -107,7 +89,7 @@ class MavenJar
 
 		if (retval == null)
 		{
-			retval = this.mavenInfo = r.getMavenInfoOverrideForJarName(file.getName());
+			retval = this.mavenInfo = r.getMavenInfoFor(file);
 
 			if (retval == null)
 			{

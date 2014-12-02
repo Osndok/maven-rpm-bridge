@@ -79,9 +79,17 @@ class MavenPom
 
 		pom.getDocumentElement().normalize();
 
+		NodeList topLevel = pom.getChildNodes().item(0).getChildNodes();
+
+		String groupId = stringChild(topLevel, "groupId");
+		String artifactId = stringChild(topLevel, "artifactId");
+		String version = stringChild(topLevel, "version");
+
+		/*
 		String groupId = pom.getElementsByTagName("groupId").item(0).getTextContent().trim();
 		String artifactId = pom.getElementsByTagName("artifactId").item(0).getTextContent().trim();
 		String version = pom.getElementsByTagName("version").item(0).getTextContent().trim();
+		*/
 
 		if (mavenInfo == null)
 		{
@@ -92,10 +100,10 @@ class MavenPom
 			String msg = "pom.xml does not correspond to parent artifact. ";
 
 			//Verify that it's what we think it is...
-			if (!mavenInfo.getGroupId().equals(groupId))
+			if (groupId!=null && !mavenInfo.getGroupId().equals(groupId))
 				throw new IOException(msg + mavenInfo.getGroupId() + " != " + groupId);
-			if (!mavenInfo.getArtifactId().equals(artifactId)) throw new IOException(msg+mavenInfo.getArtifactId()+" != "+artifactId);
-			if (!mavenInfo.getVersion().equals(version)) throw new IOException(msg+mavenInfo.getVersion()+" != "+version);
+			if (artifactId!=null && !mavenInfo.getArtifactId().equals(artifactId)) throw new IOException(msg+mavenInfo.getArtifactId()+" != "+artifactId);
+			if (version!=null && !mavenInfo.getVersion().equals(version)) throw new IOException(msg+mavenInfo.getVersion()+" != "+version);
 		}
 
 		this.mavenInfo = mavenInfo;
@@ -115,6 +123,26 @@ class MavenPom
 		}
 
 		this.dependencies = _getDependencies(mavenInfo, pom);
+	}
+
+	private
+	String stringChild(NodeList nodeList, String tagName)
+	{
+		int l=nodeList.getLength();
+		for (int i=0; i<l; i++)
+		{
+			Node node=nodeList.item(i);
+			if (node instanceof Element)
+			{
+				Element e=(Element)node;
+				if (e.getTagName().equals(tagName))
+				{
+					return e.getTextContent().trim();
+				}
+			}
+		}
+
+		return null;
 	}
 
 	private static

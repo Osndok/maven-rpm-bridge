@@ -1,10 +1,12 @@
 package com.github.osndok.mrb.grinder;
 
+import com.github.osndok.mrb.grinder.util.Exec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.module.ModuleKey;
 import java.io.*;
+import java.sql.*;
 
 /**
  * The "Registry" is currently a flat file stashed in the target rpm repo that contains all the
@@ -19,24 +21,130 @@ import java.io.*;
 public
 class Registry
 {
-	private final
-	File infoToMajorMap;
+	static
+	{
+		try
+		{
+			Class.forName("org.sqlite.JDBC");
+		}
+		catch (ClassNotFoundException e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
 
 	private final
-	File jarToInfoMap;
+	File databaseFile;
+
+	private final
+	Connection connection;
 
 	public
-	Registry(RPMRepo rpmRepo)
+	Registry(RPMRepo rpmRepo) throws SQLException
 	{
-		this.infoToMajorMap=new File(rpmRepo.getDirectory(), "maven-rpms.map");
-		this.jarToInfoMap=new File(rpmRepo.getDirectory(), "maven-jars.map");
+		this.databaseFile = new File(rpmRepo.getDirectory(), "repodata/maven-rpms.db");
+
+		final
+		boolean createTables=!(databaseFile.exists());
+		this.connection = DriverManager.getConnection("jdbc:sqlite:"+databaseFile.getAbsolutePath());
+
+		if (createTables)
+		{
+			createTables(connection);
+		}
+	}
+
+	private static
+	void createTables(Connection connection) throws SQLException
+	{
+		Statement s = connection.createStatement();
+		try
+		{
+			s.executeUpdate(
+				"CREATE TABLE processed ("+
+					"groupId      TEXT NOT NULL,"+
+					"artifactId   TEXT NOT NULL,"+
+					"version      TEXT NOT NULL,"+
+					"moduleName   TEXT NOT NULL,"+
+					"majorVersion TEXT NOT NULL,"+
+					"minorVersion TEXT,"+
+					"jarHash      TEXT NOT NULL"+
+				")"
+			);
+		}
+		finally
+		{
+			s.close();
+		}
+	}
+
+	private static final
+	String MODULE_KEY="moduleName, majorVersion, minorVersion";
+
+	private static final
+	ModuleKey moduleKey(ResultSet rs) throws SQLException
+	{
+		return new ModuleKey(rs.getString(1), rs.getString(2), rs.getString(3));
+	}
+
+	private static final
+	String MAVEN_INFO="groupId, artifactId, version";
+
+	private static final
+	MavenInfo mavenInfo(ResultSet rs) throws SQLException
+	{
+		return new MavenInfo(rs.getString(1), rs.getString(2), rs.getString(3));
 	}
 
 	public
 	boolean contains(MavenInfo mavenInfo) throws IOException
 	{
+		return get(mavenInfo)!=null;
+	}
+
+	public
+	ModuleKey get(MavenInfo mavenInfo) throws IOException
+	{
+		try
+		{
+			PreparedStatement ps = connection.prepareStatement("SELECT "+MODULE_KEY+" FROM processed WHERE groupId=? AND artifactId=? AND version=? LIMIT 1;");
+
+			try
+			{
+				ps.setString(1, mavenInfo.getGroupId());
+				ps.setString(2, mavenInfo.getArtifactId());
+				ps.setString(3, mavenInfo.getVersion());
+
+				ResultSet resultSet = ps.executeQuery();
+
+				try
+				{
+					if (resultSet.next())
+					{
+						return moduleKey(resultSet);
+					}
+					else
+					{
+						return null;
+					}
+				}
+				finally
+				{
+					resultSet.close();
+				}
+			}
+			finally
+			{
+				ps.close();
+			}
+		}
+		catch (SQLException e)
+		{
+			throw new IOException(e);
+		}
+		/*
 		final
-		File file=infoToMajorMap;
+		File file = infoToMajorMap;
 
 		if (!file.exists())
 		{
@@ -44,13 +152,13 @@ class Registry
 			return false;
 		}
 
-		BufferedReader br=new BufferedReader(new FileReader(file));
+		BufferedReader br = new BufferedReader(new FileReader(file));
 		try
 		{
 			String line;
-			while ((line=br.readLine())!=null)
+			while ((line = br.readLine()) != null)
 			{
-				if (mavenInfo.majorVersionFromParsableLineMatch(line)!=null)
+				if (mavenInfo.majorVersionFromParsableLineMatch(line) != null)
 				{
 					return true;
 				}
@@ -62,13 +170,22 @@ class Registry
 		}
 
 		return false;
+		*/
 	}
 
 	public
 	void shouldNotContain(MavenInfo mavenInfo) throws ObsoleteJarException, IOException
 	{
+		ModuleKey moduleKey=get(mavenInfo);
+
+		if (moduleKey!=null)
+		{
+			throw new ObsoleteJarException(mavenInfo+" is already in Registry: "+databaseFile, moduleKey);
+		}
+
+		/*
 		final
-		File file=infoToMajorMap;
+		File file = infoToMajorMap;
 
 		if (!file.exists())
 		{
@@ -76,11 +193,11 @@ class Registry
 			return;
 		}
 
-		BufferedReader br=new BufferedReader(new FileReader(file));
+		BufferedReader br = new BufferedReader(new FileReader(file));
 		try
 		{
 			String line;
-			while ((line=br.readLine())!=null)
+			while ((line = br.readLine())!=null)
 			{
 				String majorVersion=mavenInfo.majorVersionFromParsableLineMatch(line);
 
@@ -95,11 +212,31 @@ class Registry
 		{
 			br.close();
 		}
+		*/
 	}
 
 	public
 	void append(MavenInfo mavenInfo, ModuleKey moduleKey, File jarFile) throws IOException
 	{
+		String jarHash= Exec.toString("sha256sum", jarFile.getAbsolutePath()).substring(0, 64);
+
+		try
+		{
+			PreparedStatement ps = connection.prepareStatement("INSERT INTO processed (groupId,artifactId,version,moduleName,majorVersion,minorVersion,jarHash) VALUES (?,?,?,?,?,?,?)");
+			ps.setString(1, mavenInfo.getGroupId());
+			ps.setString(2, mavenInfo.getArtifactId());
+			ps.setString(3, mavenInfo.getVersion());
+			ps.setString(4, moduleKey.getModuleName());
+			ps.setString(5, moduleKey.getMajorVersion());
+			ps.setString(6, moduleKey.getMinorVersion());
+			ps.setString(7, jarHash);
+			ps.executeUpdate();
+		}
+		catch (SQLException e)
+		{
+			throw new IOException(e);
+		}
+		/*
 		final
 		File file=infoToMajorMap;
 
@@ -121,14 +258,16 @@ class Registry
 		{
 			out.close();
 		}
+		*/
 	}
 
 	public
 	String getMajorVersionFor(MavenInfo mavenInfo, RPMRepo rpmRepo) throws DependencyNotProcessedException, IOException
 	{
-		String retval=majorFromFirstLineThatMatches(mavenInfo);
+		ModuleKey moduleKey=get(mavenInfo);
+		//String retval=majorFromFirstLineThatMatches(mavenInfo);
 
-		if (retval!=null) return retval;
+		if (moduleKey!=null) return moduleKey.getMajorVersion();
 
 		log.warn("unable to locate dependency: {}", mavenInfo);
 
@@ -145,15 +284,16 @@ class Registry
 				log.warn("did not find item in registry, but claimedly obsolete: {}", e.toString());
 
 				//Is it in the registry now?
-				retval=majorFromFirstLineThatMatches(mavenInfo);
+				//retval=majorFromFirstLineThatMatches(mavenInfo);
+				moduleKey=get(mavenInfo);
 
-				if (retval==null)
+				if (moduleKey==null)
 				{
 					throw new IOException("did not find item in registry (before *or* after), but obsolete?", e);
 				}
 				else
 				{
-					return retval;
+					return moduleKey.getMajorVersion();
 				}
 			}
 		}
@@ -163,6 +303,7 @@ class Registry
 		}
 	}
 
+	/*
 	private
 	String majorFromFirstLineThatMatches(MavenInfo mavenInfo) throws IOException
 	{
@@ -192,12 +333,49 @@ class Registry
 
 		return null;
 	}
+	*/
 
 	private static final Logger log = LoggerFactory.getLogger(Registry.class);
 
 	public
-	MavenInfo getMavenInfoOverrideForJarName(String jarFileName) throws IOException
+	MavenInfo getMavenInfoFor(File jarFile) throws IOException
 	{
+		String jarHash= Exec.toString("sha256sum", jarFile.getAbsolutePath()).substring(0, 64);
+
+		try
+		{
+			PreparedStatement ps=connection.prepareStatement("SELECT "+MAVEN_INFO+" FROM processed WHERE jarHash=?;");
+			try
+			{
+				ps.setString(1, jarHash);
+
+				ResultSet resultSet = ps.executeQuery();
+				try
+				{
+					if (resultSet.next())
+					{
+						return mavenInfo(resultSet);
+					}
+					else
+					{
+						return null;
+					}
+				}
+				finally
+				{
+					resultSet.close();
+				}
+			}
+			finally
+			{
+				ps.close();
+			}
+		}
+		catch (SQLException e)
+		{
+			throw new IOException(e);
+		}
+		/*
 		final
 		File file=jarToInfoMap;
 
@@ -226,8 +404,10 @@ class Registry
 		}
 
 		return null;
+		*/
 	}
 
+	/*
 	private
 	MavenInfo mavenInfoFromRestOfLine(String s) throws IOException
 	{
@@ -244,4 +424,5 @@ class Registry
 
 		return new MavenInfo(groupId, artifactId, version);
 	}
+	*/
 }

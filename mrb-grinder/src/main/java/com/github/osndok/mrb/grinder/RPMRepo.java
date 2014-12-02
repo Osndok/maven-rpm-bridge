@@ -10,6 +10,7 @@ import javax.module.Version;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.sql.SQLException;
 
 /**
  * Created by robert on 10/30/14.
@@ -260,7 +261,14 @@ class RPMRepo
 	{
 		if (registry==null)
 		{
-			registry=new Registry(this);
+			try
+			{
+				registry=new Registry(this);
+			}
+			catch (SQLException e)
+			{
+				throw new RuntimeException(e);
+			}
 		}
 		return registry;
 	}
