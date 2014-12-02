@@ -188,6 +188,9 @@ class Main
 		String pomPath=Exec.toString("find", dir.getAbsolutePath(), "-name", "pom.xml").trim();
 
 		final
+		Set<ModuleKey> declaredDependencies=new HashSet<ModuleKey>();
+
+		final
 		File pom=new File(pomPath);
 
 		if (pomPath.isEmpty() || !pom.canRead())
@@ -202,7 +205,14 @@ class Main
 
 			for (MavenInfo info : mavenPom.getDependencies())
 			{
-				grindMavenArtifact(info);
+				try
+				{
+					declaredDependencies.add(grindMavenArtifact(info));
+				}
+				catch (ObsoleteJarException e)
+				{
+					declaredDependencies.add(e.getModuleKey());
+				}
 			}
 		}
 		catch (RuntimeException e)
