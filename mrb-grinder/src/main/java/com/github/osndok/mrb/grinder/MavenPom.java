@@ -20,6 +20,7 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -36,6 +37,12 @@ class MavenPom
 
 	private final
 	MavenInfo mavenInfo;
+
+	private final
+	MavenInfo parentInfo;
+
+	private
+	MavenPom parentPom;
 
 	private
 	String description;
@@ -84,11 +91,29 @@ class MavenPom
 		String groupId = stringChild(topLevel, "groupId");
 		String version = stringChild(topLevel, "version");
 
-		/*
-		String groupId = pom.getElementsByTagName("groupId").item(0).getTextContent().trim();
-		String artifactId = pom.getElementsByTagName("artifactId").item(0).getTextContent().trim();
-		String version = pom.getElementsByTagName("version").item(0).getTextContent().trim();
-		*/
+		final
+		Node parent=tagNamed("parent", topLevel);
+
+		if (parent==null)
+		{
+			this.parentPom=null;
+			this.parentInfo=null;
+		}
+		else
+		{
+			NodeList parentInfo = parent.getChildNodes();
+
+			String parentGroupId=stringChild(parentInfo, "groupId");
+			String parentArtifactId=stringChild(parentInfo, "artifactId");
+			String parentVersion=stringChild(parentInfo, "version");
+
+			if (groupId==null) groupId=parentGroupId;
+			if (version==null) version=parentVersion;
+
+			this.parentInfo=new MavenInfo(parentGroupId, parentArtifactId, parentVersion);
+
+			//File parentFile=Main.guessLocalPomPath(this.parentInfo);
+		}
 
 		if (mavenInfo == null)
 		{
@@ -133,6 +158,27 @@ class MavenPom
 		}
 
 		this.dependencies = _getDependencies(mavenInfo, pom);
+	}
+
+	private
+	Node tagNamed(String tagName, NodeList nodeList)
+	{
+		int l=nodeList.getLength();
+		for (int i=0; i<l; i++)
+		{
+			Node node=nodeList.item(i);
+			if (node instanceof Element)
+			{
+				Element e=(Element)node;
+				if (e.getTagName().equals(tagName))
+				{
+					return node;
+				}
+			}
+		}
+
+		log.debug("{} tag not found under {}", tagName, nodeList);
+		return null;
 	}
 
 	private

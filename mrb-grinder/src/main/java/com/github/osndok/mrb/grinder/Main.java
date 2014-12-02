@@ -4,6 +4,7 @@ import com.github.osndok.mrb.grinder.util.Exec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
+import sun.tools.jar.resources.jar;
 
 import javax.module.ModuleKey;
 import javax.xml.parsers.ParserConfigurationException;
@@ -432,7 +433,7 @@ class Main
 	 * @param file
 	 * @return
 	 */
-	private
+	static
 	File guessLocalPomPath(MavenInfo mavenInfo, File file)
 	{
 		String home=System.getenv("HOME");
@@ -441,6 +442,42 @@ class Main
 		String version=mavenInfo.getVersion();
 		String jar=file.getName();
 		String pom=jar.substring(0,jar.length()-3)+"pom";
+		String path=home+"/.m2/repository/"+group+"/"+artifactId+"/"+version+"/"+pom;
+
+		if (path.contains(".."))
+		{
+			throw new SecurityException("invalid path: "+path);
+		}
+
+		return new File(path);
+	}
+
+	/**
+	 * @url http://docs.codehaus.org/display/MAVEN/Repository+Layout+-+Final
+	 * @param mavenInfo
+	 * @return
+	 */
+	static
+	File guessLocalPomPath(MavenInfo mavenInfo)
+	{
+		String home=System.getenv("HOME");
+		String group=mavenInfo.getGroupId().replace('.', '/');
+		String artifactId=mavenInfo.getArtifactId();
+		String version=mavenInfo.getVersion();
+
+		final
+		String pom;
+		{
+			if (mavenInfo.getClassifier() == null)
+			{
+				pom = String.format("%s-%s.pom", artifactId, version);
+			}
+			else
+			{
+				pom = String.format("%s-%s-%s.pom", artifactId, version, mavenInfo.getClassifier());
+			}
+		}
+
 		String path=home+"/.m2/repository/"+group+"/"+artifactId+"/"+version+"/"+pom;
 
 		if (path.contains(".."))
