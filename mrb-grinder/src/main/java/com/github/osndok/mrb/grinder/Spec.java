@@ -382,9 +382,23 @@ class Spec
 	{
 		StringBuilder sb=new StringBuilder("\n%description\n");
 
-		String descriptionFromPom=mavenJar.getDescription();
+		String descriptionFromPom=null;
 
-		if (descriptionFromPom==null)
+		try
+		{
+			descriptionFromPom=mavenJar.getDescription();
+
+			if (descriptionFromPom!=null)
+			{
+				descriptionFromPom=descriptionFromPom.trim();
+			}
+		}
+		catch (JarHasNoPomException e)
+		{
+			log.debug("{}", e.toString());
+		}
+
+		if (descriptionFromPom==null || descriptionFromPom.length()==0)
 		{
 			sb.append("Upstream JAR/WAR conversion by Maven-RPM-Bridge (MrB).");
 		}

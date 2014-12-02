@@ -600,7 +600,22 @@ class MavenJar
 		final
 		Set<Dependency> declaredDependencies=new HashSet<Dependency>();
 
-		for (MavenInfo info : listMavenDependenciesFromPomXml())
+		//TODO: initially populate declared dependencies using module-native deps file?
+
+		Set<MavenInfo> mavenInfos;
+		{
+			try
+			{
+				mavenInfos = listMavenDependenciesFromPomXml();
+			}
+			catch (JarHasNoPomException e)
+			{
+				log.error("no pom file in jar", e);
+				return declaredDependencies;
+			}
+		}
+
+		for (MavenInfo info : mavenInfos)
 		{
 			if (main.looksLikeSunTools(info))
 			{
@@ -828,13 +843,13 @@ class MavenJar
 	}
 
 	public
-	String getDescription() throws IOException
+	String getDescription() throws IOException, JarHasNoPomException
 	{
 		return getMavenPom().getDescription();
 	}
 
 	private
-	Set<MavenInfo> listMavenDependenciesFromPomXml() throws ParserConfigurationException, SAXException, IOException
+	Set<MavenInfo> listMavenDependenciesFromPomXml() throws ParserConfigurationException, SAXException, IOException, JarHasNoPomException
 	{
 		return getMavenPom().getDependencies();
 	}
@@ -843,7 +858,7 @@ class MavenJar
 	MavenPom mavenPom;
 
 	public
-	MavenPom getMavenPom() throws IOException
+	MavenPom getMavenPom() throws IOException, JarHasNoPomException
 	{
 		if (mavenPom==null)
 		{
@@ -871,7 +886,7 @@ class MavenJar
 	}
 
 	private
-	InputStream pomXmlInputStream() throws IOException
+	InputStream pomXmlInputStream() throws IOException, JarHasNoPomException
 	{
 		Enumeration e = jarFile.entries();
 
@@ -886,7 +901,7 @@ class MavenJar
 			}
 		}
 
-		throw new IllegalStateException(file+" does not have a pom.xml entry");
+		throw new JarHasNoPomException(file);
 	}
 
 	public
