@@ -58,6 +58,11 @@ class Main
 					main.getSunTools();
 				}
 				else
+				if (arg.indexOf(':')>0)
+				{
+					main.grindMavenArtifact(MavenInfo.parse(arg));
+				}
+				else
 				{
 					main.grind(new File(arg));
 				}

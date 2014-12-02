@@ -190,6 +190,21 @@ class MavenInfo implements Serializable
 		return stringValue;
 	}
 
+	public static
+	MavenInfo parse(String s)
+	{
+		final
+		String[] bits=s.split(":");
+
+		if (bits.length!=3)
+		{
+			throw new IllegalArgumentException("unparsable maven identifier: "+s);
+		}
+
+		return new MavenInfo(bits[0], bits[1], bits[2]);
+	}
+
+	/*
 	public
 	String toParsableLine(String majorVersion)
 	{
@@ -202,7 +217,9 @@ class MavenInfo implements Serializable
 			return getParsablePrefix() + majorVersion + "\n";
 		}
 	}
+	*/
 
+	/*
 	private
 	String getParsablePrefix()
 	{
@@ -212,7 +229,9 @@ class MavenInfo implements Serializable
 		}
 		return parsablePrefix;
 	}
+	*/
 
+	/*
 	public
 	String majorVersionFromParsableLineMatch(String line)
 	{
@@ -225,6 +244,7 @@ class MavenInfo implements Serializable
 			return null;
 		}
 	}
+	*/
 
 	public
 	boolean isOptional()
