@@ -98,7 +98,7 @@ class Registry
 	}
 
 	public
-	void append(MavenInfo mavenInfo, ModuleKey moduleKey) throws IOException
+	void append(MavenInfo mavenInfo, ModuleKey moduleKey, File jarFile) throws IOException
 	{
 		final
 		File file=infoToMajorMap;

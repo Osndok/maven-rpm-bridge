@@ -158,7 +158,7 @@ class Spec
 				out.write(requiresLine(Version.JAVAX_MODULE));
 			}
 
-			out.write(kludgy_descriptionFromPomFile(mavenJar));
+			out.write(descriptionFromPomFile(mavenJar));
 
 			final
 			Map<String,String> dependencyReplacements=buildDependencyReplacements(moduleKey, dependencies, mavenJar, generalInfos, execClassesByToolName);
@@ -378,7 +378,7 @@ class Spec
 	}
 
 	private static
-	byte[] kludgy_descriptionFromPomFile(MavenJar mavenJar)
+	byte[] descriptionFromPomFile(MavenJar mavenJar) throws IOException
 	{
 		StringBuilder sb=new StringBuilder("\n%description\n");
 

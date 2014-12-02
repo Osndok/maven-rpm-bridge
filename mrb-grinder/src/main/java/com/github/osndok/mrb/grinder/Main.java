@@ -143,14 +143,14 @@ class Main
 			//We need to check first, to avoid reduplicated entries...
 			if (!registry.contains(mavenInfo))
 			{
-				registry.append(mavenInfo, moduleKey);
+				registry.append(mavenInfo, moduleKey, jar);
 			}
 		}
 		else
 		{
 			//We already checked via the shouldNotContain() call... albiet, a bit racy.
 			rpmRepo.add(rpm);
-			registry.append(mavenInfo, moduleKey);
+			registry.append(mavenInfo, moduleKey, jar);
 		}
 
 		spec.delete();
