@@ -49,10 +49,18 @@ class MavenPom
 	Set<MavenInfo> dependencies;
 
 	public
-	MavenPom(MavenInfo mavenInfo, InputStream inputStream) throws IOException, ParserConfigurationException, SAXException
+	MavenPom(InputStream inputStream) throws IOException, ParserConfigurationException, SAXException
 	{
-		this.mavenInfo = mavenInfo;
+		this(null, inputStream);
+	}
 
+	public
+	MavenPom(
+				MavenInfo mavenInfo,
+				InputStream inputStream
+	) throws IOException, ParserConfigurationException, SAXException
+	{
+		final
 		Document pom = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
 
 		/*
@@ -70,6 +78,27 @@ class MavenPom
 		}
 
 		pom.getDocumentElement().normalize();
+
+		String groupId = pom.getElementsByTagName("groupId").item(0).getTextContent().trim();
+		String artifactId = pom.getElementsByTagName("artifactId").item(0).getTextContent().trim();
+		String version = pom.getElementsByTagName("version").item(0).getTextContent().trim();
+
+		if (mavenInfo == null)
+		{
+			mavenInfo = new MavenInfo(groupId, artifactId, version);
+		}
+		else
+		{
+			String msg = "pom.xml does not correspond to parent artifact. ";
+
+			//Verify that it's what we think it is...
+			if (!mavenInfo.getGroupId().equals(groupId))
+				throw new IOException(msg + mavenInfo.getGroupId() + " != " + groupId);
+			if (!mavenInfo.getArtifactId().equals(artifactId)) throw new IOException(msg+mavenInfo.getArtifactId()+" != "+artifactId);
+			if (!mavenInfo.getVersion().equals(version)) throw new IOException(msg+mavenInfo.getVersion()+" != "+version);
+		}
+
+		this.mavenInfo = mavenInfo;
 
 		Node description = pom.getElementsByTagName("description").item(0);
 
@@ -273,4 +302,11 @@ class MavenPom
 	{
 		return description;
 	}
+
+	public
+	MavenInfo getMavenInfo()
+	{
+		return mavenInfo;
+	}
+
 }

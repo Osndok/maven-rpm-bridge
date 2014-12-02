@@ -882,6 +882,12 @@ class MavenJar
 		return mavenPom;
 	}
 
+	public
+	void setMavenPom(MavenPom mavenPom)
+	{
+		this.mavenPom=mavenPom;
+	}
+
 	private
 	InputStream pomXmlInputStream() throws IOException
 	{
