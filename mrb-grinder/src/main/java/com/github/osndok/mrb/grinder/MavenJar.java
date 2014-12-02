@@ -107,29 +107,44 @@ class MavenJar
 
 		if (retval == null)
 		{
-			Enumeration e = jarFile.entries();
-
-			while (e.hasMoreElements())
+			try
 			{
-				JarEntry je = (JarEntry) e.nextElement();
-				String name = je.getName();
-
-				if (name.endsWith("/pom.properties"))
+				if (mavenPom!=null)
 				{
-					if (retval == null)
+					retval=mavenPom.getMavenInfo();
+				}
+			}
+			catch (Exception e)
+			{
+				log.error("unable to get maven info from pom file", e);
+			}
+
+			if (retval==null)
+			{
+				Enumeration e = jarFile.entries();
+
+				while (e.hasMoreElements())
+				{
+					JarEntry je = (JarEntry) e.nextElement();
+					String name = je.getName();
+
+					if (name.endsWith("/pom.properties"))
 					{
-						retval = readMavenProps(jarFile.getInputStream(je));
-					}
-					else
-					{
-						throw new IllegalStateException(file + ": contains multiple pom.properties");
+						if (retval == null)
+						{
+							retval = readMavenProps(jarFile.getInputStream(je));
+						}
+						else
+						{
+							throw new IllegalStateException(file + ": contains multiple pom.properties");
+						}
 					}
 				}
 			}
 
 			if (retval == null)
 			{
-				throw new IllegalStateException(file + ": does not contain pom.properties");
+				throw new IllegalStateException(file + ": does not contain pom.xml or pom.properties");
 			}
 
 			this.mavenInfo = retval;
