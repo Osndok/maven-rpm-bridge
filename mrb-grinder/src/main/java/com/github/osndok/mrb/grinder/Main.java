@@ -3,9 +3,12 @@ package com.github.osndok.mrb.grinder;
 import com.github.osndok.mrb.grinder.util.Exec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 import javax.module.ModuleKey;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -181,7 +184,41 @@ class Main
 
 		Exec.andWait("/usr/bin/unzip", warFile.getAbsolutePath(), "-d", dir.getAbsolutePath());
 
-		//(2) convert every jar in the libs directory to a module dependency (ignore javax-servlet?)
+		//(2) Process all the declared dependencies from maven (this will ensure we can do a sha match)
+		String pomPath=Exec.toString("find", dir.getAbsolutePath(), "-name", "pom.xml").trim();
+
+		final
+		File pom=new File(pomPath);
+
+		if (pomPath.isEmpty() || !pom.canRead())
+		{
+			throw new IOException("dne, or unreadable pom.xml in war file");
+		}
+
+		FileInputStream fis=new FileInputStream(pom);
+		try
+		{
+			MavenPom mavenPom = new MavenPom(fis);
+
+			for (MavenInfo info : mavenPom.getDependencies())
+			{
+				grindMavenArtifact(info);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			throw e;
+		}
+		catch (Exception e)
+		{
+			throw new IOException(e);
+		}
+		finally
+		{
+			fis.close();
+		}
+
+		//(3) convert every jar in the libs directory to a *POSSIBLE* module dependency (ignore javax-servlet?)
 		final
 		File lib=new File(dir, "WEB-INF/lib");
 
@@ -227,10 +264,10 @@ class Main
 
 		log.info("got {} module deps from libs directory", additionalDepsFromLibs.size());
 
-		//(3) convert the classes inside the war to a new module
-		//(4a) HOW: can we get the production (or development?) port number from the WAR? pom.xml? and the uncompliant ones?
-		//(4b) MAYBE: just install them tomcat-style with the module/version prefix?
-		//(5)  write the spec/rpm to the repo
+		//(4) convert the classes inside the war to a new module
+		//(5a) HOW: can we get the production (or development?) port number from the WAR? pom.xml? and the uncompliant ones?
+		//(5b) MAYBE: just install them tomcat-style with the module/version prefix?
+		//(6)  write the spec/rpm to the repo
 		throw new UnsupportedOperationException("unimplemented");
 	}
 
