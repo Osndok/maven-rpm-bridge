@@ -319,6 +319,39 @@ class Main
 			File file=onlyOne[0];
 
 			final
+			File pomFile=guessLocalPomPath(mavenInfo, file);
+
+			MavenPom mavenPom=null;
+			{
+				if (pomFile.exists())
+				{
+					log.info("parsing pom: {}", pomFile);
+
+					FileInputStream fis=new FileInputStream(pomFile);
+					try
+					{
+						mavenPom=new MavenPom(mavenInfo, fis);
+					}
+					catch (ParserConfigurationException e)
+					{
+						e.printStackTrace();
+					}
+					catch (SAXException e)
+					{
+						e.printStackTrace();
+					}
+					finally
+					{
+						fis.close();
+					}
+				}
+				else
+				{
+					log.warn("dne: {}", pomFile);
+				}
+			}
+
+			final
 			ModuleKey retval;
 
 			if (isJarFile(file))
@@ -326,6 +359,11 @@ class Main
 				//Perhaps there is a benefit to having mavenInfo available externally? Can we grind deps that were manually put into maven?
 				final
 				MavenJar mavenJar = new MavenJar(file, mavenInfo);
+
+				if (mavenPom!=null)
+				{
+					mavenJar.setMavenPom(mavenPom);
+				}
 
 				retval = grindJar(file, mavenJar, mavenInfo);
 			}
@@ -340,6 +378,11 @@ class Main
 			{
 				final
 				MavenJar mavenJar = new MavenJar(file, mavenInfo);
+
+				if (mavenPom!=null)
+				{
+					mavenJar.setMavenPom(mavenPom);
+				}
 
 				retval = grindWar(file, mavenJar, mavenInfo);
 			}
@@ -366,6 +409,31 @@ class Main
 				dir.delete();
 			}
 		}
+	}
+
+	/**
+	 * @url http://docs.codehaus.org/display/MAVEN/Repository+Layout+-+Final
+	 * @param mavenInfo
+	 * @param file
+	 * @return
+	 */
+	private
+	File guessLocalPomPath(MavenInfo mavenInfo, File file)
+	{
+		String home=System.getenv("HOME");
+		String group=mavenInfo.getGroupId().replace('.', '/');
+		String artifactId=mavenInfo.getArtifactId();
+		String version=mavenInfo.getVersion();
+		String jar=file.getName();
+		String pom=jar.substring(0,jar.length()-3)+"pom";
+		String path=home+"/.m2/repository/"+group+"/"+artifactId+"/"+version+"/"+pom;
+
+		if (path.contains(".."))
+		{
+			throw new SecurityException("invalid path: "+path);
+		}
+
+		return new File(path);
 	}
 
 	public

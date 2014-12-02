@@ -29,7 +29,7 @@ class MavenInfo implements Serializable
 	public
 	MavenInfo(String groupId, String artifactId, String version)
 	{
-		if (groupId == null) throw new NullPointerException("groupIp is missing");
+		if (groupId == null) throw new NullPointerException("groupId is missing");
 		if (artifactId == null) throw new NullPointerException("artifactId is missing");
 		if (version   ==null) throw new NullPointerException("version is missing");
 

@@ -15,10 +15,7 @@ import org.sonatype.aether.resolution.ArtifactDescriptorException;
 import org.sonatype.aether.resolution.ArtifactDescriptorRequest;
 import org.sonatype.aether.resolution.ArtifactDescriptorResult;
 import org.sonatype.aether.util.artifact.DefaultArtifact;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -77,12 +74,16 @@ class MavenPom
 			//return Collections.emptySet();
 		}
 
-		pom.getDocumentElement().normalize();
+		//pom.getDocumentElement().normalize();
 
-		NodeList topLevel = pom.getChildNodes().item(0).getChildNodes();
+		NodeList topLevel = pom.getDocumentElement().getChildNodes();
 
-		String groupId = stringChild(topLevel, "groupId");
+		log.debug("top level to pom: {}", topLevel);
+
 		String artifactId = stringChild(topLevel, "artifactId");
+
+		//TODO: these two can (and often are) null, because they are defined in the parent pom. Maybe we should at least try and fetch it?
+		String groupId = stringChild(topLevel, "groupId");
 		String version = stringChild(topLevel, "version");
 
 		/*
@@ -100,10 +101,21 @@ class MavenPom
 			String msg = "pom.xml does not correspond to parent artifact. ";
 
 			//Verify that it's what we think it is...
+			if (!mavenInfo.getArtifactId().equals(artifactId))
+			{
+				throw new IOException(msg+mavenInfo.getArtifactId()+" != "+artifactId);
+			}
+
+			//ATM, these can be null (in parent pom)
 			if (groupId!=null && !mavenInfo.getGroupId().equals(groupId))
+			{
 				throw new IOException(msg + mavenInfo.getGroupId() + " != " + groupId);
-			if (artifactId!=null && !mavenInfo.getArtifactId().equals(artifactId)) throw new IOException(msg+mavenInfo.getArtifactId()+" != "+artifactId);
-			if (version!=null && !mavenInfo.getVersion().equals(version)) throw new IOException(msg+mavenInfo.getVersion()+" != "+version);
+			}
+
+			if (version!=null && !mavenInfo.getVersion().equals(version))
+			{
+				throw new IOException(msg+mavenInfo.getVersion()+" != "+version);
+			}
 		}
 
 		this.mavenInfo = mavenInfo;
@@ -137,11 +149,27 @@ class MavenPom
 				Element e=(Element)node;
 				if (e.getTagName().equals(tagName))
 				{
-					return e.getTextContent().trim();
+					String retval=e.getTextContent().trim();
+					log.debug("{} -> {}", e, retval);
+					return retval;
 				}
+				else
+				{
+					log.debug("other tag: {} / {}", e.getTagName(), e);
+				}
+			}
+			else
+			if (node instanceof Text)
+			{
+				log.trace("probably whitespace: {}", node);
+			}
+			else
+			{
+				log.debug("not an element: {} / {}", node.getClass(), node);
 			}
 		}
 
+		log.debug("{} tag not found under {}", tagName, nodeList);
 		return null;
 	}
 
