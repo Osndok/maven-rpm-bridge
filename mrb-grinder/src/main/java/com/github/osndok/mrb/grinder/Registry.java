@@ -65,6 +65,8 @@ class Registry
 					"groupId      TEXT NOT NULL,"+
 					"artifactId   TEXT NOT NULL,"+
 					"version      TEXT NOT NULL,"+
+					"packaging    TEXT NOT NULL,"+
+					"classifier   TEXT,"+
 					"moduleName   TEXT NOT NULL,"+
 					"majorVersion TEXT NOT NULL,"+
 					"minorVersion TEXT,"+
@@ -107,13 +109,23 @@ class Registry
 	{
 		try
 		{
-			PreparedStatement ps = connection.prepareStatement("SELECT "+MODULE_KEY+" FROM processed WHERE groupId=? AND artifactId=? AND version=? LIMIT 1;");
+			PreparedStatement ps = connection.prepareStatement("SELECT "+MODULE_KEY+" FROM processed WHERE groupId=? AND artifactId=? AND version=? AND classifier=? LIMIT 1;");
 
 			try
 			{
 				ps.setString(1, mavenInfo.getGroupId());
 				ps.setString(2, mavenInfo.getArtifactId());
 				ps.setString(3, mavenInfo.getVersion());
+
+				//NB: *Apparently* the sqlite-jdbc layer translates nulls to empty strings? or doesn't let you match nulls?
+				if (mavenInfo.getClassifier()==null)
+				{
+					ps.setString(4, "");
+				}
+				else
+				{
+					ps.setString(4, mavenInfo.getClassifier());
+				}
 
 				ResultSet resultSet = ps.executeQuery();
 
@@ -229,20 +241,48 @@ class Registry
 
 		try
 		{
-			PreparedStatement ps = connection.prepareStatement("INSERT INTO processed (groupId,artifactId,version,moduleName,majorVersion,minorVersion,jarHash) VALUES (?,?,?,?,?,?,?)");
+			PreparedStatement ps = connection.prepareStatement("INSERT INTO processed (groupId,artifactId,version,packaging,classifier,moduleName,majorVersion,minorVersion,jarHash) VALUES (?,?,?,?,?,?,?,?,?)");
 			ps.setString(1, mavenInfo.getGroupId());
 			ps.setString(2, mavenInfo.getArtifactId());
 			ps.setString(3, mavenInfo.getVersion());
-			ps.setString(4, moduleKey.getModuleName());
-			ps.setString(5, majorVersion);
-			ps.setString(6, moduleKey.getMinorVersion());
-			ps.setString(7, jarHash);
+			ps.setString(4, "jar");
+
+			if (mavenInfo.getClassifier()==null)
+			{
+				ps.setString(5, "");
+			}
+			else
+			{
+				ps.setString(5, mavenInfo.getClassifier());
+			}
+
+			ps.setString(6, moduleKey.getModuleName());
+			ps.setString(7, majorVersion);
+
+			if (moduleKey.getMinorVersion()==null)
+			{
+				ps.setString(8, "");
+			}
+			else
+			{
+				ps.setString(8, moduleKey.getMinorVersion());
+			}
+
+			ps.setString(9, jarHash);
 			ps.executeUpdate();
 		}
 		catch (SQLException e)
 		{
 			throw new IOException(e);
 		}
+
+		ModuleKey justInserted=get(mavenInfo);
+
+		if (justInserted==null)
+		{
+			throw new AssertionError("just inserted "+mavenInfo+" / "+moduleKey+", but cannot fetch it");
+		}
+
 		/*
 		final
 		File file=infoToMajorMap;

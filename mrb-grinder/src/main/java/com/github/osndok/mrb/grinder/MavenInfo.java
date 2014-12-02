@@ -20,8 +20,8 @@ class MavenInfo implements Serializable
 	private final
 	String version;
 
-	private transient
-	String parsablePrefix;
+	private final
+	String classifier;
 
 	private final
 	boolean optional;
@@ -37,10 +37,11 @@ class MavenInfo implements Serializable
 		this.artifactId = artifactId;
 		this.version = noVersionRanges(version);
 		this.optional = false;
+		this.classifier = null;
 	}
 
 	public
-	MavenInfo(String groupId, String artifactId, String version, boolean optional)
+	MavenInfo(String groupId, String artifactId, String version, String classifier, boolean optional)
 	{
 		if (groupId == null) throw new NullPointerException("groupIp is missing");
 		if (artifactId == null) throw new NullPointerException("artifactId is missing");
@@ -50,6 +51,7 @@ class MavenInfo implements Serializable
 		this.artifactId = artifactId;
 		this.version = noVersionRanges(version);
 		this.optional=optional;
+		this.classifier=("jar".equals(classifier)||"".equals(classifier)?null:classifier);
 	}
 
 	private static
@@ -97,20 +99,23 @@ class MavenInfo implements Serializable
 	public
 	String getModuleNameCandidate()
 	{
+		final
+		String suffix=(classifier==null?"":"-"+classifier);
+
 		if (isTooCommonOrSimpleToBeAModuleName(artifactId))
 		{
 			if (groupId.contains(artifactId))
 			{
-				return groupId;
+				return groupId+suffix;
 			}
 			else
 			{
-				return groupId + "-" + artifactId;
+				return groupId + "-" + artifactId+suffix;
 			}
 		}
 		else
 		{
-			return artifactId;
+			return artifactId+suffix;
 		}
 	}
 
@@ -157,6 +162,11 @@ class MavenInfo implements Serializable
 			return false;
 		}
 
+		if (classifier==null ? mavenInfo.classifier!=null : !classifier.equals(mavenInfo.classifier))
+		{
+			return false;
+		}
+
 		return true;
 	}
 
@@ -167,6 +177,12 @@ class MavenInfo implements Serializable
 		int result = groupId.hashCode();
 		result = 31 * result + artifactId.hashCode();
 		result = 31 * result + version.hashCode();
+
+		if (classifier!=null)
+		{
+			result = 31 * result + classifier.hashCode();
+		}
+
 		return result;
 	}
 
@@ -175,6 +191,7 @@ class MavenInfo implements Serializable
 
 	/**
 	 * This must match the artifact spec as required by dependency:copy, et al.
+	 * expected format is <groupId>:<artifactId>[:<extension>[:<classifier>]]:<version>
 	 *
 	 * @return
 	 */
@@ -184,7 +201,14 @@ class MavenInfo implements Serializable
 	{
 		if (stringValue==null)
 		{
-			stringValue=groupId + ':' + artifactId + ':' + version;
+			if (classifier==null)
+			{
+				stringValue = groupId + ':' + artifactId + ':' + version;
+			}
+			else
+			{
+				stringValue = groupId + ':' + artifactId + ':' +classifier + ':' + version;
+			}
 		}
 
 		return stringValue;
@@ -196,12 +220,19 @@ class MavenInfo implements Serializable
 		final
 		String[] bits=s.split(":");
 
-		if (bits.length!=3)
+		if (bits.length==3)
+		{
+			return new MavenInfo(bits[0], bits[1], bits[2]);
+		}
+		else
+		if (bits.length==4)
+		{
+			return new MavenInfo(bits[0], bits[1], bits[3], bits[2], false);
+		}
+		else
 		{
 			throw new IllegalArgumentException("unparsable maven identifier: "+s);
 		}
-
-		return new MavenInfo(bits[0], bits[1], bits[2]);
 	}
 
 	/*
@@ -264,5 +295,11 @@ class MavenInfo implements Serializable
 		}
 
 		return snapshot;
+	}
+
+	public
+	String getClassifier()
+	{
+		return classifier;
 	}
 }

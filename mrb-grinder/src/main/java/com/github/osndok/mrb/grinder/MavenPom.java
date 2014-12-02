@@ -23,10 +23,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.jar.JarEntry;
 
 /**
  * Created by robert on 12/1/14.
@@ -253,11 +251,14 @@ class MavenPom
 			{
 				System.out.println( dependency );
 				String scope=dependency.getScope();
+
 				Artifact aetherArtifact = dependency.getArtifact();
+				String classifier=aetherArtifact.getClassifier();
 
 				if (!isTestOrProvidedScope(scope))
 				{
-					retval.add(new MavenInfo(aetherArtifact.getGroupId(), aetherArtifact.getArtifactId(), aetherArtifact.getVersion(), dependency.isOptional()));
+					retval.add(new MavenInfo(aetherArtifact.getGroupId(), aetherArtifact.getArtifactId(), aetherArtifact.getVersion(),
+												classifier, dependency.isOptional()));
 				}
 			}
 
@@ -281,7 +282,22 @@ class MavenPom
 			optional=true;
 		}
 
-		return new MavenInfo(groupId, artifactId, version, optional);
+		Node classifierTag=dep.getElementsByTagName("optional").item(0);
+
+		final
+		String classifier;
+		{
+			if (classifierTag == null)
+			{
+				classifier = null;
+			}
+			else
+			{
+				classifier = classifierTag.getTextContent().trim();
+			}
+		}
+
+		return new MavenInfo(groupId, artifactId, version, classifier, optional);
 	}
 
 	private static
