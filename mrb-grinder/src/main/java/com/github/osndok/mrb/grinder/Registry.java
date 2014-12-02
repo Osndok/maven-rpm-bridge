@@ -220,6 +220,13 @@ class Registry
 	{
 		String jarHash= Exec.toString("sha256sum", jarFile.getAbsolutePath()).substring(0, 64);
 
+		String majorVersion=moduleKey.getMajorVersion();
+
+		if (majorVersion==null)
+		{
+			majorVersion="snapshot";
+		}
+
 		try
 		{
 			PreparedStatement ps = connection.prepareStatement("INSERT INTO processed (groupId,artifactId,version,moduleName,majorVersion,minorVersion,jarHash) VALUES (?,?,?,?,?,?,?)");
@@ -227,7 +234,7 @@ class Registry
 			ps.setString(2, mavenInfo.getArtifactId());
 			ps.setString(3, mavenInfo.getVersion());
 			ps.setString(4, moduleKey.getModuleName());
-			ps.setString(5, moduleKey.getMajorVersion());
+			ps.setString(5, majorVersion);
 			ps.setString(6, moduleKey.getMinorVersion());
 			ps.setString(7, jarHash);
 			ps.executeUpdate();
