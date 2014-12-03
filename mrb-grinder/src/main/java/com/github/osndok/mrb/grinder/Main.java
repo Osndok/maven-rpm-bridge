@@ -415,6 +415,8 @@ class Main
 		{
 			if (!DEBUG || success)
 			{
+				new File(dir, "out/noarch").delete();
+
 				for (File file : notNull(dir.listFiles()))
 				{
 					log.debug("delete: {}", file);
