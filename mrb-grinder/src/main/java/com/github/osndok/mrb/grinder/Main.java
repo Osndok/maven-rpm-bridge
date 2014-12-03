@@ -496,7 +496,7 @@ class Main
 		String groupId=mavenInfo.getGroupId();
 		String artifactId=mavenInfo.getArtifactId();
 
-		return (groupId.equals("com.sun") || groupId.equals("sun.jdk")) && mavenInfo.getArtifactId().equals("tools");
+		return (groupId.equals("com.sun") || groupId.equals("sun.jdk")) && artifactId.equals("tools");
 	}
 
 	private
