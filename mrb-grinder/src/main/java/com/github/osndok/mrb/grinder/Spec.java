@@ -149,6 +149,8 @@ class Spec
 				out.write(requiresLine(dependency));
 			}
 
+			//TODO: detect the jar's major.minor and require the appropriate java version
+
 			/*
 			NB: a bit of a 'hidden' dependency... every javax module *RPM* implicitly depends on the module
 			loader (so that it can run). Except for the module loader itself (which would make it depend on itself).
