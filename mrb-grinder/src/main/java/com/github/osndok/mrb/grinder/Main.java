@@ -524,8 +524,19 @@ class Main
 			log.info("call for sun's tools.jar");
 
 			File spec = Spec.writeSunTools(retval, rpmRepo);
+
 			File rpmFile = RPM.build(spec, null);
-			rpmRepo.add(rpmFile);
+			try
+			{
+				rpmRepo.add(rpmFile);
+			}
+			finally
+			{
+				rpmFile.delete();
+			}
+
+			//NB: only deletes the spec on success...
+			spec.delete();
 		}
 
 		return retval;
