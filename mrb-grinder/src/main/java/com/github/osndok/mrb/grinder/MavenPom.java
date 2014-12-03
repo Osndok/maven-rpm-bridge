@@ -413,8 +413,11 @@ class MavenPom
 	private static
 	RepositorySystemSession newRepositorySystemSession(RepositorySystem system)
 	{
+		//TODO: ask someone "in the know" if this is redundant (or dangerous), should we have to specify the "default" user repo?
+		String HOME=System.getenv("HOME");
+		LocalRepository localRepo = new LocalRepository( HOME+"/.m2/repository" );
+
 		MavenRepositorySystemSession session = new MavenRepositorySystemSession();
-		LocalRepository localRepo = new LocalRepository( "target/local-repo" );
 		session.setLocalRepositoryManager( system.newLocalRepositoryManager( localRepo ) );
 		session.setTransferListener( new ConsoleTransferListener() );
 		session.setRepositoryListener( new ConsoleRepositoryListener() );
