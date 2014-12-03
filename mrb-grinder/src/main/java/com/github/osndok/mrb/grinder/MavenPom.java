@@ -308,11 +308,12 @@ class MavenPom
 
 				Artifact aetherArtifact = dependency.getArtifact();
 				String classifier=aetherArtifact.getClassifier();
+				String packaging=aetherArtifact.getExtension();
 
 				if (!isTestOrProvidedScope(scope))
 				{
 					retval.add(new MavenInfo(aetherArtifact.getGroupId(), aetherArtifact.getArtifactId(), aetherArtifact.getVersion(),
-												classifier, dependency.isOptional()));
+												classifier, packaging, dependency.isOptional()));
 				}
 			}
 
@@ -351,7 +352,9 @@ class MavenPom
 			}
 		}
 
-		return new MavenInfo(groupId, artifactId, version, classifier, optional);
+		String packaging="jar";
+
+		return new MavenInfo(groupId, artifactId, version, classifier, packaging, optional);
 	}
 
 	private static

@@ -2,7 +2,6 @@ package com.github.osndok.mrb.grinder;
 
 import com.github.osndok.mrb.grinder.util.MavenDepRange;
 
-import javax.module.ModuleKey;
 import java.io.Serializable;
 
 /**
@@ -26,6 +25,9 @@ class MavenInfo implements Serializable
 	private final
 	boolean optional;
 
+	private final
+	String packaging;
+
 	public
 	MavenInfo(String groupId, String artifactId, String version)
 	{
@@ -38,10 +40,11 @@ class MavenInfo implements Serializable
 		this.version = noVersionRanges(version);
 		this.optional = false;
 		this.classifier = null;
+		this.packaging = "jar";
 	}
 
 	public
-	MavenInfo(String groupId, String artifactId, String version, String classifier, boolean optional)
+	MavenInfo(String groupId, String artifactId, String version, String classifier, String packaging, boolean optional)
 	{
 		if (groupId == null) throw new NullPointerException("groupIp is missing");
 		if (artifactId == null) throw new NullPointerException("artifactId is missing");
@@ -51,7 +54,8 @@ class MavenInfo implements Serializable
 		this.artifactId = artifactId;
 		this.version = noVersionRanges(version);
 		this.optional=optional;
-		this.classifier=("jar".equals(classifier)||"".equals(classifier)?null:classifier);
+		this.packaging=packaging;
+		this.classifier=("".equals(classifier)?null:classifier);
 	}
 
 	private static
@@ -191,7 +195,7 @@ class MavenInfo implements Serializable
 
 	/**
 	 * This must match the artifact spec as required by dependency:copy, et al.
-	 * expected format is <groupId>:<artifactId>[:<extension>[:<classifier>]]:<version>
+	 * see parse() below...
 	 *
 	 * @return
 	 */
@@ -207,13 +211,24 @@ class MavenInfo implements Serializable
 			}
 			else
 			{
-				stringValue = groupId + ':' + artifactId + ':' +classifier + ':' + version;
+				stringValue = groupId + ':' + artifactId + ':' + version + ':' + packaging + ':' + classifier;
 			}
 		}
 
 		return stringValue;
 	}
 
+	/**
+	 * This must match the artifact spec as required by dependency:copy, et al.
+	 * usage output indicates that the
+	 * expected format is <groupId>:<artifactId>[:<extension>[:<classifier>]]:<version>
+	 *                       -0-   :    -1-      :    -2-     :    -3-       :  -2/4-
+	 *
+	 * Yet dependency:copy seems to want it in this order:
+	 *                    <groupId>:<artifactId>:<version>:<extension>:<classifier>
+	 *                       -0-   :    -1-     :   -2-   :    -3-    :    -4-
+	 * @return
+	 */
 	public static
 	MavenInfo parse(String s)
 	{
@@ -225,9 +240,17 @@ class MavenInfo implements Serializable
 			return new MavenInfo(bits[0], bits[1], bits[2]);
 		}
 		else
-		if (bits.length==4)
+		if (bits.length==5)
 		{
-			return new MavenInfo(bits[0], bits[1], bits[3], bits[2], false);
+			String groupId=bits[0];
+			String artifactId=bits[1];
+			String version=bits[2];
+			String packaging=bits[3];
+			String classifier=bits[4];
+			boolean optional=false;
+
+			//return new MavenInfo(bits[0], bits[1], bits[4], bits[2], bits[3], false);
+			return new MavenInfo(groupId, artifactId, version, classifier, packaging, optional);
 		}
 		else
 		{
