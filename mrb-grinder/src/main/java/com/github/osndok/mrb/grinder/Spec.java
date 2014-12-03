@@ -90,6 +90,8 @@ class Spec
 			}
 		}
 
+		log.debug("writing spec for: {} / {} / {}", moduleKey, mavenJar, mavenJar.getInfo());
+
 		final
 		Map<String,String> generalInfos;
 		{

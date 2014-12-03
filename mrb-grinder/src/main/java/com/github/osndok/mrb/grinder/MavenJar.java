@@ -873,7 +873,9 @@ class MavenJar
 		{
 			try
 			{
-				mavenPom=new MavenPom(getInfo(), pomXmlInputStream());
+				MavenInfo mavenInfo=getInfo();
+				log.debug("creating mavenPom for {} / {}", mavenInfo, file);
+				mavenPom=new MavenPom(mavenInfo, pomXmlInputStream());
 			}
 			catch (ParserConfigurationException e)
 			{

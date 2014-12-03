@@ -105,6 +105,8 @@ class MavenPom
 		}
 		else
 		{
+			log.debug("{} pom has a parent...", artifactId);
+
 			NodeList parentInfo = parent.getChildNodes();
 
 			String parentGroupId=stringChild(parentInfo, "groupId");
@@ -127,7 +129,7 @@ class MavenPom
 		else
 		{
 			log.debug("given mavenInfo:  {}", mavenInfo);
-			String msg = "pom.xml does not correspond to parent artifact. ";
+			String msg = "pom.xml does not correspond to actual artifact. ";
 
 			//Verify that it's what we think it is...
 			if (!mavenInfo.getArtifactId().equals(artifactId))
@@ -166,7 +168,7 @@ class MavenPom
 		this.declaredDependencies = _getDependencies(mavenInfo, pom);
 	}
 
-	private
+	private static
 	Node tagNamed(String tagName, NodeList nodeList)
 	{
 		int l=nodeList.getLength();
@@ -205,7 +207,7 @@ class MavenPom
 				}
 				else
 				{
-					log.debug("other tag: {} / {}", e.getTagName(), e);
+					log.trace("other tag: {} / {}", e.getTagName(), e);
 				}
 			}
 			else
@@ -215,7 +217,7 @@ class MavenPom
 			}
 			else
 			{
-				log.debug("not an element: {} / {}", node.getClass(), node);
+				log.trace("not an element: {} / {}", node.getClass(), node);
 			}
 		}
 
@@ -226,7 +228,8 @@ class MavenPom
 	private static
 	Set<MavenInfo> _getDependencies(MavenInfo mavenInfo, Document pom) throws IOException
 	{
-		Node depsGroup = pom.getElementsByTagName("dependencies").item(0);
+		//Node depsGroup = pom.getElementsByTagName("dependencies").item(0);
+		Node depsGroup=tagNamed("dependencies", pom.getDocumentElement().getChildNodes());
 
 		if (!(depsGroup instanceof Element))
 		{
