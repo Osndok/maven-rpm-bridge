@@ -279,7 +279,7 @@ class Startup extends ClassLoader
 	*/
 
 	public static
-	void main(String[] args) throws ParseException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException
+	void main(String[] args) throws ParseException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException
 	{
 		ModuleKey rootModule=getModuleProperty();
 		String mainClassName=getClassProperty();
@@ -294,6 +294,11 @@ class Startup extends ClassLoader
 			//Always try to find a main method first...
 			Method method = aClass.getMethod("main", String[].class);
 			method.invoke(null, new Object[]{args});
+		}
+		catch (InvocationTargetException e)
+		{
+			e.getCause().printStackTrace();
+			System.exit(1);
 		}
 		catch (NoSuchMethodException e)
 		{
