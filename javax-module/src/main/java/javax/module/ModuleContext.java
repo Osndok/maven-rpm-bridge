@@ -488,9 +488,14 @@ class ModuleContext
 		synchronized (loadedModules)
 		{
 			ModuleLoader retval = loadedModules.get(moduleKey);
-			Module module = locateModule(moduleKey);
-			retval = new ModuleLoader(this, module);
-			loadedModules.put(moduleKey, retval);
+
+			if (retval==null)
+			{
+				Module module = locateModule(moduleKey);
+				retval = new ModuleLoader(this, module);
+				loadedModules.put(moduleKey, retval);
+			}
+
 			return retval;
 		}
 	}
