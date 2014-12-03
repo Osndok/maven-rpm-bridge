@@ -21,6 +21,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -46,6 +47,9 @@ class MavenPom
 
 	private
 	String description;
+
+	private
+	Set<MavenInfo> declaredDependencies;
 
 	private
 	Set<MavenInfo> dependencies;
@@ -157,7 +161,7 @@ class MavenPom
 			log.debug("description: {}", this.description);
 		}
 
-		this.dependencies = _getDependencies(mavenInfo, pom);
+		this.declaredDependencies = _getDependencies(mavenInfo, pom);
 	}
 
 	private
@@ -412,6 +416,30 @@ class MavenPom
 	public
 	Set<MavenInfo> getDependencies()
 	{
+		if (dependencies==null)
+		{
+			if (parentInfo==null)
+			{
+				dependencies=declaredDependencies;
+			}
+			else
+			{
+				try
+				{
+					Set<MavenInfo> accumulator=new HashSet<>(declaredDependencies);
+
+					accumulator.addAll(getParentPom().getDependencies());
+
+					dependencies=accumulator;
+				}
+				catch (Exception e)
+				{
+					log.error("unable to include parent pom's dependencies (if any)", e);
+					dependencies=declaredDependencies;
+				}
+			}
+		}
+
 		return dependencies;
 	}
 
@@ -427,4 +455,22 @@ class MavenPom
 		return mavenInfo;
 	}
 
+	public
+	MavenPom getParentPom() throws IOException, ParserConfigurationException, SAXException
+	{
+		if (parentPom==null && parentInfo!=null)
+		{
+			File pomFile = Main.guessLocalPomPath(parentInfo);
+			FileInputStream fis = new FileInputStream(pomFile);
+			try
+			{
+				parentPom=new MavenPom(parentInfo, fis);
+			}
+			finally
+			{
+				fis.close();
+			}
+		}
+		return parentPom;
+	}
 }

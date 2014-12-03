@@ -621,7 +621,7 @@ class MavenJar
 		{
 			try
 			{
-				mavenInfos = listMavenDependenciesFromPomXml();
+				mavenInfos = getMavenPom().getDependencies();
 			}
 			catch (JarHasNoPomException e)
 			{
@@ -861,12 +861,6 @@ class MavenJar
 	String getDescription() throws IOException, JarHasNoPomException
 	{
 		return getMavenPom().getDescription();
-	}
-
-	private
-	Set<MavenInfo> listMavenDependenciesFromPomXml() throws ParserConfigurationException, SAXException, IOException, JarHasNoPomException
-	{
-		return getMavenPom().getDependencies();
 	}
 
 	private
