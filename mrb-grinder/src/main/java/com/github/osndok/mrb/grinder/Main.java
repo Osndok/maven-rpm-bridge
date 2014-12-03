@@ -11,9 +11,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Given a JAR file (or eventually a WAR file) grind it (and it's dependencies) into
@@ -170,6 +168,7 @@ class Main
 		return moduleKey;
 	}
 
+	/*
 	private
 	ModuleKey grindWar(File jar) throws IOException, ObsoleteJarException
 	{
@@ -178,9 +177,10 @@ class Main
 
 		return grindWar(jar, mavenJar, mavenInfo);
 	}
+	*/
 
 	private
-	ModuleKey grindWar(File warFile, MavenJar mavenJar, MavenInfo mavenInfo) throws IOException, ObsoleteJarException
+	ModuleKey grindWar(File warFile /*, MavenJar mavenJar, MavenInfo mavenInfo*/) throws IOException, ObsoleteJarException
 	{
 		//(1) Expand the war to a temporary directory (such that we can re-jar it, or rpmbuild it?)
 		final
@@ -204,10 +204,11 @@ class Main
 			throw new IOException("dne, or unreadable pom.xml in war file");
 		}
 
+		MavenPom mavenPom;
 		FileInputStream fis=new FileInputStream(pom);
 		try
 		{
-			MavenPom mavenPom = new MavenPom(fis);
+			mavenPom = new MavenPom(fis);
 
 			for (MavenInfo info : mavenPom.getDependencies())
 			{
@@ -233,6 +234,13 @@ class Main
 		{
 			fis.close();
 		}
+
+		MavenInfo mavenInfo=mavenPom.getMavenInfo();
+
+		String warGroupId=mavenInfo.getGroupId();
+		String warArtifactId=mavenInfo.getArtifactId();
+		String warVersion=mavenInfo.getVersion();
+
 
 		//(3) convert every jar in the libs directory to a *POSSIBLE* module dependency (ignore javax-servlet?)
 		final
@@ -280,7 +288,35 @@ class Main
 
 		log.info("got {} module deps from libs directory", additionalDepsFromLibs.size());
 
-		//(4) convert the classes inside the war to a new module
+		//(4) convert the classes inside the war to a new jar that will become the outer module
+
+		final
+		File classes=new File(dir, "WEB-INF/classes");
+
+		final
+		File jar=File.createTempFile("mrb-war-classes-"+warArtifactId+"-", ".jar");
+		{
+			List<String> command=new ArrayList<>();
+
+			command.add("/usr/bin/jar");
+			command.add("cf");
+			command.add(jar.getAbsolutePath());
+			command.add("-C");
+			command.add(dir.getAbsolutePath());
+			command.add("META-INF");
+
+			for (String s : classes.list())
+			{
+				command.add("-C");
+				command.add(classes.getAbsolutePath());
+				command.add(s);
+			}
+
+			Exec.andWait(command.toArray(new String[command.size()]));
+
+			log.info("built classes-only jar: {}", jar);
+		}
+
 		//(5a) HOW: can we get the production (or development?) port number from the WAR? pom.xml? and the uncompliant ones?
 		//(5b) MAYBE: just install them tomcat-style with the module/version prefix?
 		//(6)  write the spec/rpm to the repo
@@ -392,6 +428,7 @@ class Main
 			else
 			if (isWarFile(file))
 			{
+				/*
 				final
 				MavenJar mavenJar = new MavenJar(file, mavenInfo);
 
@@ -401,6 +438,8 @@ class Main
 				}
 
 				retval = grindWar(file, mavenJar, mavenInfo);
+				*/
+				throw new UnsupportedOperationException("grinding a war file by maven coordinates is not supported at this time");
 			}
 			else
 			{
