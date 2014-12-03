@@ -122,9 +122,11 @@ class MavenPom
 		if (mavenInfo == null)
 		{
 			mavenInfo = new MavenInfo(groupId, artifactId, version);
+			log.debug("constructed mavenInfo: {}", mavenInfo);
 		}
 		else
 		{
+			log.debug("given mavenInfo:  {}", mavenInfo);
 			String msg = "pom.xml does not correspond to parent artifact. ";
 
 			//Verify that it's what we think it is...
@@ -252,6 +254,8 @@ class MavenPom
 
 				MavenInfo dependencyInfo = parseMavenDependency(context, e, optional);
 
+				log.debug("parsed mavenInfo for declared dependency: {}", dependencyInfo);
+
 				if (scope.equals("test"))
 				{
 					log.debug("ignoring test scope: {}", dependencyInfo);
@@ -332,7 +336,7 @@ class MavenPom
 			optional=true;
 		}
 
-		Node classifierTag=dep.getElementsByTagName("optional").item(0);
+		Node classifierTag=dep.getElementsByTagName("classifier").item(0);
 
 		final
 		String classifier;
