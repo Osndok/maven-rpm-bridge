@@ -302,7 +302,11 @@ class ContextLoader extends ClassLoader
 			final
 			URL url = m.findResourceInThisModule(name);
 
-			if (url!=null)
+			if (url==null)
+			{
+				//System.err.println("no such resource: "+m);
+			}
+			else
 			{
 				retval.add(url);
 			}

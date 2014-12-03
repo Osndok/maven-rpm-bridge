@@ -67,5 +67,7 @@ class Main
 		{
 			throw new AssertionError("getResources() should locate all resources in module *AND* context");
 		}
+
+
 	}
 }

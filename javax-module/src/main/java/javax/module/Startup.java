@@ -87,6 +87,7 @@ class Startup extends ClassLoader
 		{
 			System.err.println("Startup.findClass(" + name + ")");
 		}
+
 		try
 		{
 			return super.loadClass(name, resolve);
@@ -120,6 +121,7 @@ class Startup extends ClassLoader
 
 							for (Dependency dependency : moduleLoader.getModule().getDependencies())
 							{
+								//System.err.println("Adding to startup context: "+dependency);
 								context.addModule(dependency);
 							}
 						}
@@ -127,6 +129,10 @@ class Startup extends ClassLoader
 						{
 							throw new RuntimeException(e);
 						}
+					}
+					else
+					{
+						System.err.println("NOTICE: Strict startup context (not adding initial module dependencies thereto)");
 					}
 				}
 				else

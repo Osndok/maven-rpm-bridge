@@ -523,13 +523,17 @@ class ModuleLoader extends ClassLoader
 		final
 		Set<URL> retval = new LinkedHashSet<URL>();
 
-		retval.addAll(Collections.list(super.getResources(name)));
+		retval.addAll(Collections.list(getContext().getClassLoader().getResources(name)));
 
 		{
 			final
 			URL url = findResourceInThisModule(name);
 
-			if (url!=null)
+			if (url==null)
+			{
+				//System.err.println("no such resource: "+this+" (this)");
+			}
+			else
 			{
 				retval.add(url);
 			}
@@ -545,7 +549,11 @@ class ModuleLoader extends ClassLoader
 				final
 				URL url = m2.findResourceInThisModule(name);
 
-				if (url != null)
+				if (url==null)
+				{
+					//System.err.println("no such resource: "+dep+" (dep)");
+				}
+				else
 				{
 					retval.add(url);
 					//???: usingDependency(m2);
@@ -568,5 +576,11 @@ class ModuleLoader extends ClassLoader
 		return Collections.enumeration(retval);
 	}
 
+	@Override
+	public
+	String toString()
+	{
+		return super.toString()+":"+getModuleKey();
+	}
 }
 
