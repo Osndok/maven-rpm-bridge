@@ -190,6 +190,14 @@ class Main
 	}
 	*/
 
+	/**
+	 * TODO: BUG: when grinding a war file with dependencies in it's parent-pom (which we don't have acces too), those will not be linked up correctly.
+	 *
+	 * @param warFile
+	 * @return
+	 * @throws IOException
+	 * @throws ObsoleteJarException
+	 */
 	private
 	ModuleKey grindWar(File warFile /*, MavenJar mavenJar, MavenInfo mavenInfo*/) throws IOException, ObsoleteJarException
 	{
