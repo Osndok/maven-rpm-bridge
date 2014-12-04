@@ -15,6 +15,7 @@ cat ->    ./usr/bin/@TOOL_NAME@ <<"EOF"
 MODULE=@NAME@
 CLASS=@CLASS@
 
+test -r /etc/sysconfig/@MODULE_NAME@ && . /etc/sysconfig/@MODULE_NAME@
 test -r /etc/sysconfig/@NAME@ && . /etc/sysconfig/@NAME@
 
 unset CLASSPATH
