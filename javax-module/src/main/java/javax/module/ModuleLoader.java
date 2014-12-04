@@ -1,6 +1,7 @@
 package javax.module;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -28,6 +29,7 @@ class ModuleLoader extends ClassLoader
 	}
 
 	private static final boolean DEBUG = Boolean.getBoolean("debug.module.loader");
+	private static final boolean FALL_OPEN = Boolean.getBoolean("module.loader.fall.open");
 
 	private final Module  module;
 	private final ModuleContext context;
@@ -258,7 +260,55 @@ class ModuleLoader extends ClassLoader
 			System.err.println(name + ":\t*DNE*  [ " + context + " :: " + getModuleKey() + " ]");
 		}
 
+		if (FALL_OPEN)
+		{
+			Set<ModuleKey> alreadyChecked=new HashSet<ModuleKey>(module.getDependencies());
+			alreadyChecked.add(getModuleKey());
+
+			retval=context.findClassInEntireModuleDependencyTree(name, alreadyChecked);
+
+			if (retval==null)
+			{
+				throw new ClassNotFoundException(name + " is not in " + getModuleKey() + ", its direct dependencies, or any module transitively-linked from the startup context.");
+			}
+			else
+			{
+				String considerAddingMessage=getConsiderAddingMessage(retval);
+				System.err.println("\nWARN: "+getModuleKey()+" usually cannot access the class: '"+name+"'."+considerAddingMessage);
+				return retval;
+			}
+		}
+
 		throw new ClassNotFoundException(name + " is not in " + getModuleKey() + " or its direct dependencies.");
+	}
+
+	private
+	String getConsiderAddingMessage(Class aClass)
+	{
+		ClassLoader classLoader = aClass.getClassLoader();
+
+		if (classLoader instanceof ModuleLoader)
+		{
+			ModuleLoader moduleLoader=(ModuleLoader)classLoader;
+
+			ModuleKey moduleKey=moduleLoader.getModuleKey();
+
+			File depsFile=module.getDependenciesFile();
+
+			if (moduleKey instanceof Dependency)
+			{
+				Dependency dependency=(Dependency)moduleKey;
+				return String.format(" Consider adding '%s' (from '%s') to this module's dependency list: %s", moduleKey, dependency.getRequestingModuleKey(), depsFile);
+			}
+			else
+			{
+				return String.format(" Consider adding '%s' to dependency list: %s", moduleKey, depsFile);
+			}
+		}
+		else
+		{
+			return null;
+		}
 	}
 
 	private static
@@ -413,7 +463,7 @@ class ModuleLoader extends ClassLoader
 			System.err.println(name + ":\tresrc  [ " + context + " :: " + getModuleKey() + " ]");
 		}
 
-		//find in context
+		//TODO: revisit the decision to locate resources top-first... for some applications (like locating class files) it may be totally wrong.
 		URL retval = context.findResourceTopFirst(name);
 
 		if (retval != null)

@@ -102,7 +102,7 @@ class Startup extends ClassLoader
 					{
 						System.err.println("Startup: creating root context for " + rootModuleKey);
 					}
-					context = new ModuleContext(rootModuleKey.getModuleName(), moduleDirectory);
+					context = new ModuleContext(rootModuleKey.getModuleName()+"-startup", moduleDirectory);
 					//addExtraModuleDirectories(context);
 					context.addModule(rootModuleKey);
 
@@ -294,6 +294,14 @@ class Startup extends ClassLoader
 		Startup startup=new Startup(moduleDirectory, rootModule, null);
 
 		Class aClass = startup.loadClass(mainClassName);
+
+		/*
+		 * This is surprisingly important in allowing abstract/subordinate classloaders to work...
+		 * Yet, from a java purist perspective, would be rather arbitrary.
+		 *
+		 * TODO: this should arguably be the ContextLoader (not the module loader), but then we would need more support (like FALL_OPEN) therein.
+		 */
+		Thread.currentThread().setContextClassLoader(aClass.getClassLoader());
 
 		try
 		{

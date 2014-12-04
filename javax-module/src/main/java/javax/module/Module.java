@@ -49,6 +49,12 @@ class Module
 	ModuleInfo moduleInfo;
 
 	public
+	File getDependenciesFile()
+	{
+		return depsFile;
+	}
+
+	public
 	ModuleInfo getModuleInfo()
 	{
 		if (moduleInfo==null)

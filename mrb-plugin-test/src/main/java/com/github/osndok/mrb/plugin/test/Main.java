@@ -68,6 +68,16 @@ class Main
 			throw new AssertionError("getResources() should locate all resources in module *AND* context");
 		}
 
+		//For the abstract stuff... they will want to be able to get at the bytecode.
+		URL url = LoggerFactory.class.getClassLoader().getResource("org/slf4j/impl/StaticLoggerBinder.class");
 
+		if (url==null)
+		{
+			throw new AssertionError("LoggerFactory can see the *class* but not the class file/definition");
+		}
+		else
+		{
+			System.err.println("Class definition url: "+url);
+		}
 	}
 }

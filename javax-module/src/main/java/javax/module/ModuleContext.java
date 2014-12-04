@@ -3,10 +3,7 @@ package javax.module;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -427,6 +424,7 @@ class ModuleContext
 	{
 		ModuleLoader retval = loadedModules.get(moduleKey);
 		ModuleAccessDeniedException denied = null;
+
 		if (retval == null && parentModuleContext != null)
 		{
 			try
@@ -438,6 +436,7 @@ class ModuleContext
 				denied = e;
 			}
 		}
+
 		if (retval == null)
 		{
 			try
@@ -569,4 +568,124 @@ class ModuleContext
 		return retval;
 	}
 
+	/**
+	 * This function is intended to provide a work around for mechanisms that adhere to the
+	 * original java "flat class namespace" (aka classpath), by recursively loading every known
+	 * module and checking to see if it is available. This can be very expensive, depending
+	 * on the size of the dependency tree; but is roughly equivalent to checking the whole
+	 * classpath anyway...
+	 */
+	Class findClassInEntireModuleDependencyTree(String name, Set<ModuleKey> shallowChecks)
+	{
+		if (parentModuleContext==null)
+		{
+			Set<ModuleKey> deepChecksComplete=new HashSet<ModuleKey>();
+			return findClassInAnyModuleOrSubContext(name, shallowChecks, deepChecksComplete);
+		}
+		else
+		{
+			return parentModuleContext.findClassInEntireModuleDependencyTree(name, shallowChecks);
+		}
+	}
+
+	private
+	Class findClassInAnyModuleOrSubContext(String name, Set<ModuleKey> shallowChecks, Set<ModuleKey> deepChecksComplete)
+	{
+		/*
+		By making this a *linked* hash set, this algorithim becomes (roughly) a breadth-first-search
+		from the root module/context (unless we have sub-contexts). If we used a simple HashSet, the
+		traversal order would be a mostly unpredictable.
+		 */
+		final
+		Set<ModuleKey> deepChecksNeeded=new LinkedHashSet<ModuleKey>(loadedModules.size());
+
+		for (Map.Entry<ModuleKey, ModuleLoader> me : loadedModules.entrySet())
+		{
+			final
+			ModuleKey key=me.getKey();
+
+			if (!deepChecksComplete.contains(key))
+			{
+				deepChecksNeeded.add(key);
+			}
+		}
+
+		while(!deepChecksNeeded.isEmpty())
+		{
+			final
+			ModuleKey moduleKey;
+			{
+				Iterator<ModuleKey> i=deepChecksNeeded.iterator();
+				moduleKey=i.next();
+				i.remove();
+			}
+
+			final
+			ModuleLoader moduleLoader;
+			{
+				try
+				{
+					moduleLoader=getModuleLoaderFor(moduleKey);
+				}
+				catch (IOException e)
+				{
+					e.printStackTrace();
+					continue;
+				}
+				catch (ModuleNotFoundException e)
+				{
+					e.printStackTrace();
+					continue;
+				}
+				catch (ModuleAccessDeniedException e)
+				{
+					e.printStackTrace();
+					continue;
+				}
+			}
+
+			if (!shallowChecks.contains(moduleKey))
+			{
+				shallowChecks.add(moduleKey);
+
+				try
+				{
+					Class retval=moduleLoader.findClassInThisModule(name);
+
+					if (retval!=null)
+					{
+						return retval;
+					}
+				}
+				catch (IOException e)
+				{
+					e.printStackTrace();
+				}
+			}
+
+			deepChecksComplete.add(moduleKey);
+
+			for (Dependency dependency : moduleLoader.getModule().getDependencies())
+			{
+				if (!deepChecksComplete.contains(dependency))
+				{
+					deepChecksNeeded.add(dependency);
+				}
+			}
+		}
+
+		for (Map.Entry<String, ModuleContext> me : subContexts.entrySet())
+		{
+			//String subContextName=me.getKey();
+			ModuleContext subContextLoader=me.getValue();
+			Class retval=subContextLoader.findClassInAnyModuleOrSubContext(name, shallowChecks, deepChecksComplete);
+
+			if (retval!=null)
+			{
+				return retval;
+			}
+		}
+
+		return null;
+	}
 }
