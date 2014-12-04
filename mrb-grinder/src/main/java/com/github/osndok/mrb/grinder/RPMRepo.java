@@ -49,10 +49,11 @@ class RPMRepo
 	 * to the least specific once old/incompatible rpms are removed.
 	 *
 	 * @param mavenJar
+	 * @param avoidObsoleteJarExceptionAndCompatibilityCheck
 	 * @return
 	 */
 	public
-	ModuleKey mostSpecificCompatibleAndPreExistingVersion(MavenJar mavenJar) throws ObsoleteJarException, IOException
+	ModuleKey mostSpecificCompatibleAndPreExistingVersion(MavenJar mavenJar, boolean avoidObsoleteJarExceptionAndCompatibilityCheck) throws ObsoleteJarException, IOException
 	{
 		final
 		MavenInfo mavenInfo=mavenJar.getInfo();
@@ -77,6 +78,10 @@ class RPMRepo
 
 		log.debug("split into {} bits", length);
 
+		/*
+		In this loop, we start with the most specific version (e.g. 5.4.3-rc1-beta), and work or
+		way up to the most general (e.g. "5"), looking for a pre-existing (yet compatible) module.
+		 */
 		for (int i=length-1; i>0; i--)
 		{
 			guess = deriveVersionGuess(bits, i, mavenInfo);
@@ -106,6 +111,11 @@ class RPMRepo
 				//No version comparison either... (unlike version numbers, you can't really tell if "SNAPSHOT" >= "SNAPSHOT" ?)
 				//TODO: Snapshots are always replaced with incoming snapshots (or releases)... even if they are out of order...
 				//Snapshots... are... therefore... unreliable! ... SURPRISE!
+				return guess;
+			}
+			else
+			if (avoidObsoleteJarExceptionAndCompatibilityCheck)
+			{
 				return guess;
 			}
 			else

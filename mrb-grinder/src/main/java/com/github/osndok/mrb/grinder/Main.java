@@ -26,6 +26,9 @@ class Main
 	public static final  boolean RECURSIVE = (Boolean.valueOf(System.getProperty("RECURSIVE", "true")));
 	private static final boolean DEBUG     = true;
 
+	//TODO: atm, "force" may be construed two ways... specific to the top-level grinding (replace this jar), or global ("I just want it to work"). Maybe split it?
+	public static boolean FORCE = false;
+
 	private final
 	RPMRepo rpmRepo;
 
@@ -52,6 +55,11 @@ class Main
 		{
 			try
 			{
+				if (arg.equals("--force"))
+				{
+					FORCE=true;
+				}
+				else
 				if (arg.equals("tools"))
 				{
 					main.getSunTools();
@@ -133,20 +141,23 @@ class Main
 		final
 		Registry registry=rpmRepo.getRegistry();
 
-		if (!mavenInfo.isSnapshot())
+		boolean avoidCompatibilityCheck=(mavenInfo.isSnapshot() || FORCE);
+
+		if (!avoidCompatibilityCheck)
 		{
 			registry.shouldNotContain(mavenInfo);
 		}
 
-		ModuleKey moduleKey=rpmRepo.mostSpecificCompatibleAndPreExistingVersion(mavenJar);
+		ModuleKey moduleKey=rpmRepo.mostSpecificCompatibleAndPreExistingVersion(mavenJar, avoidCompatibilityCheck);
 
 		File spec=Spec.write(moduleKey, mavenJar, this);
 		File rpm=RPM.build(spec, jar);
 
-		if (mavenInfo.isSnapshot())
+		if (avoidCompatibilityCheck)
 		{
 			rpmRepo.add(rpm);
 
+			//TODO: when force-adding a jar, shouldn't we remove (or overwrite) the entry instead of dropping it? e.g. it surly has a different jar-hash?
 			//We need to check first, to avoid reduplicated entries...
 			if (!registry.contains(mavenInfo))
 			{
