@@ -1,5 +1,6 @@
 package com.github.osndok.mrb.grinder;
 
+import com.github.osndok.mrb.grinder.api.SpecShard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -9,9 +10,8 @@ import javax.module.ModuleKey;
 import javax.module.Version;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by robert on 10/31/14.
@@ -70,7 +70,7 @@ class Spec
 	}
 
 	public static
-	File write(ModuleKey moduleKey, MavenJar mavenJar, Main main) throws IOException
+	File write(ModuleKey moduleKey, MavenJar mavenJar, Main main, Collection<SpecShard> extraShards) throws IOException
 	{
 		final
 		RPMRepo rpmRepo=main.getRPMRepo();
@@ -151,6 +151,8 @@ class Spec
 				out.write(requiresLine(dependency));
 			}
 
+			writeRequiresLines(out, null, extraShards);
+
 			//TODO: detect the jar's major.minor and require the appropriate java version
 
 			/*
@@ -164,8 +166,36 @@ class Spec
 
 			out.write(descriptionFromPomFile(mavenJar));
 
+			for (SpecShard specShard : notNull(extraShards))
+			{
+				String name=specShard.getSubPackageName();
+				if (name==null) continue;
+
+				out.write(String.format("%%package %s\n", name).getBytes());
+
+				for (String requiresLine : notNull(specShard.getRpmRequiresLines()))
+				{
+					out.write(requiresLine.getBytes());
+					out.write("\n".getBytes());
+				}
+
+				String description=specShard.getSubPackageDescription();
+				out.write(String.format("%%description %s\n%s\n", name, description).getBytes());
+
+				for (Map.Entry<String, String> me : specShard.getScriptletBodiesByType().entrySet())
+				{
+					String type=me.getKey();
+					String body=me.getValue();
+
+					//Install scriptlets must be merged with the main install scriptlet.
+					if (type.equals("install")) continue;
+
+					out.write(String.format("%%%s %s\n%s\n", type, name, body).getBytes());
+				}
+			}
+
 			final
-			Map<String,String> dependencyReplacements=buildDependencyReplacements(moduleKey, dependencies, mavenJar, generalInfos, execClassesByToolName);
+			Map<String,String> dependencyReplacements=buildDependencyReplacements(moduleKey, dependencies, mavenJar, generalInfos, execClassesByToolName, extraShards);
 
 			sb=readTemplate("spec.postfix");
 
@@ -173,6 +203,22 @@ class Spec
 			replace(sb, generalInfos);
 
 			out.write(sb.toString().getBytes());
+
+			for (SpecShard specShard : notNull(extraShards))
+			{
+				String name=specShard.getSubPackageName();
+				if (name==null) continue;
+
+				out.write(String.format("%%files %s\n", name).getBytes());
+
+				for (String path : specShard.getFileContentsByPath().keySet())
+				{
+					if (looksLikeConfigFile(path)) out.write("%config ".getBytes());
+					out.write(path.getBytes());
+					out.write("\n".getBytes());
+				}
+			}
+
 		}
 		finally
 		{
@@ -180,6 +226,60 @@ class Spec
 		}
 
 		return spec;
+	}
+
+	private static
+	boolean looksLikeConfigFile(String path)
+	{
+		return path.endsWith(".props")
+			|| path.endsWith(".conf")
+			|| path.endsWith(".config")
+			|| path.endsWith(".cfg")
+			|| path.endsWith(".ini")
+			;
+	}
+
+	private static
+	void writeRequiresLines(OutputStream out, String shardName, Collection<SpecShard> extraShards) throws IOException
+	{
+		for (SpecShard shard : notNull(extraShards))
+		{
+			String name=shard.getSubPackageName();
+
+			if (nullableNamesMatch(name, shardName))
+			{
+				for (String s : notNull(shard.getRpmRequiresLines()))
+				{
+					out.write(s.getBytes());
+				}
+			}
+		}
+	}
+
+	private static
+	boolean nullableNamesMatch(String actualName, String expectedName)
+	{
+		if (expectedName==null)
+		{
+			return actualName==null;
+		}
+		else
+		{
+			return expectedName.equals(actualName);
+		}
+	}
+
+	private static <T>
+	Collection<T> notNull(Collection<T> possiblyNullCollection)
+	{
+		if (possiblyNullCollection==null)
+		{
+			return Collections.emptySet();
+		}
+		else
+		{
+			return possiblyNullCollection;
+		}
 	}
 
 	private static
@@ -220,14 +320,15 @@ class Spec
 													   Set<Dependency> dependencies,
 													   MavenJar mavenJar,
 													   Map<String, String> generalInfos,
-													   Map<String, String> execClassesByToolName
+													   Map<String, String> execClassesByToolName,
+													   Collection<SpecShard> extraShards
 	) throws IOException
 	{
 		Map<String, String> retval=new HashMap<String, String>();
 
 		retval.put("@DEPS_FILE_CONTENTS@", depsFile(moduleKey, dependencies));
-		retval.put("@BUILD_EXEC_FILES@", buildExecFiles(execClassesByToolName, generalInfos, mavenJar, moduleKey));
-		retval.put("@EXEC_PATHS@", execPaths(execClassesByToolName, moduleKey, mavenJar));
+		retval.put("@BUILD_EXEC_FILES@", buildExecFiles(execClassesByToolName, generalInfos, mavenJar, moduleKey, extraShards));
+		retval.put("@EXEC_PATHS@", execPaths(execClassesByToolName, moduleKey, mavenJar, extraShards));
 
 		return retval;
 	}
@@ -290,7 +391,8 @@ class Spec
 	String buildExecFiles(
 							 Map<String, String> execClassesByToolName,
 							 Map<String, String> generalInfos,
-							 MavenJar mavenJar, ModuleKey moduleKey
+							 MavenJar mavenJar, ModuleKey moduleKey,
+							 Collection<SpecShard> extraShards
 	) throws IOException
 	{
 		final
@@ -349,12 +451,53 @@ class Spec
 			retval.append("EOF\n\n");
 		}
 
+		for (SpecShard specShard : notNull(extraShards))
+		{
+			String name=specShard.getSubPackageName();
+			retval.append("# The '").append(name).append("' sub package\n\n");
+
+			Map<String, String> fileContentsByPath = specShard.getFileContentsByPath();
+
+			if (fileContentsByPath!=null)
+			{
+				for (Map.Entry<String, String> me : fileContentsByPath.entrySet())
+				{
+					String path=me.getKey();
+					String body=me.getValue();
+
+					int nonce= ThreadLocalRandom.current().nextInt(100000);
+
+					File file=new File(path);
+					String dir=file.getParent();
+
+					if (dir.startsWith("/"))
+					{
+						retval.append("\n\nmkdir -p .").append(dir).append("\n");
+					}
+
+					retval.append("cat -> .").append(path).append(" <<\"EOF-").append(nonce).append("\"\n");
+					retval.append(body);
+
+					char lastChar=body.charAt(body.length()-1);
+
+					if (lastChar!='\n') retval.append('\n');
+
+					retval.append("EOF-").append(nonce).append("\n\n");
+				}
+
+			}
+		}
 
 		return retval.toString();
 	}
 
 	private static
-	String execPaths(Map<String, String> execClassesByToolName, ModuleKey moduleKey, MavenJar mavenJar)
+	String execPaths(
+						Map<String, String> execClassesByToolName,
+						ModuleKey moduleKey,
+						MavenJar mavenJar,
+						Collection<SpecShard> extraShards
+	)
 	{
 		StringBuilder sb=new StringBuilder();
 
@@ -376,6 +519,24 @@ class Spec
 		{
 			ModuleKey targetModule=me.getKey();
 			sb.append("/usr/share/java/").append(targetModule).append("/plugins.d/").append(moduleKey).append(".plugin\n");
+		}
+
+		for (SpecShard specShard : notNull(extraShards))
+		{
+			String name=specShard.getSubPackageName();
+
+			if (name!=null) continue;
+
+			Map<String, String> fileContentsByPath = specShard.getFileContentsByPath();
+
+			if (fileContentsByPath!=null)
+			{
+				for (String path : fileContentsByPath.keySet())
+				{
+					sb.append(path);
+					sb.append('\n');
+				}
+			}
 		}
 
 		return sb.toString();

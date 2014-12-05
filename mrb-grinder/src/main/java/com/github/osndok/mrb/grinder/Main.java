@@ -1,12 +1,16 @@
 package com.github.osndok.mrb.grinder;
 
+import com.github.osndok.mrb.grinder.api.SpecShard;
+import com.github.osndok.mrb.grinder.api.WarFileInfo;
+import com.github.osndok.mrb.grinder.api.WarProcessingPlugin;
 import com.github.osndok.mrb.grinder.util.Exec;
+import com.github.osndok.mrb.grinder.util.SpecSourceAllocatorImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
-import sun.tools.jar.resources.jar;
 
 import javax.module.ModuleKey;
+import javax.module.Plugins;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -132,11 +136,11 @@ class Main
 		MavenJar mavenJar = new MavenJar(jar);
 		MavenInfo mavenInfo = mavenJar.getInfo(rpmRepo.getRegistry());
 
-		return grindJar(jar, mavenJar, mavenInfo);
+		return grindJar(jar, mavenJar, mavenInfo, null);
 	}
 
 	private
-	ModuleKey grindJar(File jar, MavenJar mavenJar, MavenInfo mavenInfo) throws IOException, ObsoleteJarException
+	ModuleKey grindJar(File jar, MavenJar mavenJar, MavenInfo mavenInfo, Collection<SpecShard> extraShards) throws IOException, ObsoleteJarException
 	{
 		final
 		Registry registry=rpmRepo.getRegistry();
@@ -150,7 +154,7 @@ class Main
 
 		ModuleKey moduleKey=rpmRepo.mostSpecificCompatibleAndPreExistingVersion(mavenJar, avoidCompatibilityCheck);
 
-		File spec=Spec.write(moduleKey, mavenJar, this);
+		File spec=Spec.write(moduleKey, mavenJar, this, extraShards);
 		File rpm=RPM.build(spec, jar);
 
 		if (avoidCompatibilityCheck)
@@ -266,7 +270,8 @@ class Main
 		File lib=new File(dir, "WEB-INF/lib");
 
 		final
-		Set<ModuleKey> additionalDepsFromLibs=new HashSet<ModuleKey>();
+		Map<String,ModuleKey> libDependencyMapping=new HashMap<>();
+		//Set<ModuleKey> additionalDepsFromLibs=new HashSet<ModuleKey>();
 
 		if (lib.isDirectory())
 		{
@@ -290,7 +295,7 @@ class Main
 						jarFile.delete();
 					}
 
-					additionalDepsFromLibs.add(moduleKey);
+					libDependencyMapping.put(jarFile.getName(), moduleKey);
 				}
 				/*
 				catch (Exception e)
@@ -305,7 +310,7 @@ class Main
 			}
 		}
 
-		log.info("got {} module deps from libs directory", additionalDepsFromLibs.size());
+		log.info("got {} module deps from libs directory", libDependencyMapping.size());
 
 		//(4) convert the classes inside the war to a new jar that will become the outer module
 
@@ -336,10 +341,46 @@ class Main
 			log.info("built classes-only jar: {}", jar);
 		}
 
-		//(5a) HOW: can we get the production (or development?) port number from the WAR? pom.xml? and the uncompliant ones?
-		//(5b) MAYBE: just install them tomcat-style with the module/version prefix?
-		//(6)  write the spec/rpm to the repo
-		throw new UnsupportedOperationException("unimplemented");
+		//(5) try and guess (in a heavily race-prone way) what the final module key will be :-(
+
+		final
+		boolean avoidCompatibilityCheck=(mavenInfo.isSnapshot() || FORCE);
+
+		final
+		MavenJar mavenJar=new MavenJar(jar, mavenInfo);
+
+		final
+		ModuleKey moduleKey=rpmRepo.mostSpecificCompatibleAndPreExistingVersion(mavenJar, avoidCompatibilityCheck);
+
+
+		//(5) Delegate to the war plugins to generate deployment-specific sub-packages.
+
+		List<SpecShard> shards=new ArrayList<>();
+		{
+			SpecSourceAllocatorImpl sourceAllocator = new SpecSourceAllocatorImpl();
+			WarFileInfo warFileInfo=new WarFileInfo(moduleKey, warFile, dir, mavenPom, mavenInfo, declaredDependencies,
+													   libDependencyMapping, rpmRepo);
+
+			for (WarProcessingPlugin plugin : Plugins.load(WarProcessingPlugin.class))
+			{
+				shards.add(plugin.getSpecShard(warFileInfo, sourceAllocator));
+			}
+
+			if (sourceAllocator.hasAnyEntries())
+			{
+				sourceAllocator.addWarFileEntry(warFile);
+				shards.add(sourceAllocator.asSpecShard());
+			}
+			else
+			if (shards.isEmpty())
+			{
+				shards=null;
+			}
+		}
+
+		//(6)  write the spec/rpm to the repo, hoping that the repo has not changed and that the redundant compat check will be swift.
+
+		return grindJar(jar, mavenJar, mavenInfo, shards);
 	}
 
 	private
@@ -436,7 +477,7 @@ class Main
 					mavenJar.setMavenPom(mavenPom);
 				}
 
-				retval = grindJar(file, mavenJar, mavenInfo);
+				retval = grindJar(file, mavenJar, mavenInfo, null);
 			}
 			else
 			if (isPomFile(file))
