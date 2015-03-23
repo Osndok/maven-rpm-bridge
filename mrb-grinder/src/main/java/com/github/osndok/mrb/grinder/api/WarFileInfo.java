@@ -2,11 +2,8 @@ package com.github.osndok.mrb.grinder.api;
 
 import com.github.osndok.mrb.grinder.MavenInfo;
 import com.github.osndok.mrb.grinder.MavenPom;
-import com.github.osndok.mrb.grinder.RPM;
 import com.github.osndok.mrb.grinder.RPMRepo;
 
-import javax.module.Dependency;
-import javax.module.Module;
 import javax.module.ModuleKey;
 import java.io.File;
 import java.util.Collection;
@@ -22,7 +19,10 @@ class WarFileInfo
 	ModuleKey moduleKey;
 
 	private final
-	File warFile;
+	int deploymentPortNumber;
+
+	private final
+	File untouchedWarFile;
 
 	private final
 	File expandedWarDirectory;
@@ -45,14 +45,15 @@ class WarFileInfo
 	public
 	WarFileInfo(
 				   ModuleKey moduleKey,
-				   File warFile,
+				   File untouchedWarFile,
 				   File expandedWarDirectory, MavenPom mavenPom, MavenInfo mavenInfo,
 				   Collection<ModuleKey> explicitDependencies, Map<String, ModuleKey> libsDirectoryMapping,
 				   RPMRepo rpmRepo
 	)
 	{
 		this.moduleKey = moduleKey;
-		this.warFile = warFile;
+		this.deploymentPortNumber=mavenPom.getDeploymentPortNumber();
+		this.untouchedWarFile = untouchedWarFile;
 		this.expandedWarDirectory = expandedWarDirectory;
 		this.mavenPom = mavenPom;
 		this.mavenInfo = mavenInfo;
@@ -68,9 +69,15 @@ class WarFileInfo
 	}
 
 	public
-	File getWarFile()
+	int getDeploymentPortNumber()
 	{
-		return warFile;
+		return deploymentPortNumber;
+	}
+
+	public
+	File getUntouchedWarFile()
+	{
+		return untouchedWarFile;
 	}
 
 	public

@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -53,6 +54,12 @@ class MavenPom
 
 	private
 	Set<MavenInfo> dependencies;
+
+	private
+	Integer deploymentPortNumber;
+
+	private final
+	Properties localProperties;
 
 	public
 	MavenPom(InputStream inputStream) throws IOException, ParserConfigurationException, SAXException
@@ -121,6 +128,20 @@ class MavenPom
 			//File parentFile=Main.guessLocalPomPath(this.parentInfo);
 		}
 
+		final
+		Node propertiesNode=tagNamed("properties", topLevel);
+
+		if (propertiesNode==null)
+		{
+			log.debug("{} has no localProperties...", artifactId);
+
+			this.localProperties = new Properties();
+		}
+		else
+		{
+			this.localProperties = readProperties(propertiesNode);
+		}
+
 		if (mavenInfo == null)
 		{
 			mavenInfo = new MavenInfo(groupId, artifactId, version);
@@ -166,6 +187,72 @@ class MavenPom
 		}
 
 		this.declaredDependencies = _getDependencies(mavenInfo, pom);
+	}
+
+	private
+	void possiblePortNumber(Properties properties, String key)
+	{
+		final
+		String value = properties.getProperty(key);
+
+		if (value!=null)
+		{
+			this.deploymentPortNumber = new Integer(value);
+			log.debug("discovered web port number: {}", deploymentPortNumber);
+		}
+	}
+
+	/**
+	 * @param parent localProperties, untouched, for reference only.
+	 * @param child localProperties, modified and reused as a return value.
+	 * @return a set of localProperties that is generally an additive set of both the parent and child localProperties, but were the child localProperties wins when there is a contest
+	 */
+	private static
+	Properties overrideProperties(Properties parent, Properties child)
+	{
+		for (String key : parent.stringPropertyNames())
+		{
+			String value=parent.getProperty(key);
+
+			if (!child.containsKey(key))
+			{
+				child.setProperty(key, value);
+			}
+		}
+
+		return child;
+	}
+
+	private
+	Properties readProperties(Node parentNode)
+	{
+		final
+		Properties retval=new Properties();
+
+		final
+		NodeList nodeList = parentNode.getChildNodes();
+
+		final
+		int l=nodeList.getLength();
+
+		for (int i=0; i<l; i++)
+		{
+			final
+			Node node=nodeList.item(i);
+
+			if (node instanceof Element)
+			{
+				Element e=(Element)node;
+
+				String name=e.getTagName();
+				String value=e.getTextContent();
+
+				log.debug("property: {} -> {}", name, value);
+				retval.setProperty(name, value);
+			}
+		}
+
+		return retval;
 	}
 
 	private static
@@ -486,4 +573,64 @@ class MavenPom
 		}
 		return parentPom;
 	}
+
+	public
+	int getDeploymentPortNumber()
+	{
+		if (deploymentPortNumber==null)
+		{
+			final
+			Properties p=getProperties();
+
+			//Order by most-specific-last...
+			possiblePortNumber(p, "web.port");
+			possiblePortNumber(p, "com.allogy.web.port");
+			possiblePortNumber(p, "production.web.port");
+
+			if (deploymentPortNumber==null)
+			{
+				log.error("{} has no deployment port number", mavenInfo);
+				deploymentPortNumber=8080;
+			}
+		}
+
+		return deploymentPortNumber;
+	}
+
+	private
+	Properties combinedProperties;
+
+	public
+	Properties getProperties()
+	{
+		if (combinedProperties==null)
+		{
+			try
+			{
+				final
+				MavenPom parent = getParentPom();
+
+				if (parent==null)
+				{
+					//TODO: clone properties (if wanting to be writable)?
+					combinedProperties=localProperties;
+				}
+				else
+				{
+					combinedProperties=overrideProperties(parent.getProperties(), localProperties);
+				}
+			}
+			catch (RuntimeException e)
+			{
+				throw e;
+			}
+			catch (Exception e)
+			{
+				throw new RuntimeException(e);
+			}
+		}
+
+		return combinedProperties;
+	}
+
 }

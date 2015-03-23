@@ -12,6 +12,8 @@ interface SpecShard
 	String getSubPackageName();
 	String getSubPackageDescription();
 	Collection<String> getRpmRequiresLines();
+	Collection<String> getRpmBuildRequiresLines();
+	Collection<String> getFilePathsToPackage();
 	Map<String,String> getFileContentsByPath();
 	Map<String,String> getScriptletBodiesByType();
 }

@@ -9,7 +9,7 @@ public
 interface SpecSourceAllocator
 {
 	String getJarFile();
-	String getWarFile();
+	String getUntouchedWarFile();
 
 	/**
 	 * @param file

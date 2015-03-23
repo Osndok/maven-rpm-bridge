@@ -27,7 +27,7 @@ class SpecSourceAllocatorImpl implements SpecSourceAllocator
 
 	@Override
 	public
-	String getWarFile()
+	String getUntouchedWarFile()
 	{
 		return "%{source5}";
 	}
@@ -91,6 +91,20 @@ class SpecSourceAllocatorImpl implements SpecSourceAllocator
 			Collection<String> getRpmRequiresLines()
 			{
 				return sourceLines;
+			}
+
+			@Override
+			public
+			Collection<String> getRpmBuildRequiresLines()
+			{
+				return null;
+			}
+
+			@Override
+			public
+			Collection<String> getFilePathsToPackage()
+			{
+				return null;
 			}
 
 			@Override

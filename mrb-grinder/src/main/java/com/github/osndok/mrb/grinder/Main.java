@@ -5,6 +5,9 @@ import com.github.osndok.mrb.grinder.api.WarFileInfo;
 import com.github.osndok.mrb.grinder.api.WarProcessingPlugin;
 import com.github.osndok.mrb.grinder.util.Exec;
 import com.github.osndok.mrb.grinder.util.SpecSourceAllocatorImpl;
+import com.github.osndok.mrb.grinder.webapps.HJLinkedWebapp;
+import com.github.osndok.mrb.grinder.webapps.TomcatUnlinkedWebapp;
+import com.github.osndok.mrb.grinder.webapps.HJUnlinkedWebapp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -361,6 +364,11 @@ class Main
 			WarFileInfo warFileInfo=new WarFileInfo(moduleKey, warFile, dir, mavenPom, mavenInfo, declaredDependencies,
 													   libDependencyMapping, rpmRepo);
 
+			for (WarProcessingPlugin plugin : getDefaultPlugins())
+			{
+				shards.add(plugin.getSpecShard(warFileInfo, sourceAllocator));
+			}
+
 			for (WarProcessingPlugin plugin : Plugins.load(WarProcessingPlugin.class))
 			{
 				shards.add(plugin.getSpecShard(warFileInfo, sourceAllocator));
@@ -381,6 +389,59 @@ class Main
 		//(6)  write the spec/rpm to the repo, hoping that the repo has not changed and that the redundant compat check will be swift.
 
 		return grindJar(jar, mavenJar, mavenInfo, shards);
+	}
+
+	private static
+	List<WarProcessingPlugin> defaultPlugins;
+
+	static
+	List<WarProcessingPlugin> getDefaultPlugins()
+	{
+		if (defaultPlugins==null)
+		{
+			if (!Boolean.getBoolean("NO_TOMCAT"))
+			{
+				int tomcatVersion = Integer.getInteger("TOMCAT_VERSION", 7);
+
+				if (!Boolean.getBoolean("NO_UNLINKED"))
+				{
+					//Phase 0 - tomcat fallback
+					//The mechanism that DV currently prefers, and the most conventional & basic
+					defaultPlugins.add(new TomcatUnlinkedWebapp(tomcatVersion));
+				}
+
+				if (!Boolean.getBoolean("NO_LINKED"))
+				{
+					//Phase 3
+					//Once the HJ1/Linked is ready, it should be easy to create a linked tomcat version.
+					//NB: might require a config tweak to allow symlinked jar dependency files
+					//defaultPlugins.add(new TomcatLinkedWebapp(tomcatVersion));
+				}
+			}
+
+			if (!Boolean.getBoolean("NO_HJ"))
+			{
+				if (!Boolean.getBoolean("NO_UNLINKED"))
+				{
+					//Phase 1 - feature parity
+					defaultPlugins.add(new HJUnlinkedWebapp());
+				}
+
+				if (!Boolean.getBoolean("NO_LINKED"))
+				{
+					//Phase 2 - non-modular enhanced dependency linkage
+					defaultPlugins.add(new HJLinkedWebapp());
+				}
+
+				if (!Boolean.getBoolean("NO_MODULAR_WEBAPP"))
+				{
+					//Phase 4 - modular dependency linkage (requires an ounce of HJ help)
+					//defaultPlugins.add(new HJModularWebapp());
+				}
+			}
+		}
+
+		return defaultPlugins;
 	}
 
 	private
