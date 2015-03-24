@@ -11,7 +11,7 @@ import java.util.zip.ZipEntry;
 /**
  * Created by robert on 3/23/15.
  */
-public
+public abstract
 class AbstractHyperjettyWebappFunctions
 {
 	private static final boolean ACTIVATE_ON_START = true;
@@ -19,6 +19,29 @@ class AbstractHyperjettyWebappFunctions
 	protected final
 	String directory = "/usr/lib/hyperjetty";
 
+	public abstract
+	String getSubPackageName();
+
+	protected
+	String getConfigFilePath(int servicePort)
+	{
+		return "/usr/lib/hyperjetty/"+servicePort+"."+getSubPackageName();
+	}
+
+	protected
+	String getMasterConfigFilePath(int servicePort)
+	{
+		return "/usr/lib/hyperjetty/"+servicePort+".config";
+	}
+
+	/**
+	 * TODO: BUG: the config file is overwritten for each HJ-compatible subpackage, so only one is compatible.
+	 *
+	 * @param servicePort
+	 * @param moduleKey
+	 * @param warFile
+	 * @return
+	 */
 	protected
 	Map<String, String> hyperJettyConfigFileContentsByPath(int servicePort, ModuleKey moduleKey, File warFile)
 	{
@@ -58,7 +81,7 @@ SELF=/usr/lib/hyperjetty/10088.config
 ------------------------------------------------------------------
 		 */
 		final
-		String configFilePath="/usr/lib/hyperjetty/"+servicePort+".config";
+		String configFilePath=getConfigFilePath(servicePort);
 
 		Properties p;
 		{
@@ -229,4 +252,22 @@ SELF=/usr/lib/hyperjetty/10088.config
 			p.setProperty(key, ifNotPresent);
 		}
 	}
+
+	protected
+	String getPostInstallPhase(int servicePort)
+	{
+		final
+		File myConfigFile=new File(getConfigFilePath(servicePort));
+
+		final
+		File masterConfig=new File(getMasterConfigFilePath(servicePort));
+
+		final
+		StringBuilder sb=new StringBuilder();
+
+		sb.append("ln -s ").append(myConfigFile.getName()).append(" .").append(masterConfig.getAbsolutePath()).append('\n');
+
+		return sb.toString();
+	}
+
 }

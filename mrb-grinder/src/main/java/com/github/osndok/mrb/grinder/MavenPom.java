@@ -20,10 +20,7 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Properties;
@@ -619,6 +616,11 @@ class MavenPom
 				{
 					combinedProperties=overrideProperties(parent.getProperties(), localProperties);
 				}
+			}
+			catch (FileNotFoundException e)
+			{
+				log.warn("parent pom not available? {}", parentInfo, e);
+				combinedProperties=localProperties;
 			}
 			catch (RuntimeException e)
 			{

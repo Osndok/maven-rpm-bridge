@@ -1,14 +1,13 @@
 package com.github.osndok.mrb.grinder.webapps;
 
+import com.github.osndok.mrb.grinder.Spec;
 import com.github.osndok.mrb.grinder.api.SpecShard;
 import com.github.osndok.mrb.grinder.api.SpecSourceAllocator;
 import com.github.osndok.mrb.grinder.api.WarFileInfo;
 import com.github.osndok.mrb.grinder.api.WarProcessingPlugin;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import javax.module.ModuleKey;
+import java.util.*;
 
 /**
  * Created by robert on 3/23/15.
@@ -35,14 +34,14 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 	public
 	String getSubPackageName()
 	{
-		return "hj1";
+		return "hj2";
 	}
 
 	@Override
 	public
 	String getSubPackageDescription()
 	{
-		return warFileInfo.getMavenInfo().getArtifactId() + " war 'directory' in a place where hyperjetty can locate it with 1st-phase modularizations in place (i.e. links to rpm-packaged dependencies).";
+		return warFileInfo.getMavenInfo().getArtifactId() + " war 'directory' in a place where hyperjetty can locate it with 1st-phase modularizations in place (i.e. links to rpm-packaged dependencies, phase 2 of modularization).";
 	}
 
 	@Override
@@ -51,7 +50,7 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 	{
 		//NB: while technically correct, we do *not* want to require hyperjetty, as that
 		//    would restrict and frustrate the sysadmins (conflicts with tomcat, etc.).
-		return null;
+		return Collections.singleton(Spec.RPM_NAME_PREFIX+warFileInfo.getModuleKey());
 	}
 
 	@Override
@@ -65,7 +64,13 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 	public
 	Collection<String> getFilePathsToPackage()
 	{
-		return Collections.singleton(directory + "/" + warBaseDirectoryName);
+		final
+		List<String> list=new ArrayList<>(2);
+
+		list.add(getConfigFilePath(servicePort));
+		list.add(directory + "/" + warBaseDirectoryName);
+
+		return list;
 	}
 
 	@Override
@@ -75,6 +80,7 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 		return hyperJettyConfigFileContentsByPath(servicePort, warFileInfo.getModuleKey(), warFileInfo.getUntouchedWarFile());
 	}
 
+	//TODO: cache result
 	@Override
 	public
 	Map<String, String> getScriptletBodiesByType()
@@ -83,6 +89,7 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 		Map<String, String> retval=new HashMap<>(1);
 
 		retval.put("install", getInstallPhase());
+		retval.put("postin", getPostInstallPhase(servicePort));
 
 		return retval;
 	}
@@ -93,14 +100,34 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 		final
 		StringBuilder sb=new StringBuilder();
 
-		sb.append("mkdir -p ").append(directory).append('/').append(warBaseDirectoryName).append('\n');
-		sb.append("pushd    ").append(directory).append('/').append(warBaseDirectoryName).append('\n');
+		sb.append("mkdir -p .").append(directory).append('/').append(warBaseDirectoryName).append('\n');
+		sb.append("pushd    .").append(directory).append('/').append(warBaseDirectoryName).append('\n');
 		sb.append("jar xf ").append(specSourceAllocator.getUntouchedWarFile()).append('\n');
 
-		//HERE: the primary difference for a 'linked' webapp... the dependencies are replaced by mrb linkages.
+		final
+		Map<String, ModuleKey> modulesByLibName = warFileInfo.getLibsDirectoryMapping();
 
+		if (!modulesByLibName.isEmpty())
+		{
+			//HERE: the primary difference for a 'linked' webapp... the dependencies are replaced by mrb linkages.
+			sb.append("pushd WEB-INF/lib\n");
 
-		sb.append("popd");
+			for (Map.Entry<String, ModuleKey> moduleKeyEntry : modulesByLibName.entrySet())
+			{
+				final
+				String libName=moduleKeyEntry.getKey();
+
+				final
+				ModuleKey moduleKey=moduleKeyEntry.getValue();
+
+				sb.append("rm ").append(libName).append('\n');
+				sb.append("ln -s ").append(specSourceAllocator.getActualModularJarFile(moduleKey)).append(' ').append(libName).append('\n');
+			}
+
+			sb.append("popd #WEB-INF/lib\n");
+		}
+
+		sb.append("popd\n"); //webapp directory
 
 		return sb.toString();
 	}

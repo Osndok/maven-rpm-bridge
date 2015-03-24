@@ -157,8 +157,8 @@ class RPM
 	private static final Logger log = LoggerFactory.getLogger(RPM.class);
 
 	//TODO: fix presumption that spec dir is writable, ATM we place the spec next to the jar, and 'out' can collide.
-	public static
-	File build(File spec, File jar) throws IOException
+	private static
+	File[] build(File spec, File jar, File warFile) throws IOException
 	{
 		File writable = spec.getParentFile().getCanonicalFile();
 		File out=new File(writable, "out");
@@ -178,10 +178,23 @@ class RPM
 			}
 		}
 
+		if (warFile!=null)
+		{
+			//TODO: BUG: sourceDir often is simply "/tmp", in which case there could be a war-file collision
+			//Make sure the war file also appears in the soon-to-be-important 'sources' directory...
+			Exec.andWait("cp", "-v", "-f", warFile.getAbsolutePath(), sourceDir);
+		}
+
 		String lines = Exec.toString("rpmbuild", "--define", "_rpmdir " + out, "--define",
 										"_sourcedir " + sourceDir, "-bb", spec.getAbsolutePath());
 
 		log.info("rpmbuild output:\n{}", lines);
+
+		if (warFile!=null)
+		{
+			//To make sure we don't leak the war file...
+			new File(sourceDir, warFile.getName()).delete();
+		}
 
 		/*
 		BufferedReader br = new BufferedReader(new StringReader(lines));
@@ -200,7 +213,13 @@ class RPM
 		*/
 
 		File noarch=new File(out, "noarch");
-		File[] onlyRpm = noarch.listFiles();
+		return noarch.listFiles();
+	}
+
+	public static
+	File buildOne(File spec, File jar, File warFile) throws IOException
+	{
+		File[] onlyRpm = build(spec, jar, warFile);
 
 		if (onlyRpm==null || onlyRpm.length!=1)
 		{
@@ -208,6 +227,19 @@ class RPM
 		}
 
 		return onlyRpm[0];
+	}
+
+	public static
+	File[] buildMany(File spec, File jar, File warFile) throws IOException
+	{
+		File[] rpms = build(spec, jar, warFile);
+
+		if (rpms==null || rpms.length<1)
+		{
+			throw new IOException("rpmbuild should have produced one or more RPMs, but got: "+ Arrays.toString(rpms));
+		}
+
+		return rpms;
 	}
 
 	public

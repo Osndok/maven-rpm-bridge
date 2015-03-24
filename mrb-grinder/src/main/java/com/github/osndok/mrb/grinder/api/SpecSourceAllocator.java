@@ -1,5 +1,6 @@
 package com.github.osndok.mrb.grinder.api;
 
+import javax.module.ModuleKey;
 import java.io.File;
 
 /**
@@ -16,4 +17,6 @@ interface SpecSourceAllocator
 	 * @return the full rpm macro that can be used to summon the file in the spec (e.g. "%{source12}")
 	 */
 	String allocateFile(File file);
+
+	String getActualModularJarFile(ModuleKey moduleKey);
 }

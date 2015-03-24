@@ -11,6 +11,7 @@ Vendor:         Maven Central Repository
 License:        @LICENSE@
 
 Source0:        @JAR@
+Source5:        @WAR@
 
 BuildArch:      noarch
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)

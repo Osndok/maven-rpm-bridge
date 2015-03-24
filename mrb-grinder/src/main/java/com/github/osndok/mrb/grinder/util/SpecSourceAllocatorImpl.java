@@ -3,6 +3,7 @@ package com.github.osndok.mrb.grinder.util;
 import com.github.osndok.mrb.grinder.api.SpecShard;
 import com.github.osndok.mrb.grinder.api.SpecSourceAllocator;
 
+import javax.module.ModuleKey;
 import java.io.File;
 import java.util.*;
 
@@ -22,14 +23,14 @@ class SpecSourceAllocatorImpl implements SpecSourceAllocator
 	public
 	String getJarFile()
 	{
-		return "%{source0}";
+		return "%{SOURCE0}";
 	}
 
 	@Override
 	public
 	String getUntouchedWarFile()
 	{
-		return "%{source5}";
+		return "%{SOURCE5}";
 	}
 
 	public
@@ -48,6 +49,13 @@ class SpecSourceAllocatorImpl implements SpecSourceAllocator
 		filesBySourceNumber.put(i, file);
 
 		return String.format("%%{source%d}", i);
+	}
+
+	@Override
+	public
+	String getActualModularJarFile(ModuleKey moduleKey)
+	{
+		return "/usr/share/java/"+moduleKey+"/"+moduleKey.getModuleName()+".jar";
 	}
 
 	public

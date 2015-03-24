@@ -70,7 +70,7 @@ class Spec
 	}
 
 	public static
-	File write(ModuleKey moduleKey, MavenJar mavenJar, Main main, Collection<SpecShard> extraShards) throws IOException
+	File write(ModuleKey moduleKey, MavenJar mavenJar, Main main, File warFile, Collection<SpecShard> extraShards) throws IOException
 	{
 		final
 		RPMRepo rpmRepo=main.getRPMRepo();
@@ -104,6 +104,16 @@ class Spec
 			generalInfos.put("@LICENSE@", "Unknown");
 
 			generalInfos.put("@JAR@", jar.getName());
+
+			if (warFile==null)
+			{
+				//Repeating 'jar' will probably not cause an error, as an empty source declaration would
+				generalInfos.put("@WAR@", jar.getName());
+			}
+			else
+			{
+				generalInfos.put("@WAR@", warFile.getName());
+			}
 
 			generalInfos.put("@MODULE_NAME@", moduleKey.getModuleName());
 			generalInfos.put("@MAJOR_VERSION@", moduleKey.getMajorVersion());
@@ -175,12 +185,13 @@ class Spec
 
 				for (String requiresLine : notNull(specShard.getRpmRequiresLines()))
 				{
+					out.write("Requires: ".getBytes());
 					out.write(requiresLine.getBytes());
 					out.write("\n".getBytes());
 				}
 
 				String description=specShard.getSubPackageDescription();
-				out.write(String.format("%%description %s\n%s\n", name, description).getBytes());
+				out.write(String.format("Summary: %s\n%%description %s\n%s\n", description, name, description).getBytes());
 
 				for (Map.Entry<String, String> me : specShard.getScriptletBodiesByType().entrySet())
 				{
@@ -211,7 +222,8 @@ class Spec
 
 				out.write(String.format("%%files %s\n", name).getBytes());
 
-				for (String path : specShard.getFileContentsByPath().keySet())
+				//for (String path : notNull(specShard.getFileContentsByPath().keySet()))
+				for (String path : notNull(specShard.getFilePathsToPackage()))
 				{
 					if (looksLikeConfigFile(path)) out.write("%config ".getBytes());
 					out.write(path.getBytes());
@@ -485,6 +497,15 @@ class Spec
 					retval.append("EOF-").append(nonce).append("\n\n");
 				}
 
+			}
+
+			final
+			Map<String, String> scriptlets = specShard.getScriptletBodiesByType();
+
+			if (scriptlets!=null && scriptlets.containsKey("install"))
+			{
+				retval.append("\necho 1>&2 \"install phase for ").append(specShard.getSubPackageName()).append(" subpackage\"\n\n");
+				retval.append(scriptlets.get("install"));
 			}
 		}
 

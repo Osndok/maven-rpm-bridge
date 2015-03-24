@@ -5,10 +5,8 @@ import com.github.osndok.mrb.grinder.api.SpecSourceAllocator;
 import com.github.osndok.mrb.grinder.api.WarFileInfo;
 import com.github.osndok.mrb.grinder.api.WarProcessingPlugin;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
+import java.util.*;
 
 /**
  * Created by robert on 3/23/15.
@@ -35,14 +33,14 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 	public
 	String getSubPackageName()
 	{
-		return "hj0";
+		return "hj1";
 	}
 
 	@Override
 	public
 	String getSubPackageDescription()
 	{
-		return warFileInfo.getMavenInfo().getArtifactId() + " war file placed in a path that the Hyperjetty servlet container is likely to find it, without any special or unconventional modifications or modularizations (i.e. a good fallback).";
+		return warFileInfo.getMavenInfo().getArtifactId() + " war file placed in a path that the Hyperjetty servlet container is likely to find it, without any special or unconventional modifications or modularizations (i.e. phase 1 of modularization).";
 	}
 
 	@Override
@@ -65,7 +63,13 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 	public
 	Collection<String> getFilePathsToPackage()
 	{
-		return Collections.singleton(directory + "/" + warBaseFileName);
+		final
+		List<String> list=new ArrayList<>(2);
+
+		list.add(getConfigFilePath(servicePort));
+		list.add(directory + "/" + warBaseFileName);
+
+		return list;
 	}
 
 	@Override
@@ -75,6 +79,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 		return hyperJettyConfigFileContentsByPath(servicePort, warFileInfo.getModuleKey(), warFileInfo.getUntouchedWarFile());
 	}
 
+	//TODO: cache result
 	@Override
 	public
 	Map<String, String> getScriptletBodiesByType()
@@ -83,6 +88,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 		Map<String, String> retval=new HashMap<>(1);
 
 		retval.put("install", getInstallPhase());
+		retval.put("postin", getPostInstallPhase(servicePort));
 
 		return retval;
 	}
@@ -94,7 +100,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 		StringBuilder sb=new StringBuilder();
 
 		sb.append("mkdir -p .").append(directory).append('\n');
-		sb.append("cp -v  ").append(specSourceAllocator.getUntouchedWarFile()).append(" .").append(directory).append('\n');
+		sb.append("cp -v  ").append(specSourceAllocator.getUntouchedWarFile()).append(" .").append(directory).append('/').append(warBaseFileName).append('\n');
 
 		return sb.toString();
 	}

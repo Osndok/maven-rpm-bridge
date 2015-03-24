@@ -139,11 +139,11 @@ class Main
 		MavenJar mavenJar = new MavenJar(jar);
 		MavenInfo mavenInfo = mavenJar.getInfo(rpmRepo.getRegistry());
 
-		return grindJar(jar, mavenJar, mavenInfo, null);
+		return grindJar(jar, mavenJar, mavenInfo, null, null);
 	}
 
 	private
-	ModuleKey grindJar(File jar, MavenJar mavenJar, MavenInfo mavenInfo, Collection<SpecShard> extraShards) throws IOException, ObsoleteJarException
+	ModuleKey grindJar(File jar, MavenJar mavenJar, MavenInfo mavenInfo, File warFile, Collection<SpecShard> extraShards) throws IOException, ObsoleteJarException
 	{
 		final
 		Registry registry=rpmRepo.getRegistry();
@@ -157,13 +157,17 @@ class Main
 
 		ModuleKey moduleKey=rpmRepo.mostSpecificCompatibleAndPreExistingVersion(mavenJar, avoidCompatibilityCheck);
 
-		File spec=Spec.write(moduleKey, mavenJar, this, extraShards);
-		File rpm=RPM.build(spec, jar);
+		File spec=Spec.write(moduleKey, mavenJar, this, warFile, extraShards);
+
+		File[] rpms=RPM.buildMany(spec, jar, warFile);
+
+		for (File rpm : rpms)
+		{
+			rpmRepo.add(rpm);
+		}
 
 		if (avoidCompatibilityCheck)
 		{
-			rpmRepo.add(rpm);
-
 			//TODO: when force-adding a jar, shouldn't we remove (or overwrite) the entry instead of dropping it? e.g. it surly has a different jar-hash?
 			//We need to check first, to avoid reduplicated entries...
 			if (!registry.contains(mavenInfo))
@@ -174,12 +178,15 @@ class Main
 		else
 		{
 			//We already checked via the shouldNotContain() call... albiet, a bit racy.
-			rpmRepo.add(rpm);
 			registry.append(mavenInfo, moduleKey, jar);
 		}
 
 		spec.delete();
-		rpm.delete();
+
+		for (File rpm : rpms)
+		{
+			rpm.delete();
+		}
 
 		rpmRepo.rebuildMetadata();
 
@@ -369,7 +376,19 @@ class Main
 				shards.add(plugin.getSpecShard(warFileInfo, sourceAllocator));
 			}
 
-			for (WarProcessingPlugin plugin : Plugins.load(WarProcessingPlugin.class))
+			Collection<WarProcessingPlugin> modularPlugins;
+
+			try
+			{
+				modularPlugins=Plugins.load(WarProcessingPlugin.class);
+			}
+			catch (IllegalArgumentException e)
+			{
+				log.warn("mrb is probably running from a non-modular context", e);
+				modularPlugins=Collections.emptyList();
+			}
+
+			for (WarProcessingPlugin plugin : modularPlugins)
 			{
 				shards.add(plugin.getSpecShard(warFileInfo, sourceAllocator));
 			}
@@ -388,7 +407,7 @@ class Main
 
 		//(6)  write the spec/rpm to the repo, hoping that the repo has not changed and that the redundant compat check will be swift.
 
-		return grindJar(jar, mavenJar, mavenInfo, shards);
+		return grindJar(jar, mavenJar, mavenInfo, warFile, shards);
 	}
 
 	private static
@@ -399,6 +418,8 @@ class Main
 	{
 		if (defaultPlugins==null)
 		{
+			defaultPlugins=new ArrayList<>(4);
+
 			if (!Boolean.getBoolean("NO_TOMCAT"))
 			{
 				int tomcatVersion = Integer.getInteger("TOMCAT_VERSION", 7);
@@ -538,7 +559,7 @@ class Main
 					mavenJar.setMavenPom(mavenPom);
 				}
 
-				retval = grindJar(file, mavenJar, mavenInfo, null);
+				retval = grindJar(file, mavenJar, mavenInfo, null, null);
 			}
 			else
 			if (isPomFile(file))
@@ -685,7 +706,7 @@ class Main
 
 			File spec = Spec.writeSunTools(retval, rpmRepo);
 
-			File rpmFile = RPM.build(spec, null);
+			File rpmFile = RPM.buildOne(spec, null, null);
 			try
 			{
 				rpmRepo.add(rpmFile);
