@@ -77,7 +77,7 @@ class RPMSpec
 	File write(ModuleKey moduleKey, MavenJar mavenJar, Main main, File warFile, Collection<SpecShard> extraShards) throws IOException
 	{
 		final
-		RPMRepo rpmRepo=main.getRPMRepo();
+		RPMRepo rpmRepo=RPMManifold.getRepoFor(mavenJar.getInfo());
 
 		final
 		File jar=mavenJar.getFile().getCanonicalFile();

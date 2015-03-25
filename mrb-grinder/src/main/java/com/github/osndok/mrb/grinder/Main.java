@@ -3,10 +3,7 @@ package com.github.osndok.mrb.grinder;
 import com.github.osndok.mrb.grinder.api.SpecShard;
 import com.github.osndok.mrb.grinder.api.WarFileInfo;
 import com.github.osndok.mrb.grinder.api.WarProcessingPlugin;
-import com.github.osndok.mrb.grinder.rpm.RPM;
-import com.github.osndok.mrb.grinder.rpm.RPMRepo;
-import com.github.osndok.mrb.grinder.rpm.RPMRegistry;
-import com.github.osndok.mrb.grinder.rpm.RPMSpec;
+import com.github.osndok.mrb.grinder.rpm.*;
 import com.github.osndok.mrb.grinder.util.Exec;
 import com.github.osndok.mrb.grinder.util.SpecSourceAllocatorImpl;
 import com.github.osndok.mrb.grinder.webapps.HJLinkedWebapp;
@@ -40,6 +37,7 @@ class Main
 	//TODO: atm, "force" may be construed two ways... specific to the top-level grinding (replace this jar), or global ("I just want it to work"). Maybe split it?
 	public static boolean FORCE = false;
 
+	/*
 	private final
 	RPMRepo rpmRepo;
 
@@ -54,11 +52,12 @@ class Main
 	{
 		this.rpmRepo = rpmRepo;
 	}
+	*/
 
 	public static
 	void main(String[] args) throws IOException
 	{
-		Main main = new Main(getRepoProperty());
+		Main main = new Main();
 
 		int status = 0;
 
@@ -91,12 +90,6 @@ class Main
 		}
 
 		System.exit(status);
-	}
-
-	private static
-	String getRepoProperty()
-	{
-		return System.getProperty("repo", "/repos/mrb");
 	}
 
 	private
@@ -139,7 +132,7 @@ class Main
 	ModuleKey grindJar(File jar) throws IOException, ObsoleteJarException
 	{
 		MavenJar mavenJar = new MavenJar(jar);
-		MavenInfo mavenInfo = mavenJar.getInfo(rpmRepo.getRPMRegistry());
+		MavenInfo mavenInfo = mavenJar.getInfo();
 
 		return grindJar(jar, mavenJar, mavenInfo, null, null);
 	}
@@ -148,7 +141,10 @@ class Main
 	ModuleKey grindJar(File jar, MavenJar mavenJar, MavenInfo mavenInfo, File warFile, Collection<SpecShard> extraShards) throws IOException, ObsoleteJarException
 	{
 		final
-		RPMRegistry RPMRegistry =rpmRepo.getRPMRegistry();
+		RPMRepo rpmRepo= RPMManifold.getRepoFor(mavenInfo);
+
+		final
+		RPMRegistry RPMRegistry = rpmRepo.getRpmRegistry();
 
 		boolean avoidCompatibilityCheck=(mavenInfo.isSnapshot() || FORCE);
 
@@ -357,6 +353,9 @@ class Main
 
 		final
 		boolean avoidCompatibilityCheck=(mavenInfo.isSnapshot() || FORCE);
+
+		final
+		RPMRepo rpmRepo=RPMManifold.getRepoFor(mavenInfo);
 
 		final
 		MavenJar mavenJar=new MavenJar(jar, mavenInfo);
@@ -698,8 +697,16 @@ class Main
 	public
 	ModuleKey getSunTools() throws IOException
 	{
-		ModuleKey retval=new ModuleKey("com.sun-tools", "1", null);
+		final
+		MavenInfo mavenInfo=new MavenInfo("com.sun", "sun-tools", "1");
 
+		final
+		ModuleKey retval=new ModuleKey("sun-tools", "1", null);
+
+		final
+		RPMRepo rpmRepo=RPMManifold.getRepoFor(mavenInfo);
+
+		final
 		RPM rpm=rpmRepo.get(retval);
 
 		if (rpm==null)
@@ -723,11 +730,5 @@ class Main
 		}
 
 		return retval;
-	}
-
-	public
-	RPMRepo getRPMRepo()
-	{
-		return rpmRepo;
 	}
 }

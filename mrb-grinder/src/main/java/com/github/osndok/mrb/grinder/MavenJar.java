@@ -1,6 +1,7 @@
 package com.github.osndok.mrb.grinder;
 
 import com.github.osndok.mrb.grinder.rpm.RPM;
+import com.github.osndok.mrb.grinder.rpm.RPMManifold;
 import com.github.osndok.mrb.grinder.rpm.RPMRepo;
 import com.github.osndok.mrb.grinder.rpm.RPMRegistry;
 import org.apache.bcel.Constants;
@@ -15,6 +16,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.Deprecated;
 import java.util.*;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
@@ -86,25 +88,25 @@ class MavenJar
 	MavenInfo mavenInfo;
 
 	public
-	MavenInfo getInfo(RPMRegistry r) throws IOException
+	MavenInfo getInfo() throws IOException
 	{
 		MavenInfo retval = this.mavenInfo;
 
 		if (retval == null)
 		{
-			retval = this.mavenInfo = r.getMavenInfoFor(file);
+			retval = this.mavenInfo = RPMManifold.getMavenInfoFromAnyRegistry(file);
 
 			if (retval == null)
 			{
-				return getInfo();
+				return _getInfo();
 			}
 		}
 
 		return retval;
 	}
 
-	public
-	MavenInfo getInfo() throws IOException
+	private
+	MavenInfo _getInfo() throws IOException
 	{
 		MavenInfo retval = this.mavenInfo;
 
@@ -616,7 +618,7 @@ class MavenJar
 		log.debug("listRpmDependencies: {}", moduleKey);
 
 		final
-		RPMRepo rpmRepo = this.rpmRepo = main.getRPMRepo();
+		RPMRepo rpmRepo = getRpmRepo();
 
 		final
 		Set<Dependency> declaredDependencies = new HashSet<Dependency>();
@@ -939,6 +941,18 @@ class MavenJar
 		}
 	}
 
+	public
+	RPMRepo getRpmRepo() throws IOException
+	{
+		if (rpmRepo==null)
+		{
+			rpmRepo=RPMManifold.getRepoFor(getInfo());
+		}
+
+		return rpmRepo;
+	}
+
+	@Deprecated
 	public
 	void setRpmRepo(RPMRepo rpmRepo)
 	{

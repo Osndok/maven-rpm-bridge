@@ -234,7 +234,7 @@ class RPMRegistry
 	public
 	void append(MavenInfo mavenInfo, ModuleKey moduleKey, File jarFile) throws IOException
 	{
-		String jarHash= Exec.toString("sha256sum", jarFile.getAbsolutePath()).substring(0, 64);
+		String jarHash = getJarHash(jarFile);
 
 		String majorVersion=moduleKey.getMajorVersion();
 
@@ -327,7 +327,7 @@ class RPMRegistry
 		{
 			try
 			{
-				return new Main(rpmRepo).grindMavenArtifact(mavenInfo).getMajorVersion();
+				return new Main().grindMavenArtifact(mavenInfo).getMajorVersion();
 			}
 			catch (ObsoleteJarException e)
 			{
@@ -391,8 +391,15 @@ class RPMRegistry
 	public
 	MavenInfo getMavenInfoFor(File jarFile) throws IOException
 	{
-		String jarHash = Exec.toString("sha256sum", jarFile.getAbsolutePath()).substring(0, 64);
+		final
+		String jarHash = getJarHash(jarFile);
 
+		return getMavenInfoFor(jarHash);
+	}
+
+	public
+	MavenInfo getMavenInfoFor(String jarHash) throws IOException
+	{
 		try
 		{
 			PreparedStatement ps = connection.prepareStatement("SELECT " + MAVEN_INFO + " FROM processed WHERE jarHash=?;");
@@ -426,54 +433,13 @@ class RPMRegistry
 		{
 			throw new IOException(e);
 		}
-		/*
-		final
-		File file=jarToInfoMap;
 
-		if (!file.exists())
-		{
-			return null;
-		}
-
-		final
-		BufferedReader br=new BufferedReader(new FileReader(file));
-
-		try
-		{
-			String line;
-			while ((line=br.readLine())!=null)
-			{
-				if (line.startsWith(jarFileName))
-				{
-					return mavenInfoFromRestOfLine(line.substring(jarFileName.length()+1));
-				}
-			}
-		}
-		finally
-		{
-			br.close();
-		}
-
-		return null;
-		*/
 	}
 
-	/*
-	private
-	MavenInfo mavenInfoFromRestOfLine(String s) throws IOException
+	public static
+	String getJarHash(File jarFile) throws IOException
 	{
-		String[] bits=s.split(":");
-
-		if (bits.length!=3)
-		{
-			throw new IOException("Expecting exactly three fields, got "+bits.length+" for: "+s);
-		}
-
-		String groupId=bits[0].trim();
-		String artifactId=bits[1].trim();
-		String version=bits[2].trim();
-
-		return new MavenInfo(groupId, artifactId, version);
+		return Exec.toString("sha256sum", jarFile.getAbsolutePath()).substring(0, 64);
 	}
-	*/
+
 }
