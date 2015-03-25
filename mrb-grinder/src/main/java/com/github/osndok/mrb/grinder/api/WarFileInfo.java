@@ -2,7 +2,7 @@ package com.github.osndok.mrb.grinder.api;
 
 import com.github.osndok.mrb.grinder.MavenInfo;
 import com.github.osndok.mrb.grinder.MavenPom;
-import com.github.osndok.mrb.grinder.RPMRepo;
+import com.github.osndok.mrb.grinder.rpm.RPMRepo;
 
 import javax.module.ModuleKey;
 import java.io.File;

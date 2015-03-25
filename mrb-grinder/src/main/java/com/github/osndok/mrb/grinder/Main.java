@@ -3,6 +3,10 @@ package com.github.osndok.mrb.grinder;
 import com.github.osndok.mrb.grinder.api.SpecShard;
 import com.github.osndok.mrb.grinder.api.WarFileInfo;
 import com.github.osndok.mrb.grinder.api.WarProcessingPlugin;
+import com.github.osndok.mrb.grinder.rpm.RPM;
+import com.github.osndok.mrb.grinder.rpm.RPMRepo;
+import com.github.osndok.mrb.grinder.rpm.Registry;
+import com.github.osndok.mrb.grinder.rpm.Spec;
 import com.github.osndok.mrb.grinder.util.Exec;
 import com.github.osndok.mrb.grinder.util.SpecSourceAllocatorImpl;
 import com.github.osndok.mrb.grinder.webapps.HJLinkedWebapp;
@@ -64,15 +68,13 @@ class Main
 			{
 				if (arg.equals("--force"))
 				{
-					FORCE=true;
+					FORCE = true;
 				}
-				else
-				if (arg.equals("tools"))
+				else if (arg.equals("tools"))
 				{
 					main.getSunTools();
 				}
-				else
-				if (arg.indexOf(':')>0)
+				else if (arg.indexOf(':') > 0)
 				{
 					main.grindMavenArtifact(MavenInfo.parse(arg));
 				}
@@ -102,9 +104,9 @@ class Main
 	{
 		File parentFile = file.getParentFile();
 
-		if (parentFile==null)
+		if (parentFile == null)
 		{
-			parentFile=new File(".");
+			parentFile = new File(".");
 		}
 
 		if (!isWritableDirectory(parentFile))
@@ -159,7 +161,7 @@ class Main
 
 		File spec=Spec.write(moduleKey, mavenJar, this, warFile, extraShards);
 
-		File[] rpms=RPM.buildMany(spec, jar, warFile);
+		File[] rpms= RPM.buildMany(spec, jar, warFile);
 
 		for (File rpm : rpms)
 		{

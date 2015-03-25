@@ -1,5 +1,7 @@
-package com.github.osndok.mrb.grinder;
+package com.github.osndok.mrb.grinder.rpm;
 
+import com.github.osndok.mrb.grinder.MavenInfo;
+import com.github.osndok.mrb.grinder.MavenJar;
 import com.github.osndok.mrb.grinder.util.Exec;
 import org.osjava.jardiff.DiffCriteria;
 import org.osjava.jardiff.PublicDiffCriteria;

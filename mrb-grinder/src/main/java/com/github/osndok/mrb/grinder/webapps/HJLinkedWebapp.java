@@ -1,6 +1,6 @@
 package com.github.osndok.mrb.grinder.webapps;
 
-import com.github.osndok.mrb.grinder.Spec;
+import com.github.osndok.mrb.grinder.rpm.Spec;
 import com.github.osndok.mrb.grinder.api.SpecShard;
 import com.github.osndok.mrb.grinder.api.SpecSourceAllocator;
 import com.github.osndok.mrb.grinder.api.WarFileInfo;

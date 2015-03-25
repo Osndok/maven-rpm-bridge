@@ -1,5 +1,8 @@
 package com.github.osndok.mrb.grinder;
 
+import com.github.osndok.mrb.grinder.rpm.RPM;
+import com.github.osndok.mrb.grinder.rpm.RPMRepo;
+import com.github.osndok.mrb.grinder.rpm.Registry;
 import org.apache.bcel.Constants;
 import org.apache.bcel.classfile.*;
 import org.slf4j.Logger;
@@ -376,12 +379,12 @@ class MavenJar
 	private
 	boolean dependencyHasEntry(Dependency dependency, String classEntryName) throws IOException
 	{
-		if (rpmRepo==null) throw new IllegalStateException("rpmRepo is null");
+		if (rpmRepo == null) throw new IllegalStateException("rpmRepo is null");
 
 		final
-		RPM rpm=rpmRepo.get(dependency);
+		RPM rpm = rpmRepo.get(dependency);
 
-		if (rpm==null)
+		if (rpm == null)
 		{
 			log.error("unable to locate dependency: {}", dependency);
 			return false;
@@ -395,14 +398,14 @@ class MavenJar
 	private
 	String classEntryName(String className)
 	{
-		return className.replaceAll("\\.", "/")+".class";
+		return className.replaceAll("\\.", "/") + ".class";
 	}
 
 	private
 	String replaceModuleInfoMacros(String string, ModuleKey moduleKey)
 	{
-		string=string.replace("{m}", moduleKey.getModuleName());
-		string=string.replace("{v}", moduleKey.vMajor());
+		string = string.replace("{m}", moduleKey.getModuleName());
+		string = string.replace("{v}", moduleKey.vMajor());
 
 		//TODO: major? minor? toString()... ???
 
@@ -413,32 +416,32 @@ class MavenJar
 	String getSimpleName(String className)
 	{
 		final
-		int period=className.lastIndexOf('.');
+		int period = className.lastIndexOf('.');
 
 		if (className.endsWith("Main") || className.contains("Main$"))
 		{
-			return getSimpleName(className.substring(0,  period));
+			return getSimpleName(className.substring(0, period));
 		}
 
 		final
 		int end;
 		{
 			final
-			int dollarSign=className.lastIndexOf('$');
+			int dollarSign = className.lastIndexOf('$');
 
-			if (dollarSign<=0)
+			if (dollarSign <= 0)
 			{
-				end=className.length();
+				end = className.length();
 			}
 			else
 			{
-				end=dollarSign;
+				end = dollarSign;
 			}
 		}
 
-		if (period>0)
+		if (period > 0)
 		{
-			return className.substring(period+1, end);
+			return className.substring(period + 1, end);
 		}
 		else
 		{
@@ -477,7 +480,7 @@ class MavenJar
 	boolean hasSysconfigResource()
 	{
 		ZipEntry entry = jarFile.getEntry("sysconfig");
-		return (entry!=null);
+		return (entry != null);
 	}
 
 	private
@@ -487,7 +490,7 @@ class MavenJar
 		{
 			Field field = staticFieldNamed("JAVAX_MODULE_EXEC", javaClass);
 
-			if (field!=null)
+			if (field != null)
 			{
 				for (Attribute attribute : field.getAttributes())
 				{
@@ -497,7 +500,7 @@ class MavenJar
 				ConstantValue constantValue = field.getConstantValue();
 				ConstantPool constantPool = constantValue.getConstantPool();
 				Constant constant = constantPool.getConstant(constantValue.getConstantValueIndex());
-				int stringIndex=((ConstantString)constant).getStringIndex();
+				int stringIndex = ((ConstantString) constant).getStringIndex();
 				ConstantUtf8 inner = (ConstantUtf8) constantPool.getConstant(stringIndex, Constants.CONSTANT_Utf8);
 
 				return inner.getBytes();
@@ -534,10 +537,10 @@ class MavenJar
 	{
 		try
 		{
-			org.apache.bcel.classfile.Method method=publicStaticMethod(aClass, "main");
+			org.apache.bcel.classfile.Method method = publicStaticMethod(aClass, "main");
 			//Method main = aClass.getMethod("main", String[].class);
 			//return Modifier.isStatic(main.getModifiers()) && Modifier.isPublic(main.getModifiers());
-			return (method!=null);
+			return (method != null);
 		}
 		/*
 		catch (NoSuchMethodException e)
@@ -573,30 +576,30 @@ class MavenJar
 	private
 	String getMainClassName()
 	{
-		if (mainClassName==null)
+		if (mainClassName == null)
 		{
 			try
 			{
 				Manifest manifest = jarFile.getManifest();
 
-				if (manifest==null)
+				if (manifest == null)
 				{
-					mainClassName="dne; do not match any class"; //fix me, if thisb ecomes a public method...
+					mainClassName = "dne; do not match any class"; //fix me, if thisb ecomes a public method...
 					return mainClassName;
 				}
 
 				Attributes mainAttributes = manifest.getMainAttributes();
 				mainClassName = mainAttributes.getValue("Main-Class");
 
-				if (mainClassName==null)
+				if (mainClassName == null)
 				{
-					mainClassName="dne; do not match any class"; //fix me, if thisb ecomes a public method...
+					mainClassName = "dne; do not match any class"; //fix me, if thisb ecomes a public method...
 				}
 			}
 			catch (Exception e)
 			{
 				log.error("unable to get jar's main-class for {}", this, e);
-				mainClassName=e.toString(); //fix me, if this becomes a public method...
+				mainClassName = e.toString(); //fix me, if this becomes a public method...
 			}
 		}
 		return mainClassName;
@@ -605,15 +608,18 @@ class MavenJar
 	private static final Logger log = LoggerFactory.getLogger(MavenJar.class);
 
 	public
-	Set<Dependency> listRpmDependencies(ModuleKey moduleKey, Main main) throws DependencyNotProcessedException, IOException, ParserConfigurationException, SAXException
+	Set<Dependency> listRpmDependencies(
+										   ModuleKey moduleKey,
+										   Main main
+	) throws DependencyNotProcessedException, IOException, ParserConfigurationException, SAXException
 	{
 		log.debug("listRpmDependencies: {}", moduleKey);
 
 		final
-		RPMRepo rpmRepo=this.rpmRepo=main.getRPMRepo();
+		RPMRepo rpmRepo = this.rpmRepo = main.getRPMRepo();
 
 		final
-		Set<Dependency> declaredDependencies=new HashSet<Dependency>();
+		Set<Dependency> declaredDependencies = new HashSet<Dependency>();
 
 		//TODO: initially populate declared dependencies using module-native deps file?
 
@@ -658,7 +664,7 @@ class MavenJar
 		}
 
 		final
-		Set<Dependency> retval=new HashSet<Dependency>(declaredDependencies);
+		Set<Dependency> retval = new HashSet<Dependency>(declaredDependencies);
 
 		//TODO: combine this with the scanModuleClasses above...
 		/*
@@ -667,22 +673,22 @@ class MavenJar
 		our jar has all the *ACTUAL* dependencies that it needs, otherwise there will be CNF thrown at
 		runtime.
 		 */
-		for(JavaClass javaClass : allJavaClasses())
+		for (JavaClass javaClass : allJavaClasses())
 		{
 			ConstantPool constantPool = javaClass.getConstantPool();
-			int l=constantPool.getLength();
+			int l = constantPool.getLength();
 
-			for (int i=0; i<l; i++)
+			for (int i = 0; i < l; i++)
 			{
 				Constant constant = constantPool.getConstant(i);
 
 				if (constant instanceof ConstantClass)
 				{
-					ConstantClass cClass=(ConstantClass)constant;
-					String className=constantPool.constantToString(constantPool.getConstant(cClass.getNameIndex()));
+					ConstantClass cClass = (ConstantClass) constant;
+					String className = constantPool.constantToString(constantPool.getConstant(cClass.getNameIndex()));
 					log.trace("parsed {} -> {}", cClass, className);
 
-					if (className.charAt(0)=='[')
+					if (className.charAt(0) == '[')
 					{
 						//it's an array type... don't bother.
 					}
@@ -695,7 +701,7 @@ class MavenJar
 			}
 		}
 
-		dependencies=retval;
+		dependencies = retval;
 
 		return retval;
 	}
@@ -715,18 +721,17 @@ class MavenJar
 		{
 			log.trace("system: {}", classEntryName);
 		}
-		else
-		if (inThisJar(classEntryName))
+		else if (inThisJar(classEntryName))
 		{
 			log.trace("in-jar: {}", classEntryName);
 		}
 		else
 		{
-			if (transitiveDependenciesByEntryName==null)
+			if (transitiveDependenciesByEntryName == null)
 			{
 				log.info("indexing transitive dependencies...");
 
-				directDependenciesByEntryName=new HashMap<String, Dependency>();
+				directDependenciesByEntryName = new HashMap<String, Dependency>();
 				transitiveDependenciesByEntryName=new HashMap<String, Dependency>();
 
 				for (Dependency dependency : declaredDependencies)
