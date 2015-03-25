@@ -94,7 +94,7 @@ class Main
 	private static
 	String getRepoProperty()
 	{
-		return System.getProperty("repo", "/repo/mrb");
+		return System.getProperty("repo", "/repos/mrb");
 	}
 
 	private
