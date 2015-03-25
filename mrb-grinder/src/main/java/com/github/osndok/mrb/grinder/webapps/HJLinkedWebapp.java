@@ -22,12 +22,6 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 	SpecSourceAllocator specSourceAllocator;
 
 	private transient
-	int servicePort;
-
-	private transient
-	String configBaseFileName;
-
-	private transient
 	String warBaseDirectoryName;
 
 	@Override
@@ -67,7 +61,7 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 		final
 		List<String> list=new ArrayList<>(2);
 
-		list.add(getConfigFilePath(servicePort));
+		list.add(getConfigFilePath());
 		list.add(directory + "/" + warBaseDirectoryName);
 
 		return list;
@@ -77,7 +71,7 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 	public
 	Map<String, String> getFileContentsByPath()
 	{
-		return hyperJettyConfigFileContentsByPath(servicePort, warFileInfo.getModuleKey(), warFileInfo.getUntouchedWarFile());
+		return hyperJettyConfigFileContentsByPath(warFileInfo.getModuleKey(), warFileInfo.getUntouchedWarFile());
 	}
 
 	//TODO: cache result
@@ -89,7 +83,7 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 		Map<String, String> retval=new HashMap<>(1);
 
 		retval.put("install", getInstallPhase());
-		retval.put("postin", getPostInstallPhase(servicePort));
+		retval.put("postin", getPostInstallPhase(warFileInfo.getModuleKey()));
 
 		return retval;
 	}
@@ -143,7 +137,6 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 
 		this.servicePort=warFileInfo.getDeploymentPortNumber();
 
-		this.configBaseFileName = servicePort+".config";
 		this.warBaseDirectoryName = servicePort+".dir";
 
 		return this;

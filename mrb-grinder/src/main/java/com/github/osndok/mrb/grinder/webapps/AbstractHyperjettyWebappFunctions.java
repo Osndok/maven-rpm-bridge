@@ -19,31 +19,41 @@ class AbstractHyperjettyWebappFunctions
 	protected final
 	String directory = "/usr/lib/hyperjetty";
 
+	protected
+	int servicePort;
+
 	public abstract
 	String getSubPackageName();
 
 	protected
-	String getConfigFilePath(int servicePort)
+	String getConfigFilePath()
 	{
 		return "/usr/lib/hyperjetty/"+servicePort+"."+getSubPackageName();
 	}
 
 	protected
-	String getMasterConfigFilePath(int servicePort)
+	String getMasterConfigFilePath()
 	{
 		return "/usr/lib/hyperjetty/"+servicePort+".config";
+	}
+
+	public static final String HJ_SOCKETS_DIRECTORY=System.getProperty("HJ_SOCKETS_DIRECTORY", "/sock");
+
+	public static
+	String getUDSSocketPath(ModuleKey moduleKey)
+	{
+		return HJ_SOCKETS_DIRECTORY+'/'+moduleKey;
 	}
 
 	/**
 	 * TODO: BUG: the config file is overwritten for each HJ-compatible subpackage, so only one is compatible.
 	 *
-	 * @param servicePort
 	 * @param moduleKey
 	 * @param warFile
 	 * @return
 	 */
 	protected
-	Map<String, String> hyperJettyConfigFileContentsByPath(int servicePort, ModuleKey moduleKey, File warFile)
+	Map<String, String> hyperJettyConfigFileContentsByPath(ModuleKey moduleKey, File warFile)
 	{
 		/* TEMPLATE:
 ----------REQUIRED/FUNCTIONALLY-----------------------------------
@@ -81,7 +91,7 @@ SELF=/usr/lib/hyperjetty/10088.config
 ------------------------------------------------------------------
 		 */
 		final
-		String configFilePath=getConfigFilePath(servicePort);
+		String configFilePath=getConfigFilePath();
 
 		Properties p;
 		{
@@ -254,18 +264,21 @@ SELF=/usr/lib/hyperjetty/10088.config
 	}
 
 	protected
-	String getPostInstallPhase(int servicePort)
+	String getPostInstallPhase(ModuleKey moduleKey)
 	{
 		final
-		File myConfigFile=new File(getConfigFilePath(servicePort));
+		File myConfigFile=new File(getConfigFilePath());
 
 		final
-		File masterConfig=new File(getMasterConfigFilePath(servicePort));
+		File masterConfig=new File(getMasterConfigFilePath());
 
 		final
 		StringBuilder sb=new StringBuilder();
 
 		sb.append("ln -s ").append(myConfigFile.getName()).append(" .").append(masterConfig.getAbsolutePath()).append('\n');
+
+		sb.append("mkdir -p ").append(HJ_SOCKETS_DIRECTORY).append('\n');
+		sb.append("ln -s hj/").append(servicePort).append(" .").append(getUDSSocketPath(moduleKey)).append('\n');
 
 		return sb.toString();
 	}

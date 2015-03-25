@@ -15,9 +15,6 @@ public
 class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarProcessingPlugin, SpecShard
 {
 	private transient
-	String configBaseFileName;
-
-	private transient
 	String warBaseFileName;
 
 	private transient
@@ -25,9 +22,6 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 
 	private transient
 	SpecSourceAllocator specSourceAllocator;
-
-	private transient
-	int servicePort;
 
 	@Override
 	public
@@ -66,7 +60,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 		final
 		List<String> list=new ArrayList<>(2);
 
-		list.add(getConfigFilePath(servicePort));
+		list.add(getConfigFilePath());
 		list.add(directory + "/" + warBaseFileName);
 
 		return list;
@@ -76,7 +70,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 	public
 	Map<String, String> getFileContentsByPath()
 	{
-		return hyperJettyConfigFileContentsByPath(servicePort, warFileInfo.getModuleKey(), warFileInfo.getUntouchedWarFile());
+		return hyperJettyConfigFileContentsByPath(warFileInfo.getModuleKey(), warFileInfo.getUntouchedWarFile());
 	}
 
 	//TODO: cache result
@@ -88,7 +82,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 		Map<String, String> retval=new HashMap<>(1);
 
 		retval.put("install", getInstallPhase());
-		retval.put("postin", getPostInstallPhase(servicePort));
+		retval.put("postin", getPostInstallPhase(warFileInfo.getModuleKey()));
 
 		return retval;
 	}
@@ -100,7 +94,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 		StringBuilder sb=new StringBuilder();
 
 		sb.append("mkdir -p .").append(directory).append('\n');
-		sb.append("cp -v  ").append(specSourceAllocator.getUntouchedWarFile()).append(" .").append(directory).append('/').append(warBaseFileName).append('\n');
+		sb.append("cp -v ").append(specSourceAllocator.getUntouchedWarFile()).append(" .").append(directory).append('/').append(warBaseFileName).append('\n');
 
 		return sb.toString();
 	}
@@ -116,7 +110,6 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 
 		this.servicePort=warFileInfo.getDeploymentPortNumber();
 
-		this.configBaseFileName=servicePort+".config";
 		this.warBaseFileName=servicePort+".war";
 
 		return this;
