@@ -26,6 +26,7 @@ class RPMSpec
 	public static final String RPM_NAME_PREFIX="mrb-";
 
 	//TODO: maybe pull release in from mrb-grinder maven version?
+	//TODO: !!!: maybe publish incremental releases, esp. for snapshots
 	private static final String RELEASE="0";
 
 	private final

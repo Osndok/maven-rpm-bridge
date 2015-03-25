@@ -95,30 +95,62 @@ class Main
 	private
 	void grind(File file) throws IOException, ObsoleteJarException
 	{
-		File parentFile = file.getParentFile();
+		final
+		File tempDirectory;
+		{
+			File parentFile = file.getParentFile();
 
-		if (parentFile == null)
-		{
-			parentFile = new File(".");
+			if (parentFile == null)
+			{
+				parentFile = new File(".");
+			}
+
+			if (isWritableDirectory(parentFile))
+			{
+				//Not needed...
+				tempDirectory=null;
+			}
+			else
+			{
+				tempDirectory = new File(Exec.toString("mktemp", "-d", "/tmp/mrb-grinder-XXXXXXXX").trim());
+
+				log.debug("created: {}", tempDirectory);
+
+				if (isWritableDirectory(tempDirectory))
+				{
+					File newFile = new File(tempDirectory, file.getName());
+					Exec.andWait("cp", "-v", file.getAbsolutePath(), newFile.getAbsolutePath());
+
+					file=newFile;
+				}
+				else
+				{
+					throw new IllegalStateException("unable to create a writable temporary directory");
+				}
+			}
 		}
 
-		if (!isWritableDirectory(parentFile))
+		try
 		{
-			throw new IOException("not a writable directory: "+parentFile);
+			if (isWarFile(file))
+			{
+				grindWar(file);
+			}
+			else if (isJarFile(file))
+			{
+				grindJar(file);
+			}
+			else
+			{
+				throw new UnsupportedOperationException("unknown file type: " + file);
+			}
 		}
-
-		if (isWarFile(file))
+		finally
 		{
-			grindWar(file);
-		}
-		else
-		if (isJarFile(file))
-		{
-			grindJar(file);
-		}
-		else
-		{
-			throw new UnsupportedOperationException("unknown file type: "+file);
+			if (tempDirectory!=null)
+			{
+				Exec.andWait("rm", "-rf", tempDirectory.getAbsolutePath());
+			}
 		}
 	}
 
