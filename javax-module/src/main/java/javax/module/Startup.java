@@ -336,6 +336,15 @@ class Startup extends ClassLoader
 	private static
 	void constructAndExecuteStaticRunnable(Class<? extends Runnable> aClass, String[] args) throws NoSuchMethodException
 	{
+		if (args.length > 0 && looksLikeCommandLineSwitch(args[0]))
+		{
+			//TODO: !!!: the final form should be able to convert a flag into a bean setter call
+			//This, however, complicates constructor selection.
+			//e.g. "myutil --directory=/tmp/out -n 3 arg" -> u=new MyUtil('arg'); u.setDirectory('/tmp/out'); u.setN(3); u.run();
+			System.err.println("WARNING: this version of the java module loader does not support command line flags/switches/options");
+			//... we will probably fail, or at least alerted devs to beware of a coming breakage.
+		}
+
 		for (Constructor constructor : aClass.getConstructors())
 		{
 			Class<?>[] parameterTypes = constructor.getParameterTypes();
@@ -365,6 +374,12 @@ class Startup extends ClassLoader
 		maybeDoUsage(aClass);
 
 		throw new NoSuchMethodException(aClass+" does not have a constructor with "+args.length+" parameters");
+	}
+
+	private static
+	boolean looksLikeCommandLineSwitch(String s)
+	{
+		return s.length()>1 && s.charAt(0)=='-';
 	}
 
 	/**
