@@ -4,6 +4,8 @@ import com.github.osndok.mrb.grinder.MavenInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.module.Dependency;
+import javax.module.ModuleKey;
 import java.io.*;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -73,7 +75,7 @@ class RPMManifold
 	private static
 	RPMManifold INSTANCE;
 
-	private static
+	public static
 	RPMManifold getInstance()
 	{
 		if (INSTANCE == null)
@@ -350,5 +352,22 @@ class RPMManifold
 		}
 
 		return defaultRepo.getRpmRegistry().getMavenInfoFor(jarHash);
+	}
+
+	public
+	RPM getAnyRpmMatching(ModuleKey moduleKey)
+	{
+		for (RPMRepo rpmRepo : reposByPrefix.values())
+		{
+			final
+			RPM rpm=rpmRepo.get(moduleKey);
+
+			if (rpm!=null)
+			{
+				return rpm;
+			}
+		}
+
+		return defaultRepo.get(moduleKey);
 	}
 }

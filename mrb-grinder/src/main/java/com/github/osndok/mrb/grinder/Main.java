@@ -144,13 +144,13 @@ class Main
 		RPMRepo rpmRepo= RPMManifold.getRepoFor(mavenInfo);
 
 		final
-		RPMRegistry RPMRegistry = rpmRepo.getRpmRegistry();
+		RPMRegistry rpmRegistry = rpmRepo.getRpmRegistry();
 
 		boolean avoidCompatibilityCheck=(mavenInfo.isSnapshot() || FORCE);
 
 		if (!avoidCompatibilityCheck)
 		{
-			RPMRegistry.shouldNotContain(mavenInfo);
+			rpmRegistry.shouldNotContain(mavenInfo);
 		}
 
 		ModuleKey moduleKey=rpmRepo.mostSpecificCompatibleAndPreExistingVersion(mavenJar, avoidCompatibilityCheck);
@@ -168,15 +168,15 @@ class Main
 		{
 			//TODO: when force-adding a jar, shouldn't we remove (or overwrite) the entry instead of dropping it? e.g. it surly has a different jar-hash?
 			//We need to check first, to avoid reduplicated entries...
-			if (!RPMRegistry.contains(mavenInfo))
+			if (!rpmRegistry.contains(mavenInfo))
 			{
-				RPMRegistry.append(mavenInfo, moduleKey, jar);
+				rpmRegistry.append(mavenInfo, moduleKey, jar);
 			}
 		}
 		else
 		{
 			//We already checked via the shouldNotContain() call... albiet, a bit racy.
-			RPMRegistry.append(mavenInfo, moduleKey, jar);
+			rpmRegistry.append(mavenInfo, moduleKey, jar);
 		}
 
 		spec.delete();

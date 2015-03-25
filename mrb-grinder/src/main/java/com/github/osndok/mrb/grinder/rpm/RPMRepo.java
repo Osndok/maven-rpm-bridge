@@ -302,11 +302,20 @@ class RPMRepo
 	{
 		log.info("getFullModuleDependency: {} -> {}", requestor, mavenInfo);
 
-		String majorVersion = getRpmRegistry().getMajorVersionFor(mavenInfo, this);
+		//NB: 'sister' can be (and usually is) 'this'.
+		final
+		RPMRepo sister=RPMManifold.getRepoFor(mavenInfo);
+
+		String majorVersion = sister.getRpmRegistry().getMajorVersionFor(mavenInfo, this);
+
 		//The guess might actually be enough, but it would be better to verify the RPM's presence.
 		ModuleKey guess = new ModuleKey(mavenInfo.getModuleNameCandidate(), majorVersion, null);
+
 		log.debug("{} requires {} -> {}", requestor, mavenInfo, guess);
-		RPM rpm = get(guess);
+
+		final
+		RPM rpm = sister.get(guess);
+
 		return rpm.getModuleKey().asDependencyOf(requestor);
 	}
 

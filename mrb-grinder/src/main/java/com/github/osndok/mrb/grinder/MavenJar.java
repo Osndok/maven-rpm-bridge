@@ -618,9 +618,6 @@ class MavenJar
 		log.debug("listRpmDependencies: {}", moduleKey);
 
 		final
-		RPMRepo rpmRepo = getRpmRepo();
-
-		final
 		Set<Dependency> declaredDependencies = new HashSet<Dependency>();
 
 		//TODO: initially populate declared dependencies using module-native deps file?
@@ -640,6 +637,9 @@ class MavenJar
 
 		for (MavenInfo info : mavenInfos)
 		{
+			final
+			RPMRepo rpmRepo = RPMManifold.getRepoFor(info);
+
 			if (main.looksLikeSunTools(info))
 			{
 				declaredDependencies.add(main.getSunTools().asDependencyOf(moduleKey));
@@ -738,14 +738,17 @@ class MavenJar
 
 				for (Dependency dependency : declaredDependencies)
 				{
-					RPM rpm = rpmRepo.get(dependency);
+					RPM rpm = RPMManifold.getInstance().getAnyRpmMatching(dependency);
 
 					rpm.dumpInnerJarClassEntries(dependency, directDependenciesByEntryName);
 
 					//To be nice, we go one level deep... beyond that, and you are on your own!
 					for (Dependency transitive : rpm.listModuleDependencies(dependency))
 					{
-						rpmRepo.get(transitive).dumpInnerJarClassEntries(transitive, transitiveDependenciesByEntryName);
+						final
+						RPM requiredRpm=RPMManifold.getInstance().getAnyRpmMatching(transitive);
+
+						requiredRpm.dumpInnerJarClassEntries(transitive, transitiveDependenciesByEntryName);
 					}
 				}
 			}
