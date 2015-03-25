@@ -9,7 +9,6 @@ import org.semver.Comparer;
 import org.semver.Delta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.tools.jar.resources.jar;
 
 import javax.module.Dependency;
 import javax.module.ModuleInfo;
@@ -62,7 +61,7 @@ class RPM
 			String[] bits = namePipeVersion.split(REGEX_SAFE_PIPING_SYMBOL);
 			String rpmName = bits[0];
 			String rpmVersion = bits[1];
-			String noPrefix = maybeRemovePrefix(rpmName, Spec.RPM_NAME_PREFIX);
+			String noPrefix = maybeRemovePrefix(rpmName, RPMSpec.RPM_NAME_PREFIX);
 			log.debug("rpm name ('{}') -to-module-name-> '{}'", rpmName, noPrefix);
 			try
 			{

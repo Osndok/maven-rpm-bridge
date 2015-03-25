@@ -1,6 +1,6 @@
 package com.github.osndok.mrb.grinder.webapps;
 
-import com.github.osndok.mrb.grinder.rpm.Spec;
+import com.github.osndok.mrb.grinder.rpm.RPMSpec;
 import com.github.osndok.mrb.grinder.api.SpecShard;
 import com.github.osndok.mrb.grinder.api.SpecSourceAllocator;
 import com.github.osndok.mrb.grinder.api.WarFileInfo;
@@ -44,7 +44,7 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 	{
 		//NB: while technically correct, we do *not* want to require hyperjetty, as that
 		//    would restrict and frustrate the sysadmins (conflicts with tomcat, etc.).
-		return Collections.singleton(Spec.RPM_NAME_PREFIX+warFileInfo.getModuleKey());
+		return Collections.singleton(RPMSpec.RPM_NAME_PREFIX+warFileInfo.getModuleKey());
 	}
 
 	@Override

@@ -5,7 +5,6 @@ import com.github.osndok.mrb.grinder.JarHasNoPomException;
 import com.github.osndok.mrb.grinder.Main;
 import com.github.osndok.mrb.grinder.MavenJar;
 import com.github.osndok.mrb.grinder.api.SpecShard;
-import com.github.osndok.mrb.grinder.rpm.RPMRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -22,7 +21,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * Created by robert on 10/31/14.
  */
 public
-class Spec
+class RPMSpec
 {
 	public static final String RPM_NAME_PREFIX="mrb-";
 
@@ -33,7 +32,7 @@ class Spec
 	File file;
 
 	public
-	Spec(File file)
+	RPMSpec(File file)
 	{
 		this.file = file;
 	}
@@ -660,7 +659,7 @@ class Spec
 	{
 		StringBuilder sb=new StringBuilder();
 
-		InputStream in=Spec.class.getClassLoader().getResourceAsStream(name);
+		InputStream in=RPMSpec.class.getClassLoader().getResourceAsStream(name);
 
 		try
 		{
@@ -678,6 +677,6 @@ class Spec
 		return sb;
 	}
 
-	private static final Logger log = LoggerFactory.getLogger(Spec.class);
+	private static final Logger log = LoggerFactory.getLogger(RPMSpec.class);
 
 }

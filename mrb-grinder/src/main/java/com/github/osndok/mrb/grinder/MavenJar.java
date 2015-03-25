@@ -2,7 +2,7 @@ package com.github.osndok.mrb.grinder;
 
 import com.github.osndok.mrb.grinder.rpm.RPM;
 import com.github.osndok.mrb.grinder.rpm.RPMRepo;
-import com.github.osndok.mrb.grinder.rpm.Registry;
+import com.github.osndok.mrb.grinder.rpm.RPMRegistry;
 import org.apache.bcel.Constants;
 import org.apache.bcel.classfile.*;
 import org.slf4j.Logger;
@@ -86,7 +86,7 @@ class MavenJar
 	MavenInfo mavenInfo;
 
 	public
-	MavenInfo getInfo(Registry r) throws IOException
+	MavenInfo getInfo(RPMRegistry r) throws IOException
 	{
 		MavenInfo retval = this.mavenInfo;
 

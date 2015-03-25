@@ -5,8 +5,8 @@ import com.github.osndok.mrb.grinder.api.WarFileInfo;
 import com.github.osndok.mrb.grinder.api.WarProcessingPlugin;
 import com.github.osndok.mrb.grinder.rpm.RPM;
 import com.github.osndok.mrb.grinder.rpm.RPMRepo;
-import com.github.osndok.mrb.grinder.rpm.Registry;
-import com.github.osndok.mrb.grinder.rpm.Spec;
+import com.github.osndok.mrb.grinder.rpm.RPMRegistry;
+import com.github.osndok.mrb.grinder.rpm.RPMSpec;
 import com.github.osndok.mrb.grinder.util.Exec;
 import com.github.osndok.mrb.grinder.util.SpecSourceAllocatorImpl;
 import com.github.osndok.mrb.grinder.webapps.HJLinkedWebapp;
@@ -139,7 +139,7 @@ class Main
 	ModuleKey grindJar(File jar) throws IOException, ObsoleteJarException
 	{
 		MavenJar mavenJar = new MavenJar(jar);
-		MavenInfo mavenInfo = mavenJar.getInfo(rpmRepo.getRegistry());
+		MavenInfo mavenInfo = mavenJar.getInfo(rpmRepo.getRPMRegistry());
 
 		return grindJar(jar, mavenJar, mavenInfo, null, null);
 	}
@@ -148,18 +148,18 @@ class Main
 	ModuleKey grindJar(File jar, MavenJar mavenJar, MavenInfo mavenInfo, File warFile, Collection<SpecShard> extraShards) throws IOException, ObsoleteJarException
 	{
 		final
-		Registry registry=rpmRepo.getRegistry();
+		RPMRegistry RPMRegistry =rpmRepo.getRPMRegistry();
 
 		boolean avoidCompatibilityCheck=(mavenInfo.isSnapshot() || FORCE);
 
 		if (!avoidCompatibilityCheck)
 		{
-			registry.shouldNotContain(mavenInfo);
+			RPMRegistry.shouldNotContain(mavenInfo);
 		}
 
 		ModuleKey moduleKey=rpmRepo.mostSpecificCompatibleAndPreExistingVersion(mavenJar, avoidCompatibilityCheck);
 
-		File spec=Spec.write(moduleKey, mavenJar, this, warFile, extraShards);
+		File spec= RPMSpec.write(moduleKey, mavenJar, this, warFile, extraShards);
 
 		File[] rpms= RPM.buildMany(spec, jar, warFile);
 
@@ -172,15 +172,15 @@ class Main
 		{
 			//TODO: when force-adding a jar, shouldn't we remove (or overwrite) the entry instead of dropping it? e.g. it surly has a different jar-hash?
 			//We need to check first, to avoid reduplicated entries...
-			if (!registry.contains(mavenInfo))
+			if (!RPMRegistry.contains(mavenInfo))
 			{
-				registry.append(mavenInfo, moduleKey, jar);
+				RPMRegistry.append(mavenInfo, moduleKey, jar);
 			}
 		}
 		else
 		{
 			//We already checked via the shouldNotContain() call... albiet, a bit racy.
-			registry.append(mavenInfo, moduleKey, jar);
+			RPMRegistry.append(mavenInfo, moduleKey, jar);
 		}
 
 		spec.delete();
@@ -706,7 +706,7 @@ class Main
 		{
 			log.info("call for sun's tools.jar");
 
-			File spec = Spec.writeSunTools(retval, rpmRepo);
+			File spec = RPMSpec.writeSunTools(retval, rpmRepo);
 
 			File rpmFile = RPM.buildOne(spec, null, null);
 			try

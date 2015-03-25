@@ -23,7 +23,7 @@ import java.sql.*;
  * TODO: improve Registry performance on large data-sets with an embedded database, rather than scanning a flat file. Maybe we can hook directly into the yum sqlite database???
  */
 public
-class Registry
+class RPMRegistry
 {
 	static
 	{
@@ -44,7 +44,7 @@ class Registry
 	Connection connection;
 
 	public
-	Registry(RPMRepo rpmRepo) throws SQLException
+	RPMRegistry(RPMRepo rpmRepo) throws SQLException
 	{
 		this.databaseFile = new File(rpmRepo.getDirectory(), "repodata/maven-rpms.db");
 
@@ -386,16 +386,16 @@ class Registry
 	}
 	*/
 
-	private static final Logger log = LoggerFactory.getLogger(Registry.class);
+	private static final Logger log = LoggerFactory.getLogger(RPMRegistry.class);
 
 	public
 	MavenInfo getMavenInfoFor(File jarFile) throws IOException
 	{
-		String jarHash= Exec.toString("sha256sum", jarFile.getAbsolutePath()).substring(0, 64);
+		String jarHash = Exec.toString("sha256sum", jarFile.getAbsolutePath()).substring(0, 64);
 
 		try
 		{
-			PreparedStatement ps=connection.prepareStatement("SELECT "+MAVEN_INFO+" FROM processed WHERE jarHash=?;");
+			PreparedStatement ps = connection.prepareStatement("SELECT " + MAVEN_INFO + " FROM processed WHERE jarHash=?;");
 			try
 			{
 				ps.setString(1, jarHash);

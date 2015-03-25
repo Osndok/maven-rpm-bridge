@@ -23,7 +23,7 @@ class RPMRepo
 	File dir;
 
 	private
-	Registry registry;
+	RPMRegistry RPMRegistry;
 
 	public
 	RPMRepo(File dir) throws IOException
@@ -122,7 +122,7 @@ class RPMRepo
 			else
 			if (equalOrOlder(guess, rpm.getModuleKey()))
 			{
-				getRegistry().append(mavenInfo, guess, mavenJar.getFile());
+				getRPMRegistry().append(mavenInfo, guess, mavenJar.getFile());
 				throw new ObsoleteJarException("already have "+guess+" @ "+rpm.getModuleKey().getMinorVersion()+", so don't need to install @ "+guess.getMinorVersion(), rpm.getModuleKey());
 			}
 			else
@@ -170,7 +170,7 @@ class RPMRepo
 	RPM get(ModuleKey moduleKey)
 	{
 		final
-		String rpmPrefix = Spec.RPM_NAME_PREFIX+moduleKey.toString();
+		String rpmPrefix = RPMSpec.RPM_NAME_PREFIX+moduleKey.toString();
 
 		final
 		String[] fileNames=dir.list(new FilenameFilter()
@@ -269,20 +269,20 @@ class RPMRepo
 	}
 
 	public
-	Registry getRegistry()
+	RPMRegistry getRPMRegistry()
 	{
-		if (registry==null)
+		if (RPMRegistry ==null)
 		{
 			try
 			{
-				registry=new Registry(this);
+				RPMRegistry =new RPMRegistry(this);
 			}
 			catch (SQLException e)
 			{
 				throw new RuntimeException(e);
 			}
 		}
-		return registry;
+		return RPMRegistry;
 	}
 
 	//TODO: don't rebuild metadata after every addition... defer it, but still try if an error/exception occurs.
@@ -303,7 +303,7 @@ class RPMRepo
 	{
 		log.info("getFullModuleDependency: {} -> {}", requestor, mavenInfo);
 
-		String majorVersion = getRegistry().getMajorVersionFor(mavenInfo, this);
+		String majorVersion = getRPMRegistry().getMajorVersionFor(mavenInfo, this);
 		//The guess might actually be enough, but it would be better to verify the RPM's presence.
 		ModuleKey guess = new ModuleKey(mavenInfo.getModuleNameCandidate(), majorVersion, null);
 		log.debug("{} requires {} -> {}", requestor, mavenInfo, guess);
