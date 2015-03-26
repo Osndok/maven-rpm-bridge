@@ -82,7 +82,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 		Map<String, String> retval=new HashMap<>(1);
 
 		retval.put("install", getInstallPhase());
-		retval.put("postin", getPostInstallPhase(warFileInfo.getModuleKey()));
+		retval.put("post", getPostInstallPhase(warFileInfo.getModuleKey()));
 
 		return retval;
 	}

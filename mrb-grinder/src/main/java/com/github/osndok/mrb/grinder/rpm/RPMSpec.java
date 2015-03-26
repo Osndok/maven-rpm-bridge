@@ -206,7 +206,7 @@ class RPMSpec
 					//Install scriptlets must be merged with the main install scriptlet.
 					if (type.equals("install")) continue;
 
-					out.write(String.format("%%%s %s\n%s\n", type, name, body).getBytes());
+					out.write(String.format("\n%%%s %s\n%s\n", type, name, body).getBytes());
 				}
 			}
 
@@ -225,7 +225,7 @@ class RPMSpec
 				String name=specShard.getSubPackageName();
 				if (name==null) continue;
 
-				out.write(String.format("%%files %s\n", name).getBytes());
+				out.write(String.format("\n%%files %s\n", name).getBytes());
 
 				//for (String path : notNull(specShard.getFileContentsByPath().keySet()))
 				for (String path : notNull(specShard.getFilePathsToPackage()))

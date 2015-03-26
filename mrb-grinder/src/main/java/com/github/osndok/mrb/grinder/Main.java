@@ -189,6 +189,8 @@ class Main
 
 		File spec= RPMSpec.write(moduleKey, mavenJar, this, warFile, extraShards);
 
+		Exec.andWait("cat", spec.getAbsolutePath());
+
 		File[] rpms= RPM.buildMany(spec, jar, warFile);
 
 		for (File rpm : rpms)

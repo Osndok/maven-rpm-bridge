@@ -579,7 +579,7 @@ class MavenPom
 			final
 			Properties p=getProperties();
 
-			//Order by most-specific-last...
+			//Order by most-general-to-most-specific... (last one wins)
 			possiblePortNumber(p, "web.port");
 			possiblePortNumber(p, "com.allogy.web.port");
 			possiblePortNumber(p, "production.web.port");
