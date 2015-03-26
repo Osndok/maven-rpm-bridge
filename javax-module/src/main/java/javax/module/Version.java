@@ -110,7 +110,7 @@ class Version implements Comparable<Version>, Serializable
 				else
 				{
 					//Consuming trailing zeros
-					while(beta instanceof Integer && (Integer)beta==0)
+					while(beta instanceof Long && (Long)beta==0)
 					{
 						i++;
 						if (i>=b.length)
@@ -135,7 +135,7 @@ class Version implements Comparable<Version>, Serializable
 				else
 				{
 					//Consuming trailing zeros
-					while(alpha instanceof Integer && (Integer)alpha==0)
+					while(alpha instanceof Long && (Long)alpha==0)
 					{
 						i++;
 						if (i>=a.length)
@@ -149,11 +149,11 @@ class Version implements Comparable<Version>, Serializable
 				}
 			}
 			else
-			if (alpha instanceof Integer)
+			if (alpha instanceof Long)
 			{
-				if (beta instanceof Integer)
+				if (beta instanceof Long)
 				{
-					int diff=((Integer)alpha)-((Integer)beta);
+					int diff=(int)(((Long)alpha)-((Long)beta));
 					if (diff!=0) return diff;
 				}
 				else
@@ -213,7 +213,7 @@ class Version implements Comparable<Version>, Serializable
 	/**
 	 * Given a version string (e.g. "1.20.3-rc4-aoe9u87"), return the relevant bits that should be individually compared.
 	 * @param s
-	 * @return An array of Strings and Integers
+	 * @return An array of Strings and Longs
 	 */
 	public static
 	Object[] split(String s)
@@ -278,7 +278,8 @@ class Version implements Comparable<Version>, Serializable
 			{
 				//if we are munching numbers, compare each number as an int (e.g. 2.10 > 2.9)
 				//This should always be a parsable int, or the algorithm is wrong
-				retval.add(new Integer(oneSub));
+				//We use "Long" b/c it is not too uncommon to use dates+hours w/o separators, which makes a big integer!
+				retval.add(new Long(oneSub));
 				//System.err.println("int: "+oneSub);
 			}
 			else

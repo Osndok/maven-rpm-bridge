@@ -34,8 +34,11 @@ class VersionTest extends Assert
 		Object[] retval=Version.split(s);
 
 		System.err.print("split('"+s+"'\t) -> {");
-		for (Object o : retval)
+		for (int i=0; i<retval.length; i++)
 		{
+			final
+			Object o=retval[i];
+
 			if (o instanceof String)
 			{
 				System.err.print("'");
@@ -46,6 +49,8 @@ class VersionTest extends Assert
 			{
 				System.err.print(o);
 				System.err.print(", ");
+				//Convert the Longs to Integers for easy testing/readability...
+				retval[i]=((Long)o).intValue();
 			}
 		}
 		System.err.println("}");
