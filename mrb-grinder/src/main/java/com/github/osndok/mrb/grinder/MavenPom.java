@@ -583,6 +583,7 @@ class MavenPom
 			possiblePortNumber(p, "web.port");
 			possiblePortNumber(p, "com.allogy.web.port");
 			possiblePortNumber(p, "production.web.port");
+			possiblePortNumber(p, "mrb.web.port"); //See #4743
 
 			if (deploymentPortNumber==null)
 			{
