@@ -316,6 +316,11 @@ class RPMRepo
 		final
 		RPM rpm = sister.get(guess);
 
+		if (rpm==null)
+		{
+			throw new IllegalStateException(sister+" contains a registry entry (but no compatible rpm) for "+mavenInfo);
+		}
+
 		return rpm.getModuleKey().asDependencyOf(requestor);
 	}
 
