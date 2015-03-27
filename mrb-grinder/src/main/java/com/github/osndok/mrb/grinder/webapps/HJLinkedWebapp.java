@@ -44,7 +44,11 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 	{
 		//NB: while technically correct, we do *not* want to require hyperjetty, as that
 		//    would restrict and frustrate the sysadmins (conflicts with tomcat, etc.).
-		return Collections.singleton(RPMSpec.RPM_NAME_PREFIX+warFileInfo.getModuleKey());
+		//BUT... without requiring hyperjetty, the user might not be available at install time...
+		List<String> c=new ArrayList();
+		c.add("hyperjetty");
+		c.add(RPMSpec.RPM_NAME_PREFIX+warFileInfo.getModuleKey());
+		return c;
 	}
 
 	@Override
@@ -61,7 +65,7 @@ class HJLinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarPro
 		final
 		List<String> list=new ArrayList<>(2);
 
-		list.add(getConfigFilePath());
+		list.add("%attr(644, hyperjetty, hyperjetty) "+getConfigFilePath());
 		list.add(directory + "/" + warBaseDirectoryName);
 
 		return list;

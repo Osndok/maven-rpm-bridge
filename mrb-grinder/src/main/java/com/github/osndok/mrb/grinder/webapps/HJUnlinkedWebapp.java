@@ -43,7 +43,8 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 	{
 		//NB: while technically correct, we do *not* want to require hyperjetty, as that
 		//    would restrict and frustrate the sysadmins (conflicts with tomcat, etc.).
-		return null;
+		//BUT... without requiring hyperjetty, the user might not be available at install time...
+		return Collections.singleton("hyperjetty");
 	}
 
 	@Override
@@ -60,7 +61,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 		final
 		List<String> list=new ArrayList<>(2);
 
-		list.add(getConfigFilePath());
+		list.add("%attr(644, hyperjetty, hyperjetty) "+getConfigFilePath());
 		list.add(directory + "/" + warBaseFileName);
 
 		return list;
