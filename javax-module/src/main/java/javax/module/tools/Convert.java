@@ -10,6 +10,21 @@ public
 class Convert
 {
 	public static
+	Class[] getSupportedNonPrimitiveTypes()
+	{
+		return supportedNonPrimitiveTypes;
+	}
+
+	private static
+	Class[] supportedNonPrimitiveTypes =
+		new Class[]
+			{
+				String.class, File.class,
+				Enum.class, // <-- ???
+				Short.class, Integer.class, Long.class, Float.class, Double.class, Boolean.class, Character.class, Byte.class,
+			};
+
+	public static
 	Object stringToBasicObject(String stringValue, Class targetType)
 	{
 		//TODO: primitive types cannot be null, can probably give a much better message therefor.
