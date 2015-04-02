@@ -40,11 +40,19 @@ public
 
 	/**
 	 * If provided, this suffix will follow the major version indication in the computed tool name.
-	 * For example, "-kill" might result in a tool name of "mytool-v3-kill".
+	 * For example, "-stop" might result in a tool name of "mytool-v3-stop".
 	 *
 	 * If not provided, this will default to the empty string (if there is only one) or the class's
 	 * simple name (if there are no conflicts), or a best-effort (but undefined) behavior in any
 	 * other case.
 	 */
 	String suffix() default "";
+
+	/**
+	 * If provided, this string will be included in the "documentation" for the tool.
+	 *
+	 * At the moment, this means that this string might appear in the initial comments
+	 * of the tool (which is an introspectable shell script).
+	 */
+	String description() default "";
 }

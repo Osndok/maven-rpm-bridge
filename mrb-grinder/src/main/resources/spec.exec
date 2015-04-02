@@ -1,8 +1,8 @@
 
-mkdir -p  ./usr/bin
-touch     ./usr/bin/@TOOL_NAME@
-chmod 755 ./usr/bin/@TOOL_NAME@
-cat ->    ./usr/bin/@TOOL_NAME@ <<"EOF"
+mkdir -p  .$(dirname @TOOL_PATH@)
+touch     .@TOOL_PATH@
+chmod 755 .@TOOL_PATH@
+cat ->    .@TOOL_PATH@ <<"EOF"
 #!/bin/bash
 #
 # @TOOL_NAME@

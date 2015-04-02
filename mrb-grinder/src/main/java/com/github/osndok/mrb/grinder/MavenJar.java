@@ -3,7 +3,6 @@ package com.github.osndok.mrb.grinder;
 import com.github.osndok.mrb.grinder.rpm.RPM;
 import com.github.osndok.mrb.grinder.rpm.RPMManifold;
 import com.github.osndok.mrb.grinder.rpm.RPMRepo;
-import com.github.osndok.mrb.grinder.rpm.RPMRegistry;
 import org.apache.bcel.Constants;
 import org.apache.bcel.classfile.*;
 import org.slf4j.Logger;
@@ -227,7 +226,7 @@ class MavenJar
 
 			if (hasPluginAnnotation(javaClass))
 			{
-				log.info("is a modular plugin class...");
+				log.info("is a modular plugin class... (@Plugin)");
 
 				//TODO: support inheritance? cross module boundaries?
 				//TODO: don't stride across deps, do that only once (inefficient if many plugins).
@@ -290,7 +289,7 @@ class MavenJar
 			*/
 
 			boolean hasMainMethod=hasPublicStaticMainMethod(javaClass);
-			String requestedCommandLineToolName= staticJavaXModuleExecField(javaClass);
+			String requestedCommandLineToolName = computeExplicitCommandLineToolName(javaClass, moduleKey);
 
 			if (hasMainMethod || requestedCommandLineToolName!=null)
 			{
@@ -324,12 +323,15 @@ class MavenJar
 						log.info("from tool-name contention: {}", toolName);
 					}
 
+					log.debug("implicit tool name: {}", toolName);
 					execClassesByToolName.put(toolName, className);
 				}
 				else
 				{
 					hasOverride=true;
 					requestedCommandLineToolName=replaceModuleInfoMacros(requestedCommandLineToolName, moduleKey);
+
+					log.debug("explicit tool name: {}", requestedCommandLineToolName);
 					execClassesByToolName.put(requestedCommandLineToolName, className);
 				}
 			}
@@ -486,8 +488,20 @@ class MavenJar
 	}
 
 	private
-	String staticJavaXModuleExecField(JavaClass javaClass)
+	String computeExplicitCommandLineToolName(JavaClass javaClass, ModuleKey moduleKey)
 	{
+		//The new-fangled way...
+		for (AnnotationEntry annotationEntry : javaClass.getAnnotationEntries())
+		{
+			log.debug("annotation type: {}", annotationEntry.getAnnotationType());
+
+			if (annotationEntry.getAnnotationType().equals("Ljavax/module/CommandLineTool;"))
+			{
+				return computeExplicitCommandLineToolNameFromAnnotation(javaClass, annotationEntry, moduleKey);
+			}
+		}
+
+		//The original way...
 		try
 		{
 			Field field = staticFieldNamed("JAVAX_MODULE_EXEC", javaClass);
@@ -517,7 +531,50 @@ class MavenJar
 			//TODO: fix null pointer exception... how can we get (even a constant) value without actually loading the class?
 			log.error("can't get javax-module-exec field", e);
 		}
+
 		return null;
+	}
+
+	private
+	String computeExplicitCommandLineToolNameFromAnnotation(
+															   JavaClass javaClass,
+															   AnnotationEntry annotationEntry,
+															   ModuleKey moduleKey
+	)
+	{
+		log.info("@CommandLineTool");
+
+		String prefix=moduleKey.getModuleName()+'-';
+		String suffix=""; //<--- TODO: this needs help, does not yet comply with contract.
+
+		for (ElementValuePair elementValuePair : annotationEntry.getElementValuePairs())
+		{
+			String key=elementValuePair.getNameString();
+			String value=elementValuePair.getValue().toString();
+
+			log.debug("evp: {} -> {}", key, value);
+
+			if (key.equals("name"))
+			{
+				return value;
+			}
+			else
+			if (key.equals("prefix"))
+			{
+				prefix=value;
+			}
+			else
+			if (key.equals("suffix"))
+			{
+				suffix=value;
+			}
+			else
+			{
+				log.warn("unknown @CommandLineTool field: {} -> {}", key, value);
+			}
+		}
+
+		return prefix + moduleKey.vMajor() + suffix;
 	}
 
 	private

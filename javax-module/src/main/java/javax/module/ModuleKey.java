@@ -73,6 +73,12 @@ class ModuleKey implements Serializable
 		return majorVersion;
 	}
 
+	public
+	boolean isSnapshot()
+	{
+		return majorVersion==null;
+	}
+
 	/**
 	 * Not strictly part of the key value, but helps ensure that everything is at parity.
 	 * When coming from an available module, this indicates the minimum available compatibility,

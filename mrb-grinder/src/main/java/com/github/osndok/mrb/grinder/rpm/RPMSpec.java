@@ -433,7 +433,8 @@ class RPMSpec
 				StringBuilder sb = readTemplate("spec.exec");
 
 				replace(sb, generalInfos);
-				replace(sb, "@TOOL_NAME@", toolName);
+				replace(sb, "@TOOL_NAME@", maybeRemovePath(toolName));
+				replace(sb, "@TOOL_PATH@", maybeAddPath(toolName));
 				replace(sb, "@CLASS@", className);
 
 				retval.append(sb.toString());
@@ -515,6 +516,28 @@ class RPMSpec
 		}
 
 		return retval.toString();
+	}
+
+	private static
+	String maybeAddPath(String toolName)
+	{
+		final
+		char c=toolName.charAt(0);
+
+		if (c=='/' || c=='%')
+		{
+			return toolName;
+		}
+		else
+		{
+			return "/usr/bin/"+toolName;
+		}
+	}
+
+	private static
+	String maybeRemovePath(String toolName)
+	{
+		return new File(toolName).getName();
 	}
 
 	private static
