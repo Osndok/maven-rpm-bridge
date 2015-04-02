@@ -80,7 +80,7 @@ class Switched implements Callable<File>
 		log.debug("d (static)");
 	}
 
-	@CommandLineOption(_short = 'e')
+	@CommandLineOption(_short = 'e', description = "static no-argument method, but documented")
 	public static
 	void eee()
 	{
