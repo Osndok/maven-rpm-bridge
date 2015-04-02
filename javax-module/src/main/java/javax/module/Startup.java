@@ -477,6 +477,11 @@ class Startup extends ClassLoader
 			return hexStringToByteArray(stringValue);
 		}
 
+		if (targetType==File.class)
+		{
+			return new File(stringValue);
+		}
+
 		throw new UnsupportedOperationException(targetType+" constructor parameters are not supported");
 	}
 
