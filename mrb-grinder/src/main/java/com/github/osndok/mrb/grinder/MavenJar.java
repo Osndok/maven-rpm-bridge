@@ -377,16 +377,15 @@ class MavenJar
 		return null;
 	}
 
+	@Deprecated
 	private
 	RPMRepo rpmRepo;
 
 	private
 	boolean dependencyHasEntry(Dependency dependency, String classEntryName) throws IOException
 	{
-		if (rpmRepo == null) throw new IllegalStateException("rpmRepo is null");
-
 		final
-		RPM rpm = rpmRepo.get(dependency);
+		RPM rpm = RPMManifold.getInstance().getAnyRpmMatching(dependency);
 
 		if (rpm == null)
 		{
