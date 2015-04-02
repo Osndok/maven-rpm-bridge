@@ -1,7 +1,9 @@
 package javax.module.tools;
 
-import java.io.File;
+import java.io.*;
 import java.lang.reflect.Method;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Created by robert on 4/2/15.
@@ -20,17 +22,49 @@ class Convert
 		new Class[]
 			{
 				String.class, File.class,
+				InputStream.class, FileInputStream.class, PrintStream.class,
+				OutputStream.class, FileOutputStream.class, BufferedReader.class,
 				Enum.class, // <-- ???
 				Short.class, Integer.class, Long.class, Float.class, Double.class, Boolean.class, Character.class, Byte.class,
 			};
 
+	private static
+	Set<Class> supportedNonPrimitiveTypeSet;
+
+	public static
+	boolean isSupportedType(Class aClass)
+	{
+		if (aClass.isPrimitive())
+		{
+			return true;
+		}
+
+		if (supportedNonPrimitiveTypeSet==null)
+		{
+			supportedNonPrimitiveTypeSet=new HashSet<>();
+
+			for (Class supportedNonPrimitiveType : supportedNonPrimitiveTypes)
+			{
+				supportedNonPrimitiveTypeSet.add(supportedNonPrimitiveType);
+			}
+		}
+
+		return supportedNonPrimitiveTypeSet.contains(aClass);
+	}
+
 	public static
 	Object stringToBasicObject(String stringValue, Class targetType)
+	{
+		return stringToBasicObject(stringValue, targetType, "");
+	}
+
+	public static
+	Object stringToBasicObject(String stringValue, Class targetType, String context)
 	{
 		//TODO: primitive types cannot be null, can probably give a much better message therefor.
 		if (stringValue.equals("null")) return null;
 
-		if (targetType==String  .class) return stringValue;
+		if (targetType == String.class) return stringValue;
 
 		if (Enum.class.isAssignableFrom(targetType))
 		{
@@ -40,7 +74,7 @@ class Convert
 			}
 			catch (IllegalArgumentException e)
 			{
-				throw new IllegalArgumentException(targetType.getSimpleName()+" paramater cannot be '"+stringValue+"', valid values are: "+ enumValuesToHumanReadableCsv(targetType));
+				throw new IllegalArgumentException(context+targetType.getSimpleName()+" parameter cannot be '"+stringValue+"', valid values are: "+ enumValuesToHumanReadableCsv(targetType));
 			}
 		}
 
@@ -87,6 +121,99 @@ class Convert
 		if (targetType==File.class)
 		{
 			return new File(stringValue);
+		}
+
+		if (targetType==InputStream.class || targetType==FileInputStream.class)
+		{
+			try
+			{
+				if (stringValue.equals("-"))
+				{
+					if (targetType==FileInputStream.class)
+					{
+						//TODO: check to make sure this works (FileInputStream argument satisfied by stdin)
+						return new FileInputStream("/dev/stdin");
+					}
+					else
+					{
+						return System.in;
+					}
+				}
+				else
+				{
+					return new FileInputStream(stringValue);
+				}
+			}
+			catch (FileNotFoundException e)
+			{
+				throw new RuntimeException(e);
+			}
+		}
+
+		if (targetType == OutputStream.class || targetType == FileOutputStream.class)
+		{
+			try
+			{
+				if (stringValue.equals("-"))
+				{
+					if (targetType==FileOutputStream.class)
+					{
+						//TODO: check to make sure this works (FileOutputStream argument satisfied by stdout)
+						return new FileOutputStream("/dev/stdout");
+					}
+					else
+					{
+						return System.out;
+					}
+				}
+				else
+				{
+					return new FileOutputStream(stringValue);
+				}
+			}
+			catch (FileNotFoundException e)
+			{
+				throw new RuntimeException(e);
+			}
+		}
+
+		if (targetType==PrintStream.class)
+		{
+			if (stringValue.equals("-"))
+			{
+				return System.out;
+			}
+			else
+			{
+				try
+				{
+					return new PrintStream(stringValue);
+				}
+				catch (FileNotFoundException e)
+				{
+					throw new RuntimeException(e);
+				}
+			}
+		}
+
+		if (targetType==BufferedReader.class)
+		{
+			try
+			{
+				if (stringValue.equals("-"))
+				{
+					//TODO: check to make sure this works (BufferedReader argument satisfied by stdin)
+					return new BufferedReader(new FileReader("/dev/stdin"));
+				}
+				else
+				{
+					return new BufferedReader(new FileReader(stringValue));
+				}
+			}
+			catch (FileNotFoundException e)
+			{
+				throw new RuntimeException(e);
+			}
 		}
 
 		throw new UnsupportedOperationException(targetType+" constructor parameters are not supported");

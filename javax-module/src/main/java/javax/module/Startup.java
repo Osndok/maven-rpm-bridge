@@ -1,6 +1,7 @@
 package javax.module;
 
 import javax.module.tools.Convert;
+import javax.module.tools.FuzzyEntryPoint;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -317,13 +318,17 @@ class Startup extends ClassLoader
 		}
 		catch (NoSuchMethodException e)
 		{
+			//TODO: BUG: the *standard* path should not include throwing & catching an exception!
+
 			//So... they do not have a main(String[] args) method... maybe they are a new-fangled "runnable"?
-			if (Runnable.class.isAssignableFrom(aClass))
+			if (FuzzyEntryPoint.supports(aClass))
 			{
-				constructAndExecuteStaticRunnable(aClass, args);
+				new FuzzyEntryPoint(aClass).execute(args);
+				//constructAndExecuteStaticRunnable(aClass, args);
 			}
 			else
 			{
+				System.err.println(aClass+" does not implement Runnable or Callable");
 				throw e;
 			}
 		}
@@ -470,7 +475,7 @@ class Startup extends ClassLoader
 		}
 		catch (InvocationTargetException e)
 		{
-			e.printStackTrace();
+			e.getCause().printStackTrace();
 			//fall-through...
 		}
 	}

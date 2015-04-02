@@ -5,12 +5,18 @@ import com.github.osndok.mrb.grinder.rpm.RPMManifold;
 import com.github.osndok.mrb.grinder.rpm.RPMRepo;
 import org.apache.bcel.Constants;
 import org.apache.bcel.classfile.*;
+import org.apache.bcel.generic.ArrayType;
+import org.apache.bcel.generic.BasicType;
+import org.apache.bcel.generic.ObjectType;
+import org.apache.bcel.generic.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import javax.module.Dependency;
 import javax.module.ModuleKey;
+import javax.module.tools.Convert;
+import javax.module.tools.FuzzyEntryPoint;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
@@ -220,6 +226,12 @@ class MavenJar
 
 		for(JavaClass javaClass : allJavaClasses())
 		{
+			if (!javaClass.isPublic() || javaClass.isAbstract())
+			{
+				log.debug("non-public, or abstract: {}", javaClass);
+				continue;
+			}
+
 			String name=javaClass.getClassName();
 			log.trace("class name: {} ( {} / {} )", name, javaClass.getMajor(), javaClass.getMinor());
 			//Multimap<String, String> multiValue = store.get(name);
@@ -291,7 +303,7 @@ class MavenJar
 			boolean hasMainMethod=hasPublicStaticMainMethod(javaClass);
 			String requestedCommandLineToolName = computeExplicitCommandLineToolName(javaClass, moduleKey);
 
-			if (hasMainMethod || requestedCommandLineToolName!=null)
+			if (hasMainMethod || requestedCommandLineToolName!=null || isSupportedRunnableOrCallable(javaClass))
 			{
 				String className=name;//aClass.getName();
 				log.info("a main class: {} ( {} / {} )", className, javaClass.getMajor(), javaClass.getMinor());
@@ -352,6 +364,132 @@ class MavenJar
 		{
 			execClassesByToolName.put("sysconfig", "true");
 		}
+	}
+
+	/**
+	 * @return true if (and only if) the given java class implements the Runnable or Callable interface *AND* it has at least one constructor that can be built using Convert'able objects.
+	 */
+	private
+	boolean isSupportedRunnableOrCallable(JavaClass javaClass)
+	{
+		if (implementsRunnableOrCallable(javaClass))
+		{
+			log.debug("runnable or callable: {}", javaClass);
+
+			for (Method method : javaClass.getMethods())
+			{
+				if (isSupportableConstructor(method))
+				{
+					return true;
+				}
+			}
+
+		}
+		//TODO: !!: implement me (NB: supported classes should come from the Convert class, but without the byte code library dependency)
+		return false;
+	}
+
+	private
+	boolean implementsRunnableOrCallable(JavaClass javaClass)
+	{
+		for (String interfaceName : javaClass.getInterfaceNames())
+		{
+			if (FuzzyEntryPoint.supportedInterfaceName(interfaceName))
+			{
+				return true;
+			}
+			else
+			{
+				log.debug("not runnable or callable: {}", interfaceName);
+			}
+		}
+
+		return false;
+	}
+
+	private
+	boolean isSupportableConstructor(Method method)
+	{
+		if (!method.getName().equals("<init>"))
+		{
+			return false;
+		}
+
+		for (Type type : method.getArgumentTypes())
+		{
+			if (!isConvertableType(type))
+			{
+				return false;
+			}
+		}
+
+		log.debug("usable constructor: {}", method);
+		return true;
+	}
+
+	private
+	boolean isConvertableType(Type type)
+	{
+		if (type instanceof BasicType) return true;
+		if (type instanceof ArrayType) return isConvertableArrayElementType(((ArrayType) type).getElementType());
+		if (type instanceof ObjectType) return isConvertable((ObjectType)type);
+
+		log.debug("unconvertable type: {}", type);
+		return false;
+	}
+
+	private
+	boolean isConvertableArrayElementType(Type type)
+	{
+		//ATM only arrays of primitives are supported.
+		return (type instanceof BasicType);
+	}
+
+	private static final
+	ObjectType ENUM_TYPE=new ObjectType("java.lang.Enum");
+
+	private
+	boolean isConvertable(ObjectType type)
+	{
+		boolean haveClassAvailable;
+
+		try
+		{
+			if (type.isCastableTo(ENUM_TYPE))
+			{
+				log.debug("enum argument: {}", type);
+				return true;
+			}
+
+			haveClassAvailable=true;
+		}
+		catch (ClassNotFoundException e)
+		{
+			haveClassAvailable=false;
+
+			if (log.isDebugEnabled())
+			{
+				log.debug("cnf: {}", e.toString());
+			}
+		}
+
+		String className=type.getClassName();
+
+		for (Class aClass : Convert.getSupportedNonPrimitiveTypes())
+		{
+			if (className.equals(aClass.getName()))
+			{
+				return true;
+			}
+		}
+
+		if (haveClassAvailable)
+		{
+			//TODO: it would be really nice to be able to "recurse" here, and support arguments which have a one-convertable-argument constructor (much like we currently do with the 'File' class, but more generically).
+		}
+
+		log.debug("not convertable: {}", className);
+		return false;
 	}
 
 	private
