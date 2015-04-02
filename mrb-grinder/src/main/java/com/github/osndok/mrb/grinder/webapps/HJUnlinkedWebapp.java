@@ -84,6 +84,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 
 		retval.put("install", getInstallPhase());
 		retval.put("post", getPostInstallPhase(warFileInfo.getModuleKey()));
+		retval.put("postun", getPostUninstallPhase(warFileInfo.getModuleKey()));
 
 		return retval;
 	}

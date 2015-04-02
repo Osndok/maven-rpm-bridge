@@ -275,12 +275,31 @@ SELF=/usr/lib/hyperjetty/10088.config
 		final
 		StringBuilder sb=new StringBuilder();
 
-		sb.append("ln -s ").append(myConfigFile.getName()).append(" .").append(masterConfig.getAbsolutePath()).append('\n');
+		sb.append("ln -sf ").append(myConfigFile.getName()).append(" .").append(masterConfig.getAbsolutePath()).append('\n');
 
 		sb.append("mkdir -p ").append(HJ_SOCKETS_DIRECTORY).append('\n');
-		sb.append("ln -s hj/").append(servicePort).append(" .").append(getUDSSocketPath(moduleKey)).append('\n');
+
+		/*
+		 * Hmm... should we replace an existing UDS socket link?
+		 * -?-
+		 * No, because it *might* contain a stream of production traffic (a live rpm upgrade in production?).
+		 * No, because it might overwrite an intentionally-set UDS directive (a configuration, of sorts).
+		 * Yes, because it will update an incorrectly set port number.
+		 * Yes, because one expects that installing the rpm will make it work.
+		 */
+		sb.append("ln -sf hj/").append(servicePort).append(" .").append(getUDSSocketPath(moduleKey)).append('\n');
 
 		return sb.toString();
+	}
+
+	protected
+	String getPostUninstallPhase(ModuleKey moduleKey)
+	{
+		return "\n"+
+				   "if [ $1 -eq 0 ]; then\n"+
+				   "\trm -fv "+getUDSSocketPath(moduleKey)+' '+getMasterConfigFilePath()+"\n"+
+				   "fi\n"
+			;
 	}
 
 }
