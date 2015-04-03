@@ -41,7 +41,7 @@ class Switched implements Callable<File>
 		log.info("staticString2: {}", s);
 	}
 
-	@CommandLineOption(_short = 'x', _long = "--explicit")
+	@CommandLineOption(_short = 'x', _long = "explicit")
 	public
 	void explicit(String s)
 	{

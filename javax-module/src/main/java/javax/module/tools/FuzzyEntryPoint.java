@@ -74,6 +74,8 @@ class FuzzyEntryPoint
 			{
 				String argOrOption = argumentsAndCommandLineOptions[i];
 
+				//System.err.println("argOrOption: "+argOrOption);
+
 				if (noMoreOptions || argOrOption.isEmpty())
 				{
 					constructorArguments.add(argOrOption);
@@ -382,7 +384,11 @@ class FuzzyEntryPoint
 		final
 		long postConstructionRuntime=System.currentTimeMillis()-preRunTime;
 
-		System.err.println(String.format("internal execution time: %dms (not including initialization overhead)", postConstructionRuntime));
+		if (false)
+		{
+			System.err.println(String.format("internal execution time: %dms (not including initialization overhead)",
+												postConstructionRuntime));
+		}
 
 		//NB: we don't System.exit(0), as some applications might have background threads, etc.
 		//It is best to mirror the JVM's exit policy in these non-error cases.
@@ -434,7 +440,7 @@ class FuzzyEntryPoint
 			System.exit(1);
 		}
 
-		return null;
+		return method;
 	}
 
 	private
@@ -469,7 +475,7 @@ class FuzzyEntryPoint
 
 			if (method==null)
 			{
-				if (!matchable.equals("help"))
+				if (!matchable.equals("help") || !matchable.equals("usage"))
 				{
 					System.err.println("ERROR: unrecognized long option: '" + methodName + "'");
 				}
@@ -775,6 +781,11 @@ class FuzzyEntryPoint
 				continue;
 			}
 
+			if (!containsOnlyPrimitiveAndConvertableTypes(method.getParameterTypes()))
+			{
+				continue;
+			}
+
 			final
 			CommandLineOption spec=method.getAnnotation(CommandLineOption.class);
 
@@ -877,6 +888,12 @@ class FuzzyEntryPoint
 				backupOptions.put(methodName.toLowerCase(), method);
 				backupOptions.put(methodId.toLowerCase(), method);
 			}
+		}
+
+		if (false)
+		{
+			System.err.println("\nPrinting usage for method detection summary:");
+			fabricateUsageMessage(System.err);
 		}
 	}
 
@@ -988,7 +1005,7 @@ class FuzzyEntryPoint
 			list.add(sb.toString());
 		}
 
-		if (true)
+		if (false)
 		{
 			System.err.println("EXPLODE: '"+methodId+"'");
 
