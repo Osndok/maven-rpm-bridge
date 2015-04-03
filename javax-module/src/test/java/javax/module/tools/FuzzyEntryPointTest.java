@@ -28,5 +28,9 @@ class FuzzyEntryPointTest extends Assert
 
 		bits=FuzzyEntryPoint.explodeIdentifier("USB");
 		assertTrue(bits.contains("USB"));
+
+		bits=FuzzyEntryPoint.explodeIdentifier("setString");
+		assertTrue(bits.contains("set"));
+		assertTrue(bits.contains("String"));
 	}
 }

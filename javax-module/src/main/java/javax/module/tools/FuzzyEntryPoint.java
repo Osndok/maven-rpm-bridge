@@ -80,7 +80,8 @@ class FuzzyEntryPoint
 				{
 					constructorArguments.add(argOrOption);
 				}
-				else if (argOrOption.charAt(0) == '-')
+				else
+				if (argOrOption.charAt(0) == '-')
 				{
 					if (argOrOption.length() == 1)
 					{
@@ -885,15 +886,21 @@ class FuzzyEntryPoint
 				}
 
 				backupOptions.put(secondaryKey, method);
-				backupOptions.put(methodName.toLowerCase(), method);
-				backupOptions.put(methodId.toLowerCase(), method);
 			}
+
+			backupOptions.put(methodName.toLowerCase(), method);
+			backupOptions.put(methodId.toLowerCase(), method);
 		}
 
 		if (false)
 		{
 			System.err.println("\nPrinting usage for method detection summary:");
 			fabricateUsageMessage(System.err);
+
+			for (Map.Entry<String, Method> me : backupOptions.entrySet())
+			{
+				System.err.println(String.format("backup: %s -> %s", me.getKey(), me.getValue().getName()));
+			}
 		}
 	}
 
@@ -1061,7 +1068,12 @@ class FuzzyEntryPoint
 		public
 		void invoke(Object target) throws InvocationTargetException, IllegalAccessException
 		{
-			method.invoke(target, parameters);
+			Object result = method.invoke(target, parameters);
+
+			if (result!=null)
+			{
+				System.out.println(result.toString());
+			}
 		}
 	}
 }

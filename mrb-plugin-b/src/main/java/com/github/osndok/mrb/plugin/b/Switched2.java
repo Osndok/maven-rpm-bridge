@@ -88,7 +88,7 @@ class Switched2 implements Callable<File>
 	Switched2(File file)
 	{
 		this.file=file;
-		log.info("CONSTRUCTED: %s", file);
+		log.info("CONSTRUCTED: {}", file);
 	}
 
 	@Override
