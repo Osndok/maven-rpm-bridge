@@ -193,6 +193,11 @@ class FuzzyEntryPoint
 
 				for (Constructor possibleMatch : aClass.getConstructors())
 				{
+					if (!Modifier.isPublic(possibleMatch.getModifiers()))
+					{
+						continue;
+					}
+
 					final
 					Class[] parameterTypes = possibleMatch.getParameterTypes();
 
@@ -478,7 +483,178 @@ class FuzzyEntryPoint
 	private
 	void doUsageAndExit()
 	{
-		xxx();
+		Method method=null;
+		boolean withPrintStream=false;
+
+		try
+		{
+			method=aClass.getMethod("usage", PrintStream.class);
+			withPrintStream=true;
+		}
+		catch (NoSuchMethodException e)
+		{
+			//no-op...
+		}
+
+		if (method==null || !Modifier.isStatic(method.getModifiers()) || !Modifier.isPublic(method.getModifiers()))
+		{
+			try
+			{
+				method=aClass.getMethod("usage");
+				withPrintStream=false;
+			}
+			catch (NoSuchMethodException e1)
+			{
+				//no-op...
+			}
+		}
+
+		if (method==null || !Modifier.isStatic(method.getModifiers()) || !Modifier.isPublic(method.getModifiers()))
+		{
+			try
+			{
+				method=aClass.getMethod("help", PrintStream.class);
+				withPrintStream=true;
+			}
+			catch (NoSuchMethodException e)
+			{
+				//no-op...
+			}
+		}
+
+		if (method==null || !Modifier.isStatic(method.getModifiers()) || !Modifier.isPublic(method.getModifiers()))
+		{
+			try
+			{
+				method=aClass.getMethod("help");
+				withPrintStream=false;
+			}
+			catch (NoSuchMethodException e1)
+			{
+				//no-op...
+			}
+		}
+
+		if (method!=null && Modifier.isStatic(method.getModifiers()) && Modifier.isPublic(method.getModifiers()))
+		{
+			try
+			{
+				if (withPrintStream)
+				{
+					method.invoke(null, System.err);
+				}
+				else
+				{
+					method.invoke(null);
+				}
+
+				System.exit(1);
+			}
+			catch (IllegalAccessException e)
+			{
+				e.printStackTrace();
+				//fall-though... probably will get a more meaningful message.
+			}
+			catch (InvocationTargetException e)
+			{
+				e.getCause().printStackTrace();
+				//fall-through...
+			}
+		}
+
+		fabricateUsageMessage(System.err);
+		System.exit(1);
+	}
+
+	public
+	void fabricateUsageMessage(PrintStream e)
+	{
+		for (Constructor constructor : aClass.getConstructors())
+		{
+			if (Modifier.isPublic(constructor.getModifiers()))
+			{
+				final
+				Class[] parameterTypes = constructor.getParameterTypes();
+
+				if (containsOnlyPrimitiveAndConvertableTypes(parameterTypes))
+				{
+					e.print("usage: ");
+					e.print(aClass.getSimpleName());
+
+					for (Class parameterType : parameterTypes)
+					{
+						e.print(' ');
+						e.print('<');
+						e.print(parameterType.getSimpleName());
+						e.print('>');
+					}
+
+					e.println();
+				}
+			}
+		}
+
+		//NB: may throw if options are not consistent.
+		if (explicitShortOptionsByCode==null) doLazyMethodReflectionAnalysis();
+
+		e.println("options:");
+
+		for (Map.Entry<Character, Method> me : implicitShortOptionsByCode.entrySet())
+		{
+			if (!explicitShortOptionsByCode.containsKey(me.getKey()))
+			{
+				e.print('\t');
+				e.print('-');
+				e.print(me.getKey());
+				e.print('\t');
+				e.print(me.getValue().getName());
+
+				for (Class parameterType : me.getValue().getParameterTypes())
+				{
+					e.print(' ');
+					e.print('<');
+					e.print(parameterType.getSimpleName());
+					e.print('>');
+				}
+
+				e.println();
+			}
+		}
+
+		for (Map.Entry<Character, Method> me : explicitShortOptionsByCode.entrySet())
+		{
+			e.print('\t');
+			e.print('-');
+			e.print(me.getKey());
+
+			for (Class parameterType : me.getValue().getParameterTypes())
+			{
+				e.print(' ');
+				e.print('<');
+				e.print(parameterType.getSimpleName());
+				e.print('>');
+			}
+
+			e.print('\t');
+			e.println(getDescription(me.getValue()));
+		}
+
+		for (Map.Entry<String, Method> me : primaryOptions.entrySet())
+		{
+			e.print("\t--");
+			e.print(me.getKey());
+
+			for (Class parameterType : me.getValue().getParameterTypes())
+			{
+				e.print(' ');
+				e.print('<');
+				e.print(parameterType.getSimpleName());
+				e.print('>');
+			}
+
+			e.print('\t');
+			e.println(getDescription(me.getValue()));
+		}
 	}
 
 	//TODO: we *could* expand this logic to deeply inspect argument types, and thus pick out which method to use.
@@ -594,6 +770,11 @@ class FuzzyEntryPoint
 
 		for (Method method : aClass.getMethods())
 		{
+			if (!Modifier.isPublic(method.getModifiers()))
+			{
+				continue;
+			}
+
 			final
 			CommandLineOption spec=method.getAnnotation(CommandLineOption.class);
 
@@ -607,6 +788,11 @@ class FuzzyEntryPoint
 				else
 				{
 					specLong=spec._long();
+
+					if (primaryOptions.put(specLong, method)!=null)
+					{
+						//throw new IllegalAccessError("multiple @CommandLineOptions or method names for long-option: '"+specLong+"'");
+					}
 				}
 			}
 
@@ -628,8 +814,6 @@ class FuzzyEntryPoint
 				}
 			}
 
-			xxx();
-
 			final
 			String methodName = method.getName();
 
@@ -637,37 +821,96 @@ class FuzzyEntryPoint
 			String methodId = stripSetPrefix(methodName);
 
 			final
-			String bits[] = explode(methodId);
+			List<String> bits = explodeIdentifier(methodId);
 
-			if (bits.length == 1)
+			if (bits.size() == 1)
 			{
-				String onlyBit = bits[0];
+				final
+				String onlyBit = bits.get(0);
+
+				final
+				String key=onlyBit.toLowerCase();
 
 				if (onlyBit.length() == 1)
 				{
 					final
 					Character onlyCharacter = onlyBit.charAt(0);
 
-					/*
 					if (implicitShortOptionsByCode.containsKey(onlyCharacter))
 					{
-						throw new UnsupportedOperationException("")
+						implicitShortOptionsByCode.put(onlyCharacter, null);
 					}
-					*/
-
-					implicitShortOptionsByCode.put(onlyBit.charAt(0), method);
+					else
+					{
+						implicitShortOptionsByCode.put(onlyBit.charAt(0), method);
+					}
+				}
+				else
+				if (specLong==null && !primaryOptions.containsKey(key))
+				{
+					//Stick it in the primary options to (hopefully) include it in the usage statement
+					primaryOptions.put(key, method);
 				}
 				else
 				{
-
+					backupOptions.put(key, method);
 				}
 			}
 			else
 			{
+				final
+				String primaryKey=derivePrimaryKey(bits);
 
+				final
+				String secondaryKey=deriveSecondaryKey(bits);
+
+				if (specLong==null && !primaryOptions.containsKey(primaryKey))
+				{
+					primaryOptions.put(primaryKey, method);
+				}
+				else
+				{
+					backupOptions.put(primaryKey, method);
+				}
+
+				backupOptions.put(secondaryKey, method);
+				backupOptions.put(methodName.toLowerCase(), method);
+				backupOptions.put(methodId.toLowerCase(), method);
+			}
+		}
+	}
+
+	private
+	String derivePrimaryKey(List<String> bits)
+	{
+		final
+		StringBuilder sb=new StringBuilder();
+
+		for (String s : bits)
+		{
+			if (sb.length()!=0)
+			{
+				sb.append('-');
 			}
 
+			sb.append(s.toLowerCase());
 		}
+
+		return sb.toString();
+	}
+
+	private
+	String deriveSecondaryKey(List<String> bits)
+	{
+		final
+		StringBuilder sb=new StringBuilder();
+
+		for (String s : bits)
+		{
+			sb.append(s.toLowerCase());
+		}
+
+		return sb.toString();
 	}
 
 	private static
@@ -683,10 +926,80 @@ class FuzzyEntryPoint
 		}
 	}
 
-	private
-	String[] explode(String methodId)
+	/**
+	 * Loosely based on TapestryInternalUtils.toUserPresentable()
+	 *
+	 * @param methodId
+	 * @return
+	 */
+	public static
+	List<String> explodeIdentifier(String methodId)
 	{
+		final
+		List<String> list=new ArrayList<String>(methodId.length()/2);
 
+		final
+		char[] characters=methodId.toCharArray();
+
+		final
+		StringBuilder sb=new StringBuilder();
+
+		boolean lastWasLowerCase=false;
+		boolean lastWasDigit=false;
+
+		for (char c : characters)
+		{
+			if (Character.isUpperCase(c))
+			{
+				if (lastWasLowerCase || lastWasDigit)
+				{
+					lastWasLowerCase=false;
+					list.add(sb.toString());
+					sb.setLength(0);
+				}
+			}
+			else
+			{
+				lastWasLowerCase=true;
+			}
+
+			if (Character.isDigit(c))
+			{
+				if (!lastWasDigit)
+				{
+					lastWasDigit=true;
+					list.add(sb.toString());
+					sb.setLength(0);
+				}
+			}
+			else
+			{
+				lastWasDigit=false;
+			}
+
+			if (c!='_')
+			{
+				sb.append(c);
+			}
+		}
+
+		if (sb.length()!=0)
+		{
+			list.add(sb.toString());
+		}
+
+		if (true)
+		{
+			System.err.println("EXPLODE: '"+methodId+"'");
+
+			for (String s : list)
+			{
+				System.err.print("\t");
+				System.err.println(s);
+			}
+		}
+
+		return list;
 	}
 
 	/**
