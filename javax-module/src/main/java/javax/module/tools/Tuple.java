@@ -2,20 +2,26 @@ package javax.module.tools;
 
 /**
  * Tuple classes are provided here to encourage interoperability between modules, and enhanced
- * code readability (because java can natively only return one value from a function).
+ * code readability (because java can natively only return one value from a function, and it
+ * can be useful to make a class that extends a typed-tuple).
+ *
+ * A particular design decision of note is that these Tuples do *NOT* inherit the class of lower
+ * cardinality (as I have seen many Tuple classes do on github). IMO it is both incorrect and
+ * not meaningful to claim that "PlayingCard isa Tuple2<Suit,Number>" if "Tuple2 isa Tuple1".
  */
 public
 class Tuple
 {
 	/**
-	 * Being a static class, and unable to construct a "Tuple" will help separate any confusion between
-	 * so many classes of similar names. Our tuples do not inherit one another, and have a suffix indicating
-	 * the cardinality.
+	 * Having only a package-local constructor means that others will not be able to create their
+	 * own tuples of higher cardinality (they should add them to this package as needed), and
+	 * should also help separate any confusion between so many classes of similar names (e.g.
+	 * Tapestry's Tuple class implies cardinality=2).
 	 */
-	private
-	Tuple()
+	/*package*/
+	Tuple(int cardinality)
 	{
-
+		this.cardinality = cardinality;
 	}
 
 	public static <X, Y>
@@ -36,4 +42,14 @@ class Tuple
 		return new Tuple4<X, Y, Z, W>(first, second, third, fourth);
 	}
 
+	/* --------------------------------------------------------------------- */
+
+	public
+	int getCardinality()
+	{
+		return cardinality;
+	}
+
+	private final
+	int cardinality;
 }

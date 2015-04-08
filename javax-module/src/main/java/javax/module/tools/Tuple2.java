@@ -23,7 +23,7 @@ package javax.module.tools;
  * @param <A> - the type of the first entry
  * @param <B> - the type of the second entry
  */
-public class Tuple2 <A, B>
+public class Tuple2 <A, B> extends Tuple
 {
 	public final A first;
 
@@ -32,6 +32,7 @@ public class Tuple2 <A, B>
 	public
 	Tuple2(A first, B second)
 	{
+		super(2);
 		this.first = first;
 		this.second = second;
 	}

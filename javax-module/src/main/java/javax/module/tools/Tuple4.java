@@ -25,7 +25,7 @@ package javax.module.tools;
  * @param <C> - the type of the third entry
  * @param <D> - the type of the fourth entry
  */
-public class Tuple4 <A, B, C, D>
+public class Tuple4 <A, B, C, D> extends Tuple
 {
 	public final A first;
 
@@ -38,6 +38,7 @@ public class Tuple4 <A, B, C, D>
 	public
 	Tuple4(A first, B second, C third, D fourth)
 	{
+		super(4);
 		this.first = first;
 		this.second = second;
 		this.third = third;
