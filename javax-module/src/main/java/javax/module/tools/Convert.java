@@ -83,7 +83,7 @@ class Convert
 		if (targetType==long    .class || targetType==Long     .class) return new Long(stringValue);
 		if (targetType==float   .class || targetType==Float    .class) return new Float(stringValue);
 		if (targetType==double  .class || targetType==Double   .class) return new Double(stringValue);
-		if (targetType==boolean .class || targetType==Boolean  .class) return stringToBoolean(stringValue);
+		if (targetType==boolean .class || targetType==Boolean  .class) return stringToBooleanObject(stringValue);
 
 		if (targetType==char    .class || targetType==Character.class)
 		{
@@ -242,15 +242,34 @@ class Convert
 	}
 
 	public static
-	Boolean stringToBoolean(String s)
+	boolean stringToBooleanPrimitive(String s)
 	{
 		if (s.length()==1)
 		{
-			char c=s.charAt(0);
-			if (c=='0' ||c=='f' ||c=='F' ||c=='n' ||c=='N') return Boolean.FALSE;
-			if (c=='1' ||c=='t' ||c=='T' ||c=='y' ||c=='Y') return Boolean.TRUE;
-			if (c=='x' ||c=='u' ||c=='U') return null;
-			throw new IllegalArgumentException("unable to interpret single-character boolean parameter: "+c);
+			return characterToBooleanPrimitive(s.charAt(0));
+		}
+		else
+		{
+			//To avoid accidentally interpreting a misplaced string as a boolean, we require the full string (except for the one-char options above).
+			s=s.toLowerCase();
+
+			/*
+			Matching this fine specification (missing 'undefined' strings, though):
+			http://www.postgresql.org/docs/9.1/static/datatype-boolean.html
+			 */
+
+			if (s.equals("true" ) || s.equals("yes") || s.equals("on") ) return Boolean.TRUE;
+			if (s.equals("false") || s.equals("no" ) || s.equals("off")) return Boolean.FALSE;
+			throw new IllegalArgumentException("unable to interpret boolean parameter: "+s);
+		}
+	}
+
+	public static
+	Boolean stringToBooleanObject(String s)
+	{
+		if (s.length()==1)
+		{
+			return characterToBooleanObject(s.charAt(0));
 		}
 		else
 		{
@@ -266,6 +285,72 @@ class Convert
 			if (s.equals("false") || s.equals("no" ) || s.equals("off")) return Boolean.FALSE;
 			if (s.equals("undefined") || s.equals("maybe")) return null;
 			throw new IllegalArgumentException("unable to interpret boolean parameter: "+s);
+		}
+	}
+
+	/**
+	 * Duplicated from amicus::SubConfigImpl
+	 *
+	 * @param c
+	 * @return
+	 */
+	public static
+	boolean characterToBooleanPrimitive(char c)
+	{
+		switch (c)
+		{
+			case '1':
+			case 't':
+			case 'T':
+			case 'y':
+			case 'Y':
+				return true;
+
+			case '0':
+			case 'f':
+			case 'F':
+			case 'n':
+			case 'N':
+				return false;
+
+			default:
+				throw new IllegalArgumentException("unable to convert '"+c+"' into a boolean primitive");
+		}
+	}
+
+	/**
+	 * Duplicated from amicus::SubConfigImpl; this might become the new SoA.
+	 *
+	 * @param c
+	 * @return
+	 */
+	public static
+	Boolean characterToBooleanObject(char c)
+	{
+		switch (c)
+		{
+			case '1':
+			case 't':
+			case 'T':
+			case 'y':
+			case 'Y':
+				return Boolean.TRUE;
+
+			case '0':
+			case 'f':
+			case 'F':
+			case 'n':
+			case 'N':
+				return Boolean.FALSE;
+
+			case 'x':
+			case 'u':
+			case 'U':
+			case '?':
+				return null;
+
+			default:
+				throw new IllegalArgumentException("unable to convert '" + c + "' into a boolean object");
 		}
 	}
 

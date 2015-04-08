@@ -26,6 +26,12 @@ import java.util.concurrent.Callable;
 public
 class FuzzyEntryPoint
 {
+	/**
+	 * Since the return value is so much easier to check (e.g. for shell scripts), this will default
+	 * to true unless an environment variable or system property indicates otherwise.
+	 */
+	private static final boolean INTERPRETIVE_EXIT_STATUS=SystemPropertyOrEnvironment.getBoolean("INTERPRETIVE_EXIT_STATUS", true);
+
 	public static
 	boolean supports(Class aClass)
 	{
@@ -360,10 +366,12 @@ class FuzzyEntryPoint
 			{
 				Object o=((Callable) instance).call();
 
-				if (o!=null)
+				//TODO: we can probably do a better output job if the return type is a byte array, or whatnot.
+				System.out.println(String.valueOf(o));
+
+				if (INTERPRETIVE_EXIT_STATUS && seemsToIndicateNegativeResult(o))
 				{
-					//TODO: we can probably do a better output job if the return type is a byte array, or whatnot.
-					System.out.println(o.toString());
+					System.exit(1);
 				}
 			}
 			catch (Exception e)
@@ -393,6 +401,47 @@ class FuzzyEntryPoint
 
 		//NB: we don't System.exit(0), as some applications might have background threads, etc.
 		//It is best to mirror the JVM's exit policy in these non-error cases.
+	}
+
+	public static
+	boolean seemsToIndicateNegativeResult(Object o)
+	{
+		if (o == null)
+		{
+			return true;
+		}
+
+		if (o instanceof Boolean)
+		{
+			return !((Boolean)o).booleanValue();
+		}
+
+		if (o instanceof Double)
+		{
+			final
+			Double d=(Double)o;
+
+			return d.isNaN() || d.isInfinite() || d.doubleValue()==0.0d;
+		}
+
+		if (o instanceof Float)
+		{
+			final
+			Float f=(Float)o;
+
+			return f.isNaN() || f.isInfinite() || f.floatValue()==0.0f;
+		}
+
+		//Integer, Long, Byte, Short, etc...
+		if (o instanceof Number)
+		{
+			final
+			Number number=(Number)o;
+
+			return number.longValue()==0;
+		}
+
+		return false;
 	}
 
 	private
