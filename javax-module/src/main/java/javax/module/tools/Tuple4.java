@@ -116,4 +116,15 @@ public class Tuple4 <A, B, C, D> extends Tuple
 			isEqual(fourth, tuple.fourth)
 			;
 	}
+
+	@Override
+	public
+	int hashCode()
+	{
+		int result = first != null ? first.hashCode() : 0;
+		result = 31 * result + (second != null ? second.hashCode() : 0);
+		result = 31 * result + (third != null ? third.hashCode() : 0);
+		result = 31 * result + (fourth != null ? fourth.hashCode() : 0);
+		return result;
+	}
 }

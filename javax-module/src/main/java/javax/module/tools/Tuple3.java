@@ -106,4 +106,14 @@ public class Tuple3 <A, B, C> extends Tuple
 
 		return isEqual(first, tuple.first) && isEqual(second, tuple.second) && isEqual(third, tuple.third);
 	}
+
+	@Override
+	public
+	int hashCode()
+	{
+		int result = first != null ? first.hashCode() : 0;
+		result = 31 * result + (second != null ? second.hashCode() : 0);
+		result = 31 * result + (third != null ? third.hashCode() : 0);
+		return result;
+	}
 }
