@@ -482,25 +482,15 @@ class RPMSpec
 				{
 					String path=me.getKey();
 					String body=me.getValue();
+					String eofMarker=beginLiteralFile(retval, path);
 
-					int nonce= ThreadLocalRandom.current().nextInt(100000);
-
-					File file=new File(path);
-					String dir=file.getParent();
-
-					if (dir.startsWith("/"))
-					{
-						retval.append("\n\nmkdir -p .").append(dir).append("\n");
-					}
-
-					retval.append("cat -> .").append(path).append(" <<\"EOF-").append(nonce).append("\"\n");
 					retval.append(body);
 
 					char lastChar=body.charAt(body.length()-1);
 
 					if (lastChar!='\n') retval.append('\n');
 
-					retval.append("EOF-").append(nonce).append("\n\n");
+					retval.append(eofMarker);
 				}
 
 			}
@@ -515,7 +505,53 @@ class RPMSpec
 			}
 		}
 
+		for (Map.Entry<String, Properties> me : mavenJar.getReactorPropertiesByPath(moduleKey).entrySet())
+		{
+			String path=me.getKey();
+			Properties properties=me.getValue();
+
+			String eofMarker=beginLiteralFile(retval, path);
+			retval.append("# Written by maven-rpm-bridge::mrb-grinder::RPMSpec\n");
+
+			//TODO: is there no standard way of dumping properties to a string buffer?
+			for (String key : properties.stringPropertyNames())
+			{
+				String value=properties.getProperty(key);
+				//Quote the value, in case it contains a space, or something...
+				//Hopefully it does not contain any quotes or vertical whitespace characters.
+				//TODO: check to see if the key or values contains illegal characters?
+				retval.append(key);
+				retval.append("=\"");
+				retval.append(value);
+				retval.append("\"\n");
+			}
+
+			retval.append(eofMarker);
+		}
+
 		return retval.toString();
+	}
+
+	private static
+	String beginLiteralFile(StringBuilder retval, String path)
+	{
+		int nonce= ThreadLocalRandom.current().nextInt(100000);
+
+		File file=new File(path);
+		String dir=file.getParent();
+
+		if (dir.startsWith("/"))
+		{
+			retval.append("\n\nmkdir -p .").append(dir).append("\n");
+		}
+
+		retval.append("cat   -> .").append(path).append(" <<\"EOF-").append(nonce).append("\"\n");
+
+		/*
+		All the globs of literal files can be hard to read, so try and provide a visually scannable
+		barrier between them for "slightly better" readability.
+		 */
+		return ("EOF-"+nonce+"\n\n#-------------------------------------------------------\n\n");
 	}
 
 	private static
@@ -546,7 +582,7 @@ class RPMSpec
 						ModuleKey moduleKey,
 						MavenJar mavenJar,
 						Collection<SpecShard> extraShards
-	)
+	) throws IOException
 	{
 		StringBuilder sb=new StringBuilder();
 
@@ -586,6 +622,13 @@ class RPMSpec
 					sb.append('\n');
 				}
 			}
+		}
+
+		for (String path : mavenJar.getReactorPropertiesByPath(moduleKey).keySet())
+		{
+			sb.append("%config ");
+			sb.append(path);
+			sb.append('\n');
 		}
 
 		return sb.toString();

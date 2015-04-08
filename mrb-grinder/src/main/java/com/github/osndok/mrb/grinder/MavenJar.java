@@ -15,6 +15,7 @@ import org.xml.sax.SAXException;
 
 import javax.module.Dependency;
 import javax.module.ModuleKey;
+import javax.module.ReactorClients;
 import javax.module.tools.Convert;
 import javax.module.tools.FuzzyEntryPoint;
 import javax.xml.parsers.ParserConfigurationException;
@@ -45,7 +46,7 @@ class MavenJar
 	Map<String, String> execClassesByToolName;
 
 	public
-	Map<ModuleKey, Map<String, Set<String>>> getPluginMapping(ModuleKey moduleKey)
+	Map<ModuleKey, Map<String, Set<String>>> getPluginMapping(ModuleKey moduleKey) throws IOException
 	{
 		if (execClassesByToolName == null)
 		{
@@ -186,7 +187,7 @@ class MavenJar
 	 *         with the module key (e.g. "alpha-v3"), unless specified otherwise (which might lead to collisions).
 	 */
 	public
-	Map<String, String> getExecClassesByToolName(ModuleKey moduleKey)
+	Map<String, String> getExecClassesByToolName(ModuleKey moduleKey) throws IOException
 	{
 		if (execClassesByToolName == null)
 		{
@@ -197,14 +198,30 @@ class MavenJar
 	}
 
 	private
-	void scanModuleClasses(ModuleKey moduleKey)
+	Map<String, Properties> reactorPropertiesByPath;
+
+	public
+	Map<String, Properties> getReactorPropertiesByPath(ModuleKey moduleKey) throws IOException
+	{
+		if (reactorPropertiesByPath==null)
+		{
+			//TODO: complete the factor-out operation...
+			scanModuleClasses(moduleKey);
+		}
+
+		return reactorPropertiesByPath;
+	}
+
+	private
+	void scanModuleClasses(ModuleKey moduleKey) throws IOException
 	{
 		log.debug("scanModuleClasses: {}", moduleKey);
 
 		execClassesByToolName = new HashMap<String, String>();
+		reactorPropertiesByPath = new HashMap<String, Properties>();
 		String mainClassName = getMainClassName();
 
-		boolean hasOverride=false;
+		boolean hasOverride = false;
 
 		/*
 		URL url = file.toURI().toURL();
@@ -224,7 +241,7 @@ class MavenJar
 		for (String name : store.get("SubTypesScanner").values())
 		*/
 
-		for(JavaClass javaClass : allJavaClasses())
+		for (JavaClass javaClass : allJavaClasses())
 		{
 			if (!javaClass.isPublic() || javaClass.isAbstract())
 			{
@@ -232,9 +249,22 @@ class MavenJar
 				continue;
 			}
 
-			String name=javaClass.getClassName();
+			String name = javaClass.getClassName();
 			log.trace("class name: {} ( {} / {} )", name, javaClass.getMajor(), javaClass.getMinor());
 			//Multimap<String, String> multiValue = store.get(name);
+
+			final
+			Properties reactorProperties = getReactorEntryAnnotation(moduleKey, name, javaClass);
+
+			if (reactorProperties!=null)
+			{
+				final
+				String entryPath=computeReactorEntryPath(moduleKey, reactorProperties, name);
+
+				log.debug("reactor-entry-path: {}", entryPath);
+
+				reactorPropertiesByPath.put(entryPath, reactorProperties);
+			}
 
 			if (hasPluginAnnotation(javaClass))
 			{
@@ -245,19 +275,19 @@ class MavenJar
 
 				for (String interfaceName : javaClass.getInterfaceNames())
 				{
-					String entryName=classEntryName(interfaceName);
+					String entryName = classEntryName(interfaceName);
 					ModuleKey targetModuleKey;
 
 					if (inThisJar(entryName))
 					{
-						targetModuleKey=moduleKey;
+						targetModuleKey = moduleKey;
 					}
 					else
 					{
 						targetModuleKey = dependencyForClassName(entryName);
 					}
 
-					if (targetModuleKey==null)
+					if (targetModuleKey == null)
 					{
 						log.debug("plugin target not found: {}", entryName);
 					}
@@ -267,17 +297,17 @@ class MavenJar
 
 						Map<String, Set<String>> implementationsByInterface = pluginMapping.get(targetModuleKey);
 
-						if (implementationsByInterface==null)
+						if (implementationsByInterface == null)
 						{
-							implementationsByInterface=new HashMap<String, Set<String>>();
+							implementationsByInterface = new HashMap<String, Set<String>>();
 							pluginMapping.put(targetModuleKey, implementationsByInterface);
 						}
 
-						Set<String> implementations=implementationsByInterface.get(interfaceName);
+						Set<String> implementations = implementationsByInterface.get(interfaceName);
 
-						if (implementations==null)
+						if (implementations == null)
 						{
-							implementations=new HashSet<String>();
+							implementations = new HashSet<String>();
 							implementationsByInterface.put(interfaceName, implementations);
 						}
 
@@ -300,34 +330,34 @@ class MavenJar
 			}
 			*/
 
-			boolean hasMainMethod=hasPublicStaticMainMethod(javaClass);
+			boolean hasMainMethod = hasPublicStaticMainMethod(javaClass);
 			String requestedCommandLineToolName = computeExplicitCommandLineToolName(javaClass, moduleKey);
 
-			if (hasMainMethod || requestedCommandLineToolName!=null || isSupportedRunnableOrCallable(javaClass))
+			if (hasMainMethod || requestedCommandLineToolName != null || isSupportedRunnableOrCallable(javaClass))
 			{
-				String className=name;//aClass.getName();
+				String className = name;//aClass.getName();
 				log.info("a main class: {} ( {} / {} )", className, javaClass.getMajor(), javaClass.getMinor());
 
-				String toolName=moduleKey.toString()+(className.equals(mainClassName)?"":"-"+getSimpleName(className));
+				String toolName = moduleKey.toString() + (className.equals(mainClassName) ? "" : "-" + getSimpleName(className));
 
-				if (requestedCommandLineToolName==null)
+				if (requestedCommandLineToolName == null)
 				{
 					if (execClassesByToolName.containsKey(toolName))
 					{
-						String[] segments=className.split("[\\.\\$]");
-						int start=segments.length-2;
+						String[] segments = className.split("[\\.\\$]");
+						int start = segments.length - 2;
 
 						do
 						{
-							StringBuilder sb=new StringBuilder(moduleKey.toString()).append('-');
+							StringBuilder sb = new StringBuilder(moduleKey.toString()).append('-');
 
-							for (int i=start; i<segments.length; i++)
+							for (int i = start; i < segments.length; i++)
 							{
-								if (i!=start) sb.append('.');
+								if (i != start) sb.append('.');
 								sb.append(segments[i]);
 							}
 
-							toolName=sb.toString();
+							toolName = sb.toString();
 							start--;
 						}
 						while (execClassesByToolName.containsKey(toolName));
@@ -336,6 +366,12 @@ class MavenJar
 					}
 
 					log.debug("implicit tool name: {}", toolName);
+
+					if (reactorProperties!=null)
+					{
+						reactorProperties.setProperty("EXECUTE", toolName);
+					}
+
 					execClassesByToolName.put(toolName, className);
 				}
 				else
@@ -344,6 +380,12 @@ class MavenJar
 					requestedCommandLineToolName=replaceModuleInfoMacros(requestedCommandLineToolName, moduleKey);
 
 					log.debug("explicit tool name: {}", requestedCommandLineToolName);
+
+					if (reactorProperties!=null)
+					{
+						reactorProperties.setProperty("EXECUTE", toolName);
+					}
+
 					execClassesByToolName.put(requestedCommandLineToolName, className);
 				}
 			}
@@ -364,6 +406,126 @@ class MavenJar
 		{
 			execClassesByToolName.put("sysconfig", "true");
 		}
+	}
+
+	private
+	String computeReactorEntryPath(ModuleKey moduleKey, Properties reactorProperties, String className)
+	{
+		final
+		String base;
+		{
+			//BUG: ReactorEntry::symver does *NOT* make it all the way HERE (boolean primitives are special?)
+			if (Convert.stringToBooleanPrimitive(reactorProperties.getProperty("symver", "true")))
+			{
+				base=moduleKey.toString();
+			}
+			else
+			{
+				base=moduleKey.getModuleName();
+			}
+		}
+
+		final
+		String directory=reactorProperties.getProperty("directory");
+
+		final
+		String general = directory + '/' + base + ReactorClients.FILE_SUFFIX;
+
+		if (!reactorPropertiesByPath.containsKey(general))
+		{
+			reactorProperties.setProperty("NAME", base);
+			return general;
+		}
+
+		/*
+		Technically, having more than one reactor entry (for the same directory, in the same module)
+		is NOT SUPPORTED; however, there will surly be someone who (intentionally or not) does just
+		this... so we might as well have a code path for it... Note that this will result in one
+		'general' entry and one 'altName' entry in the final product (i.e. ugly).
+		 */
+
+		final
+		String altName = base + '-' + getSimpleName(className);
+
+		reactorProperties.setProperty("NAME", altName);
+		return directory + '/' + altName + ReactorClients.FILE_SUFFIX;
+	}
+
+	private
+	Properties getReactorEntryAnnotation(ModuleKey moduleKey, String name, JavaClass javaClass) throws IOException
+	{
+		for (AnnotationEntry annotationEntry : javaClass.getAnnotationEntries())
+		{
+			log.debug("annotation type: {}", annotationEntry.getAnnotationType());
+
+			if (annotationEntry.getAnnotationType().equals("Ljavax/module/ReactorEntry;"))
+			{
+				return parseReactorEntryAnnocation(moduleKey, name, javaClass, annotationEntry);
+			}
+		}
+
+		return null;
+	}
+
+	private
+	Properties parseReactorEntryAnnocation(
+											  ModuleKey moduleKey,
+											  String className,
+											  JavaClass javaClass,
+											  AnnotationEntry annotationEntry
+	) throws IOException
+	{
+		final
+		Properties properties=new Properties();
+
+		for (ElementValuePair elementValuePair : annotationEntry.getElementValuePairs())
+		{
+			final
+			String key=elementValuePair.getNameString();
+
+			final
+			String value = elementValuePair.getValue().toString();
+
+			log.debug("reactor-entry: {} -> {}", key, value);
+
+			properties.setProperty(key, value);
+		}
+
+		properties.setProperty("CLASS_NAME", className);
+		properties.setProperty("MODULE_KEY", moduleKey.toString());
+
+		if (moduleKey.isSnapshot())
+		{
+			properties.setProperty("MAJOR_VERSION", "snapshot");
+		}
+		else
+		{
+			properties.setProperty("MAJOR_VERSION", moduleKey.getMajorVersion());
+		}
+
+		if (moduleKey.getMinorVersion()!=null)
+		{
+			properties.setProperty("MINOR_VERSION", moduleKey.getMinorVersion());
+		}
+
+		final
+		MavenInfo mavenInfo = getInfo();
+
+		properties.setProperty("MAVEN_GROUP", mavenInfo.getGroupId());
+		properties.setProperty("MAVEN_ARTIFACT", mavenInfo.getArtifactId());
+		properties.setProperty("VERSION", mavenInfo.getVersion());
+
+		//Convert "the one" special entry into a key/value pair (atm it is TWO)...
+
+		if (!properties.getProperty("key").isEmpty())
+		{
+			properties.setProperty(properties.getProperty("key"), properties.getProperty("value"));
+		}
+
+		properties.remove("key");
+		properties.remove("value");
+
+		return properties;
 	}
 
 	/**

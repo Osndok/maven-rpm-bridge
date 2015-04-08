@@ -34,6 +34,7 @@ public
 	String directory() default "/etc/reactor.d";
 
 	/**
+	 * @todo BUG: ReactorEntry::symver does not make it all the way to mrb-grinder::MavenJar or the properties file
 	 * @return true if (and only if) the major version number should be in the file name.
 	 */
 	boolean symver() default true;
