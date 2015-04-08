@@ -333,6 +333,11 @@ class MavenJar
 			boolean hasMainMethod = hasPublicStaticMainMethod(javaClass);
 			String requestedCommandLineToolName = computeExplicitCommandLineToolName(javaClass, moduleKey);
 
+			if (markedAsNoCommandLineUtility(javaClass))
+			{
+				log.debug("@NoCommandLineUtility: {}", name);
+			}
+			else
 			if (hasMainMethod || requestedCommandLineToolName != null || isSupportedRunnableOrCallable(javaClass))
 			{
 				String className = name;//aClass.getName();
@@ -406,6 +411,20 @@ class MavenJar
 		{
 			execClassesByToolName.put("sysconfig", "true");
 		}
+	}
+
+	private
+	boolean markedAsNoCommandLineUtility(JavaClass javaClass)
+	{
+		for (AnnotationEntry annotationEntry : javaClass.getAnnotationEntries())
+		{
+			if (annotationEntry.getAnnotationType().equals("Ljavax/module/NoCommandLineUtility;"))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private
