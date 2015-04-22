@@ -6,6 +6,8 @@ import java.lang.annotation.*;
  * This annotation flags a particular class as implementing a tool that would be useful on the
  * command line. Thus, this class should always be packaged as a command line tool, and an
  * inability to do so represents a packaging error.
+ *
+ * TODO: make this annotation @Repeatable
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

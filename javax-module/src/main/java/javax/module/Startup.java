@@ -307,8 +307,20 @@ class Startup extends ClassLoader
 
 		try
 		{
+			if (aClass.getAnnotation(LegacyMainMethod.class)!=null)
+			{
+				throw new NoSuchMethodException();
+			}
+
 			//Always try to find a main method first...
+			final
 			Method method = aClass.getMethod("main", String[].class);
+
+			if (method.getAnnotation(LegacyMainMethod.class)!=null)
+			{
+				throw new NoSuchMethodException();
+			}
+
 			method.invoke(null, new Object[]{args});
 		}
 		catch (InvocationTargetException e)
