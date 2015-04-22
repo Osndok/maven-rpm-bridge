@@ -1,11 +1,9 @@
 package javax.module.tools;
 
 import javax.module.CommandLineOption;
+import java.io.OutputStream;
 import java.io.PrintStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -366,8 +364,7 @@ class FuzzyEntryPoint
 			{
 				Object o=((Callable) instance).call();
 
-				//TODO: we can probably do a better output job if the return type is a byte array, or whatnot.
-				System.out.println(String.valueOf(o));
+				printResult(o);
 
 				if (INTERPRETIVE_EXIT_STATUS && seemsToIndicateNegativeResult(o))
 				{
@@ -386,21 +383,81 @@ class FuzzyEntryPoint
 			((Runnable) instance).run();
 		}
 		else
+		if (invocationsWithResults>0)
 		{
-			throw new UnsupportedOperationException("unsupported executable interface: "+instance);
+			if (INTERPRETIVE_EXIT_STATUS && invocationsWithNegativeResults>0)
+			{
+				System.exit(1);
+			}
 		}
-
-		final
-		long postConstructionRuntime=System.currentTimeMillis()-preRunTime;
+		else
+		{
+			throw new UnsupportedOperationException(aClass+" does not implement a supported executable interface, and no data-yielding instance functions were called: "+instance);
+		}
 
 		if (false)
 		{
+			final
+			long postConstructionRuntime=System.currentTimeMillis()-preRunTime;
+
 			System.err.println(String.format("internal execution time: %dms (not including initialization overhead)",
 												postConstructionRuntime));
 		}
 
 		//NB: we don't System.exit(0), as some applications might have background threads, etc.
 		//It is best to mirror the JVM's exit policy in these non-error cases.
+	}
+
+	private
+	void printResult(Object o)
+	{
+		if (o==null)
+		{
+			System.out.println("null");
+		}
+		else
+		if (o instanceof Iterable)
+		{
+			//NB: Collection extends Iterable, and all the good utility types (List, Set, Map) extend Collection.
+			for (Object o1 : ((Iterable) o))
+			{
+				printResult(o1);
+			}
+		}
+		else
+		if (o instanceof Map)
+		{
+			//NB: Map is not a Collection, nor do the common utilities extend/implement a collection
+			for (Map.Entry me : ((Map<?,?>) o).entrySet())
+			{
+				System.out.print(me.getKey());
+				//In unix, fields are often separated by tabs, whitespace, or commas.
+				//We will pick the the separator deemed least likely to be in an actual key/value... TAB.
+				System.out.print('\t');
+				System.out.println(me.getValue());
+			}
+		}
+		else
+		if (o.getClass().isArray())
+		{
+			final
+			int l=Array.getLength(o);
+
+			for (int i=0; i<l; i++)
+			{
+				printResult(Array.get(o, i));
+			}
+		}
+		else
+		{
+			System.out.println(String.valueOf(o));
+		}
+		/*
+		TODO: what are some other output types that might be useful?
+		----------------
+		OutputStream - seems a bit odd, but straight forward.
+		Runnable/Callable - composite execution???
+		 */
 	}
 
 	public static
@@ -439,6 +496,11 @@ class FuzzyEntryPoint
 			Number number=(Number)o;
 
 			return number.longValue()==0;
+		}
+
+		if (o instanceof Collection)
+		{
+			return ((Collection)o).isEmpty();
 		}
 
 		return false;
@@ -1075,6 +1137,12 @@ class FuzzyEntryPoint
 		return list;
 	}
 
+	private
+	int invocationsWithResults;
+
+	private
+	int invocationsWithNegativeResults=0;
+
 	/**
 	 * Represents an actionable command line option; both the method to be called
 	 * and all of it's arguments.
@@ -1121,7 +1189,14 @@ class FuzzyEntryPoint
 
 			if (result!=null)
 			{
-				System.out.println(result.toString());
+				invocationsWithResults++;
+
+				if (seemsToIndicateNegativeResult(result))
+				{
+					invocationsWithNegativeResults++;
+				}
+
+				printResult(result);
 			}
 		}
 	}

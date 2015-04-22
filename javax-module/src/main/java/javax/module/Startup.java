@@ -321,7 +321,7 @@ class Startup extends ClassLoader
 			//TODO: BUG: the *standard* path should not include throwing & catching an exception!
 
 			//So... they do not have a main(String[] args) method... maybe they are a new-fangled "runnable"?
-			if (FuzzyEntryPoint.supports(aClass))
+			if (true || FuzzyEntryPoint.supports(aClass))
 			{
 				new FuzzyEntryPoint(aClass).execute(args);
 			}
