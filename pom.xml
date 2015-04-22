@@ -15,6 +15,7 @@
 		<module>mrb-plugin-test</module>
 		<module>mrb-plugin-a</module>
 		<module>mrb-plugin-b</module>
+		<module>mrb-runner</module>
     </modules>
 
     <groupId>com.github.osndok.maven_rpm_bridge</groupId>
