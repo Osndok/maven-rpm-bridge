@@ -12,7 +12,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -267,6 +269,11 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 
 		typeVisitor.visit(cu, null);
 
+		if (!includeStatic)
+		{
+			removeStaticReferences();
+		}
+
 		if (outputStream != null)
 		{
 			printTo(outputStream);
@@ -274,6 +281,21 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 
 		//Last, so that an exception will not cause a confusing empty set to be returned on a subsequent call.
 		hasRun = true;
+	}
+
+	private
+	void removeStaticReferences()
+	{
+		final
+		Iterator<JavaReference> i = references.iterator();
+
+		while (i.hasNext())
+		{
+			if (i.next().getReferenceType()==STATIC)
+			{
+				i.remove();
+			}
+		}
 	}
 
 	private
@@ -488,6 +510,15 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 		byIdentifier.put(javaReference.getClassName(), javaReference);
 		byFullyQualifiedName.put(packageAndClass, javaReference);
 		exampleByPackageName.put(javaReference.getPackageName(), javaReference);
+	}
+
+	private
+	boolean includeStatic;
+
+	public
+	void setIncludeStatic(boolean includeStatic)
+	{
+		this.includeStatic=includeStatic;
 	}
 
 	private
