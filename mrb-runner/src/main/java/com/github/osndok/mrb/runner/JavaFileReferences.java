@@ -21,16 +21,10 @@ import java.util.concurrent.Callable;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
-import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.TypeParameter;
-import com.github.javaparser.ast.body.BodyDeclaration;
-import com.github.javaparser.ast.body.FieldDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
-import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
-import com.github.javaparser.ast.type.ReferenceType;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,13 +126,16 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	Logger log = LoggerFactory.getLogger(JavaFileReferences.class);
 
 	private
+	Set<String> selfReferentialNames;
+
+	private
 	String packageName;
 
 	private
 	void run2() throws Exception
 	{
 		final
-		JavaSystemClasses javaSystemClasses=JavaSystemClasses.getInstance();
+		JavaSystemClasses javaSystemClasses = JavaSystemClasses.getInstance();
 
 		final
 		CompilationUnit cu;
@@ -173,7 +170,7 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 
 			if (importDeclaration.isAsterisk())
 			{
-				throw new UnsupportedJavaGrammar("asterisk/wildcard imports are not supported: '"+name+"'");
+				throw new UnsupportedJavaGrammar("asterisk/wildcard imports are not supported: '" + name + "'");
 			}
 
 			log.debug("import: {}", name);
@@ -183,12 +180,11 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 				addReference(STATIC, name);
 
 				final
-				String fullyQualified=JavaReference.getPackageName(name);
+				String fullyQualified = JavaReference.getPackageName(name);
 
 				addFullyQualifiedClassName(fullyQualified);
 			}
-			else
-			if (javaSystemClasses.contains(name))
+			else if (javaSystemClasses.contains(name))
 			{
 				addReference(SYSTEM, name);
 			}
@@ -199,17 +195,19 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 		}
 
 		final
-		Set<String> genericsPlaceholderNames=new HashSet<>();
+		Set<String> genericsPlaceholderNames = new HashSet<>();
+
+		selfReferentialNames = extractRelevantTypeNames(cu);
 
 		final
-		VoidVisitorAdapter typeVisitor=new VoidVisitorAdapter()
+		VoidVisitorAdapter typeVisitor = new VoidVisitorAdapter()
 		{
 			@Override
 			public
 			void visit(TypeParameter n, Object arg)
 			{
 				final
-				String name=n.getName();
+				String name = n.getName();
 
 				log.debug("generic-type: {}", name);
 
@@ -225,23 +223,51 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 				super.visit(n, arg);
 
 				final
-				String name=n.getName();
+				ClassOrInterfaceType scope=n.getScope();
+
+				/**
+				 * The issue of 'scope' is a handled a bit weird. If we read in a fully qualified
+				 * class name like "java.util.Set", the visitor will visit each one in turn, with
+				 * the scope accruing. The only way I know to avoid this is to backtrack... :(
+				 */
+				if (scope!=null)
+				{
+					log.debug("scope: {}", scope);
+					maybeUndoVisit(scope);
+				}
+
+				final
+				String name = n.getName();
 
 				if (genericsPlaceholderNames.contains(name))
 				{
 					log.debug("ignoring generic type: {}", name);
 				}
 				else
+				if (selfReferentialNames.contains(name))
 				{
-					log.trace("class/interface: {}", name);
+					log.debug("ignoring self-reference: {}", name);
+				}
+				else
+				if (scope==null)
+				{
+					log.debug("class/interface: {} (unqualified)", name);
 					maybeAddUnqualifiedClassName(n.getName());
+				}
+				else
+				{
+					final
+					String fullyQualified=scope.toString()+'.'+name;
+
+					log.debug("class/interface: {} (full)", fullyQualified);
+					addFullyQualifiedClassName(fullyQualified);
 				}
 			}
 		};
 
 		typeVisitor.visit(cu, null);
 
-		if (outputStream!=null)
+		if (outputStream != null)
 		{
 			printTo(outputStream);
 		}
@@ -251,10 +277,40 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	}
 
 	private
+	void maybeUndoVisit(ClassOrInterfaceType type)
+	{
+		final
+		ClassOrInterfaceType scope=type.getScope();
+
+		if (scope==null)
+		{
+			maybeUndoUnqualifiedIdentifier(type.getName());
+		}
+		else
+		{
+			maybeUnfoFullyQualifiedIdentifier(scope.toString()+'.'+type.getName());
+		}
+	}
+
+	private
+	Set<String> extractRelevantTypeNames(CompilationUnit cu)
+	{
+		final
+		Set<String> retval = new HashSet<>();
+
+		for (TypeDeclaration typeDeclaration : cu.getTypes())
+		{
+			retval.add(typeDeclaration.getName());
+		}
+
+		return retval;
+	}
+
+	private
 	void printTo(OutputStream outputStream)
 	{
 		final
-		PrintStream out=new PrintStream(outputStream);
+		PrintStream out = new PrintStream(outputStream);
 
 		try
 		{
@@ -316,10 +372,41 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 		}
 	}
 
-	private <M>
+	private
+	void maybeUndoUnqualifiedIdentifier(String name)
+	{
+		maybeUnfoFullyQualifiedIdentifier(packageName+'.'+name);
+	}
+
+	private
+	void maybeUnfoFullyQualifiedIdentifier(String name)
+	{
+		final
+		JavaReference javaReference = byFullyQualifiedName.remove(name);
+
+		log.debug("undo-full: {} -> {}", name, javaReference);
+
+		if (javaReference!=null)
+		{
+			if (!javaReference.getPackageName().equals(packageName))
+			{
+				exampleByPackageName.remove(javaReference.getPackageName());
+				errantPackageNames.add(javaReference.getPackageName());
+			}
+
+			references.remove(javaReference);
+			byIdentifier.remove(javaReference.getClassName());
+		}
+	}
+
+	private
+	Set<String> errantPackageNames = new HashSet<>();
+
+	private
+	<M>
 	Collection<M> notNull(Collection<M> c)
 	{
-		if (c==null)
+		if (c == null)
 		{
 			return Collections.emptyList();
 		}
@@ -336,13 +423,13 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	private
 	String classNameToJavaFileSubPath(String packageAndClassName)
 	{
-		return packageAndClassName.replaceAll("\\.", "/")+".java";
+		return packageAndClassName.replaceAll("\\.", "/") + ".java";
 	}
 
 	private
 	boolean hasMatchingSelfFile(String subPath)
 	{
-		if (self==null)
+		if (self == null)
 		{
 			return false;
 		}
@@ -356,7 +443,7 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	boolean exists(File directory, String subPath)
 	{
 		final
-		File file=new File(directory, subPath);
+		File file = new File(directory, subPath);
 
 		if (file.exists())
 		{
@@ -389,13 +476,13 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	{
 		if (byFullyQualifiedName.containsKey(packageAndClass))
 		{
-			throw new IllegalStateException("already added: '"+packageAndClass+"'");
+			throw new IllegalStateException("already added: '" + packageAndClass + "'");
 		}
 
 		log.debug("add: {} / {}", javaReferenceType, packageAndClass);
 
 		final
-		JavaReference javaReference=new JavaReference(javaReferenceType, packageAndClass);
+		JavaReference javaReference = new JavaReference(javaReferenceType, packageAndClass);
 
 		references.add(javaReference);
 		byIdentifier.put(javaReference.getClassName(), javaReference);
@@ -411,10 +498,10 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	{
 		if (!self.isDirectory())
 		{
-			throw new IllegalArgumentException("not a directory: "+self);
+			throw new IllegalArgumentException("not a directory: " + self);
 		}
 
-		this.self=self;
+		this.self = self;
 	}
 
 	private
@@ -423,17 +510,17 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	public
 	void setSiblingBase(File siblingBase)
 	{
-		this.siblingBase=siblingBase;
-		this.siblingDirectories=null;
+		this.siblingBase = siblingBase;
+		this.siblingDirectories = null;
 	}
 
 	private
-	String sourcePath="src/main/java";
+	String sourcePath = "src/main/java";
 
 	public
 	void setSourcePath(String sourcePath)
 	{
-		this.sourcePath=sourcePath;
+		this.sourcePath = sourcePath;
 	}
 
 	private
@@ -442,11 +529,11 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	public
 	List<File> getSiblingDirectories()
 	{
-		if (siblingDirectories==null)
+		if (siblingDirectories == null)
 		{
-			siblingDirectories=new ArrayList<>();
+			siblingDirectories = new ArrayList<>();
 
-			if (siblingBase!=null)
+			if (siblingBase != null)
 			{
 				for (File file : notNull(siblingBase.listFiles()))
 				{
@@ -464,7 +551,7 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	private
 	File[] notNull(File[] files)
 	{
-		if (files==null)
+		if (files == null)
 		{
 			return new File[0];
 		}
@@ -482,16 +569,15 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 		{
 			log.trace("seen: {}", name);
 		}
-		else
-		if (JavaSystemClasses.getInstance().contains("java.lang."+name))
+		else if (JavaSystemClasses.getInstance().contains("java.lang." + name))
 		{
 			log.debug("implicit/system: {}", name);
-			addReference(SYSTEM, "java.lang."+name);
+			addReference(SYSTEM, "java.lang." + name);
 		}
 		else
 		{
 			log.debug("implicit/package: {}", name);
-			addReference(PACKAGE, packageName+"."+name);
+			addReference(PACKAGE, packageName + "." + name);
 		}
 	}
 
@@ -504,11 +590,11 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 		{
 			if (args.length >= 1)
 			{
-				inputStream=new FileInputStream(args[0]);
+				inputStream = new FileInputStream(args[0]);
 			}
 			else
 			{
-				inputStream=System.in;
+				inputStream = System.in;
 			}
 		}
 
@@ -517,39 +603,39 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 		{
 			if (args.length >= 2)
 			{
-				outputStream=new FileOutputStream(args[1]);
+				outputStream = new FileOutputStream(args[1]);
 			}
 			else
 			{
-				outputStream=System.out;
+				outputStream = System.out;
 			}
 		}
 
 		final
-		JavaFileReferences javaFileReferences=new JavaFileReferences(inputStream, outputStream);
+		JavaFileReferences javaFileReferences = new JavaFileReferences(inputStream, outputStream);
 
 		final
-		String self=System.getProperty("SELF");
+		String self = System.getProperty("SELF");
 		{
-			if (self!=null)
+			if (self != null)
 			{
 				javaFileReferences.setSelf(new File(self));
 			}
 		}
 
 		final
-		String siblingBase=System.getProperty("SIBLING_BASE");
+		String siblingBase = System.getProperty("SIBLING_BASE");
 		{
-			if (siblingBase!=null)
+			if (siblingBase != null)
 			{
 				javaFileReferences.setSiblingBase(new File(siblingBase));
 			}
 		}
 
 		final
-		String sourcePath=System.getProperty("SOURCE_PATH");
+		String sourcePath = System.getProperty("SOURCE_PATH");
 		{
-			if (sourcePath!=null)
+			if (sourcePath != null)
 			{
 				javaFileReferences.setSourcePath(sourcePath);
 			}
@@ -557,4 +643,30 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 
 		javaFileReferences.run();
 	}
+
+	/*
+	Junk below this line is for testing... that the class should be able to operate on it's own
+	source file.
+	 */
+
+	enum InnerEnumTesting
+	{
+		ALPHA,
+		BETA,
+		GAMMA
+	}
+
+	class InnerClassTesting
+	{
+		JavaFileReferences selfReference;
+
+		void FunctionName()
+		{
+			Class fullyQualified = java.util.concurrent.TimeoutException.class;
+			Class field = Integer.TYPE;
+			Class fullyQualifiedField = java.lang.Integer.TYPE;
+			String functionOfFieldName = JavaReferenceType.PACKAGE.toString();
+		}
+	}
+
 }
