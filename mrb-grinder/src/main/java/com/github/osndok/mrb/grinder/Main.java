@@ -3,12 +3,16 @@ package com.github.osndok.mrb.grinder;
 import com.github.osndok.mrb.grinder.api.SpecShard;
 import com.github.osndok.mrb.grinder.api.WarFileInfo;
 import com.github.osndok.mrb.grinder.api.WarProcessingPlugin;
-import com.github.osndok.mrb.grinder.rpm.*;
+import com.github.osndok.mrb.grinder.rpm.RPM;
+import com.github.osndok.mrb.grinder.rpm.RPMManifold;
+import com.github.osndok.mrb.grinder.rpm.RPMRegistry;
+import com.github.osndok.mrb.grinder.rpm.RPMRepo;
+import com.github.osndok.mrb.grinder.rpm.RPMSpec;
 import com.github.osndok.mrb.grinder.util.Exec;
 import com.github.osndok.mrb.grinder.util.SpecSourceAllocatorImpl;
 import com.github.osndok.mrb.grinder.webapps.HJLinkedWebapp;
-import com.github.osndok.mrb.grinder.webapps.TomcatUnlinkedWebapp;
 import com.github.osndok.mrb.grinder.webapps.HJUnlinkedWebapp;
+import com.github.osndok.mrb.grinder.webapps.TomcatUnlinkedWebapp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -19,7 +23,15 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Given a JAR file (or eventually a WAR file) grind it (and it's dependencies) into

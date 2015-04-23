@@ -1,6 +1,5 @@
 package com.github.osndok.mrb.plugin.b;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
 

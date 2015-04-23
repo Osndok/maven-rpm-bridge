@@ -1,6 +1,14 @@
 package javax.module.tools;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;

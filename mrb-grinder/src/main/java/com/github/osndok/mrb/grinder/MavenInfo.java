@@ -3,7 +3,6 @@ package com.github.osndok.mrb.grinder;
 import com.github.osndok.mrb.grinder.util.MavenDepRange;
 
 import java.io.Serializable;
-import java.util.Properties;
 
 /**
  * Created by robert on 10/30/14.

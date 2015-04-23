@@ -9,8 +9,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.module.ModuleKey;
-import java.io.*;
-import java.sql.*;
+import java.io.File;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * The "Registry" is currently a flat file stashed in the target rpm repo that contains all the

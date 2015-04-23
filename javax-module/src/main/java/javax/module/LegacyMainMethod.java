@@ -1,6 +1,10 @@
 package javax.module;
 
-import java.lang.annotation.*;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * This indicates that even though a main(String[] args) method is supplied, it is for backwards

@@ -1,5 +1,17 @@
 package com.github.osndok.mrb.runner;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.ImportDeclaration;
+import com.github.javaparser.ast.PackageDeclaration;
+import com.github.javaparser.ast.TypeParameter;
+import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.module.LegacyMainMethod;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,31 +26,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 
-import com.github.javaparser.JavaParser;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.ImportDeclaration;
-import com.github.javaparser.ast.PackageDeclaration;
-import com.github.javaparser.ast.TypeParameter;
-import com.github.javaparser.ast.body.TypeDeclaration;
-import com.github.javaparser.ast.type.ClassOrInterfaceType;
-import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.module.LegacyMainMethod;
-
+import static com.github.osndok.mrb.runner.JavaReferenceType.LIBRARY;
 import static com.github.osndok.mrb.runner.JavaReferenceType.PACKAGE;
 import static com.github.osndok.mrb.runner.JavaReferenceType.SELF;
 import static com.github.osndok.mrb.runner.JavaReferenceType.SIBLING;
 import static com.github.osndok.mrb.runner.JavaReferenceType.STATIC;
 import static com.github.osndok.mrb.runner.JavaReferenceType.SYSTEM;
-import static com.github.osndok.mrb.runner.JavaReferenceType.LIBRARY;
 
 /**
  * Given a special java file as input (that conforms to the prescribed *subset* of the

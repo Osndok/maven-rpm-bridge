@@ -4,10 +4,11 @@ import com.github.osndok.mrb.grinder.MavenInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.module.Dependency;
 import javax.module.ModuleKey;
-import java.io.*;
-import java.util.HashMap;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;

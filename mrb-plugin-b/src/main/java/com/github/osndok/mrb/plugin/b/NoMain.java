@@ -1,6 +1,5 @@
 package com.github.osndok.mrb.plugin.b;
 
-import com.github.osndok.mrb.plugin.test.Main;
 import com.github.osndok.mrb.plugin.test.NeedsMainArgument;
 
 import javax.module.Plugin;

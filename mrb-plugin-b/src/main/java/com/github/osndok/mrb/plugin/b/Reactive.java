@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 
-import static java.lang.Boolean.*;
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 
 /**
  * Created by robert on 4/8/15.

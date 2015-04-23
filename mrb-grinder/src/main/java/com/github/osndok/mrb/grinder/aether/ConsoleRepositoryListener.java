@@ -7,9 +7,11 @@ package com.github.osndok.mrb.grinder.aether;
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  *******************************************************************************/
-import java.io.PrintStream;
+
 import org.sonatype.aether.AbstractRepositoryListener;
 import org.sonatype.aether.RepositoryEvent;
+
+import java.io.PrintStream;
 
 /**
  * A simplistic repository listener that logs events to the console.

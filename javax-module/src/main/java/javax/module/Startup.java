@@ -1,15 +1,10 @@
 package javax.module;
 
-import javax.module.tools.Convert;
 import javax.module.tools.FuzzyEntryPoint;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.math.BigInteger;
 import java.net.URL;
 import java.text.ParseException;
 

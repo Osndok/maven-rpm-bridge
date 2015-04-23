@@ -3,8 +3,6 @@ package javax.module;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import javax.swing.*;
-
 /**
  * Created by robert on 4/7/15.
  */
