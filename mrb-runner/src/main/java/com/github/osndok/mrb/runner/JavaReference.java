@@ -35,22 +35,36 @@ class JavaReference extends Tuple3<JavaReferenceType, String, String> implements
 		super(aStatic, getPackageName(packageAndClassName), getClassName(packageAndClassName));
 	}
 
-	private static
+	public static
 	String getPackageName(String packageAndClassName)
 	{
 		final
 		int lastPeriod=packageAndClassName.lastIndexOf('.');
 
-		return packageAndClassName.substring(0, lastPeriod);
+		if (lastPeriod>0)
+		{
+			return packageAndClassName.substring(0, lastPeriod);
+		}
+		else
+		{
+			return null;
+		}
 	}
 
-	private static
+	public static
 	String getClassName(String packageAndClassName)
 	{
 		final
 		int lastPeriod=packageAndClassName.lastIndexOf('.');
 
-		return packageAndClassName.substring(lastPeriod+1);
+		if (lastPeriod>0)
+		{
+			return packageAndClassName.substring(lastPeriod + 1);
+		}
+		else
+		{
+			return packageAndClassName;
+		}
 	}
 
 	public
