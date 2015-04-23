@@ -1,6 +1,5 @@
 package com.github.osndok.mrb.runner;
 
-import java.beans.MethodDescriptor;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -12,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,11 +23,15 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.PackageDeclaration;
+import com.github.javaparser.ast.TypeParameter;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.type.ReferenceType;
+import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +77,12 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 
 	private final
 	Map<String, JavaReference> byIdentifier = new HashMap<>();
+
+	private final
+	Map<String, JavaReference> byFullyQualifiedName = new HashMap<>();
+
+	private final
+	Map<String, JavaReference> exampleByPackageName = new HashMap<>();
 
 	public
 	Set<JavaReference> getReferences()
@@ -171,6 +181,11 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 			if (importDeclaration.isStatic())
 			{
 				addReference(STATIC, name);
+
+				final
+				String fullyQualified=JavaReference.getPackageName(name);
+
+				addFullyQualifiedClassName(fullyQualified);
 			}
 			else
 			if (javaSystemClasses.contains(name))
@@ -183,10 +198,48 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 			}
 		}
 
-		for (TypeDeclaration typeDeclaration : notNull(cu.getTypes()))
+		final
+		Set<String> genericsPlaceholderNames=new HashSet<>();
+
+		final
+		VoidVisitorAdapter typeVisitor=new VoidVisitorAdapter()
 		{
-			scanTypeDeclaration(typeDeclaration);
-		}
+			@Override
+			public
+			void visit(TypeParameter n, Object arg)
+			{
+				final
+				String name=n.getName();
+
+				log.debug("generic-type: {}", name);
+
+				genericsPlaceholderNames.add(name);
+
+				super.visit(n, arg);
+			}
+
+			@Override
+			public
+			void visit(ClassOrInterfaceType n, Object arg)
+			{
+				super.visit(n, arg);
+
+				final
+				String name=n.getName();
+
+				if (genericsPlaceholderNames.contains(name))
+				{
+					log.debug("ignoring generic type: {}", name);
+				}
+				else
+				{
+					log.trace("class/interface: {}", name);
+					maybeAddUnqualifiedClassName(n.getName());
+				}
+			}
+		};
+
+		typeVisitor.visit(cu, null);
 
 		if (outputStream!=null)
 		{
@@ -219,6 +272,27 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	private
 	void addFullyQualifiedClassName(String name)
 	{
+		if (byFullyQualifiedName.containsKey(name))
+		{
+			//cut down on logging noise (file guesses)...
+			return;
+		}
+
+		final
+		String packageName = JavaReference.getPackageName(name);
+
+		final
+		JavaReference example = exampleByPackageName.get(packageName);
+
+		if (example!=null)
+		{
+			//avoid unnecessary file accesses & guessing...
+			//we presume the same package always implies the same reference type
+			//(e.g. classes in jars won't be overridden by this module)
+			addReference(example.getReferenceType(), name);
+			return;
+		}
+
 		final
 		String subPath = classNameToJavaFileSubPath(name);
 
@@ -232,7 +306,7 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 			addReference(SIBLING, name);
 		}
 		else
-		if (name.startsWith(packageName))
+		if (name.startsWith(this.packageName))
 		{
 			addReference(PACKAGE, name);
 		}
@@ -255,6 +329,10 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 		}
 	}
 
+	/**
+	 * @param packageAndClassName - e.g. "java.lang.Object"
+	 * @return e.g. "java/lang/Object.java"
+	 */
 	private
 	String classNameToJavaFileSubPath(String packageAndClassName)
 	{
@@ -297,7 +375,7 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	{
 		for (File directory : getSiblingDirectories())
 		{
-			if (exists(directory, subPath))
+			if (exists(new File(directory, sourcePath), subPath))
 			{
 				return true;
 			}
@@ -309,6 +387,11 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	private
 	void addReference(JavaReferenceType javaReferenceType, String packageAndClass)
 	{
+		if (byFullyQualifiedName.containsKey(packageAndClass))
+		{
+			throw new IllegalStateException("already added: '"+packageAndClass+"'");
+		}
+
 		log.debug("add: {} / {}", javaReferenceType, packageAndClass);
 
 		final
@@ -316,6 +399,8 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 
 		references.add(javaReference);
 		byIdentifier.put(javaReference.getClassName(), javaReference);
+		byFullyQualifiedName.put(packageAndClass, javaReference);
+		exampleByPackageName.put(javaReference.getPackageName(), javaReference);
 	}
 
 	private
@@ -389,87 +474,6 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 		}
 	}
 
-	/**
-	 * Reads the body of a TypeDeclaration (which can be a class, enum, interface, etc) for
-	 * references to other classes/types.
-	 *
-	 * @param typeDeclaration
-	 */
-	private
-	void scanTypeDeclaration(TypeDeclaration typeDeclaration)
-	{
-		log.debug("scan: {} / {}", typeDeclaration.getClass(), typeDeclaration.getName());
-
-		scanAnnotations(typeDeclaration.getAnnotations());
-
-		for (BodyDeclaration bodyDeclaration : typeDeclaration.getMembers())
-		{
-			log.trace("member: {}", bodyDeclaration.getClass());
-			scanAnnotations(bodyDeclaration.getAnnotations());
-
-			if (bodyDeclaration instanceof FieldDeclaration)
-			{
-				scanFieldDeclaration((FieldDeclaration)bodyDeclaration);
-			}
-			else
-			if (bodyDeclaration instanceof MethodDeclaration)
-			{
-				scanMethodDeclaration((MethodDeclaration)bodyDeclaration);
-			}
-			else
-			if (bodyDeclaration instanceof TypeDeclaration)
-			{
-				log.debug("recurse");
-				scanTypeDeclaration((TypeDeclaration)bodyDeclaration);
-			}
-		}
-	}
-
-	private
-	void scanFieldDeclaration(FieldDeclaration bodyDeclaration)
-	{
-		//TODO: fieldType
-		//TODO: types used in initializer
-	}
-
-	private
-	void scanMethodDeclaration(MethodDeclaration bodyDeclaration)
-	{
-		//TODO: xxx
-	}
-
-	private
-	void scanAnnotations(List<AnnotationExpr> annotations)
-	{
-		for (AnnotationExpr annotationExpr : annotations)
-		{
-			final
-			String name=annotationExpr.getName().getName();
-
-			if (name.indexOf('.') > 0)
-			{
-				log.debug("annotation (with package): {}", name);
-				addFullyQualifiedClassName(name);
-			}
-			else
-			if (isPrimitiveAnnotation(name))
-			{
-				log.debug("annotation (built-in / primitive): {}", name);
-			}
-			else
-			{
-				log.debug("annotation (identifier): {}", name);
-				maybeAddUnqualifiedClassName(name);
-			}
-
-			for (Node node : annotationExpr.getChildrenNodes())
-			{
-				log.warn("unhandled annotation-child: {}", node);
-				//TODO: handle types found in annotation arguments... right here?
-			}
-		}
-	}
-
 	private
 	void maybeAddUnqualifiedClassName(String name)
 	{
@@ -489,25 +493,6 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 			log.debug("implicit/package: {}", name);
 			addReference(PACKAGE, packageName+"."+name);
 		}
-	}
-
-	private
-	boolean isPrimitiveAnnotation(String name)
-	{
-		/*
-		http://en.wikipedia.org/wiki/Java_annotation#Built-in_annotations
-		 */
-		return name.equals("Override")
-			|| name.equals("Deprecated")
-			|| name.equals("SuppressWarnings")
-			|| name.equals("SafeVarargs")
-			|| name.equals("FunctionalInterface")
-			|| name.equals("Retention")
-			|| name.equals("Documented")
-			|| name.equals("Target")
-			|| name.equals("Inherited")
-			|| name.equals("Repeatable")
-			;
 	}
 
 	@LegacyMainMethod
