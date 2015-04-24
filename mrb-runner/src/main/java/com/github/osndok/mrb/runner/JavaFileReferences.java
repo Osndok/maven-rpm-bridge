@@ -42,6 +42,8 @@ import static com.github.osndok.mrb.runner.JavaReferenceType.SYSTEM;
  * Given a special java file as input (that conforms to the prescribed *subset* of the
  * java language) and a "known" list of system classes, generate a usable list of all
  * classes and libraries (by package) that this java file depends on.
+ *
+ * TODO: this class should be able to optionally detect ENTRY_POINT references too.
  */
 public
 class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>

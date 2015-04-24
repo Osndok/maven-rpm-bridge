@@ -56,4 +56,11 @@ enum JavaReferenceType
 	 * same module or 'jar' archive.
 	 */
 	PACKAGE,
+
+	/**
+	 * Unlike the other reference types, which indicate a dependency, this "reference"
+	 * indicates a Callable/Runnable/main-method that can serve as a useful entry point
+	 * (or start of execution; like a public main method) into this code module.
+	 */
+	ENTRY_POINT,
 }
