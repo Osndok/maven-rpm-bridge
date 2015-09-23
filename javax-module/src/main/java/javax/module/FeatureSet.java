@@ -21,6 +21,8 @@ import java.util.Map;
  * By convention, only lowercase keys are used in a featureset, as it *is* case sensitive.
  *
  * e.g. "java(7),maven(3.2),centos(6.5),gcc(4.7),rpmbuild(4.9),capillary-ppw(32.11)"
+ *
+ * TODO: it would be nice to support an exact-match mechanism, such as "java(=7)" not matching java 6 or java 8.
  */
 public final
 class FeatureSet
