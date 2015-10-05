@@ -14,6 +14,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 
 /**
@@ -996,8 +997,10 @@ class FuzzyEntryPoint
 	boolean wellKnownMethodIsExpectedToBeUseless(String name)
 	{
 		//I find it highly unlikely that someone would find use for the synchronization functions
-		//so long as we all calling into a new vm.
+		//so long as we are launching a new vm.
 		return name.equals("notify") || name.equals("notify-all");
+
+		//NB: "wait()", on the other-hand, *could* be potentially useful... I think...
 	}
 
 	//TODO: we *could* expand this logic to deeply inspect argument types, and thus pick out which method to use.
@@ -1108,7 +1111,7 @@ class FuzzyEntryPoint
 	{
 		explicitShortOptionsByCode = new HashMap<>();
 		implicitShortOptionsByCode = new HashMap<>();
-		primaryOptions = new HashMap<>();
+		primaryOptions = new TreeMap<>();
 		backupOptions = new HashMap<>();
 
 		for (Method method : getAllPublicMethods())
