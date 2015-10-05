@@ -477,6 +477,41 @@ class FuzzyEntryPoint
 
 			if (instance==null)
 			{
+				//If there is no "no-args" constructor, maybe we can settle for any "empty" varargs constructor?
+				for (Constructor constructor : aClass.getConstructors())
+				{
+					if (constructor.isVarArgs() && constructor.getParameterTypes().length==1)
+					{
+						try
+						{
+							final
+							Class componentType = constructor.getParameterTypes()[0].getComponentType();
+
+							final
+							Object emptyArray = Array.newInstance(componentType, 0);
+
+							instance=constructor.newInstance(emptyArray);
+						}
+						catch (InvocationTargetException e)
+						{
+							Throwable t=e.getCause();
+							t.printStackTrace();
+							System.exit(1);
+						}
+						catch (RuntimeException e)
+						{
+							throw e;
+						}
+						catch (Exception e)
+						{
+							throw new RuntimeException(e);
+						}
+					}
+				}
+			}
+
+			if (instance==null)
+			{
 				doUsageAndExit();
 			}
 		}
