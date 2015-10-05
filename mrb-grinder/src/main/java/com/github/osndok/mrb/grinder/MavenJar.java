@@ -613,10 +613,17 @@ class MavenJar
 			return false;
 		}
 
+		if (!method.isPublic())
+		{
+			log.debug("not a public constructor method...");
+			return false;
+		}
+
 		for (Type type : method.getArgumentTypes())
 		{
 			if (!isConvertableType(type))
 			{
+				log.info("fails; unable to convert: {}", type);
 				return false;
 			}
 		}
@@ -640,7 +647,9 @@ class MavenJar
 	boolean isConvertableArrayElementType(Type type)
 	{
 		//ATM only arrays of primitives are supported.
-		return (type instanceof BasicType);
+		//return (type instanceof BasicType);
+		//... but that is too restrictive now (e.g. with varargs), but this might be too loose:
+		return isConvertableType(type);
 	}
 
 	private static final

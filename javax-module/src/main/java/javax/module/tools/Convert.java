@@ -9,8 +9,10 @@ import java.io.FileReader;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -60,14 +62,15 @@ class Convert
 		return supportedNonPrimitiveTypeSet.contains(aClass);
 	}
 
+	@Deprecated
 	public static
 	Object stringToBasicObject(String stringValue, Class targetType)
 	{
-		return stringToBasicObject(stringValue, targetType, "");
+		return stringToBasicObject(stringValue, targetType, null);
 	}
 
 	public static
-	Object stringToBasicObject(String stringValue, Class targetType, String context)
+	Object stringToBasicObject(String stringValue, Class targetType, Object[] contextArrayOrNull)
 	{
 		//TODO: primitive types cannot be null, can probably give a much better message therefor.
 		if (stringValue.equals("null")) return null;
@@ -82,6 +85,9 @@ class Convert
 			}
 			catch (IllegalArgumentException e)
 			{
+				final
+				String context=getContextFrom(contextArrayOrNull);
+
 				throw new IllegalArgumentException(context+targetType.getSimpleName()+" parameter cannot be '"+stringValue+"', valid values are: "+ enumValuesToHumanReadableCsv(targetType));
 			}
 		}
@@ -225,6 +231,27 @@ class Convert
 		}
 
 		throw new UnsupportedOperationException(targetType+" constructor parameters are not supported");
+	}
+
+	private static
+	String getContextFrom(Object[] contextArrayOrNull)
+	{
+		if (contextArrayOrNull==null)
+		{
+			return "";
+		}
+		else
+		{
+			final
+			StringBuilder sb=new StringBuilder();
+
+			for (Object o : contextArrayOrNull)
+			{
+				sb.append(o);
+			}
+
+			return sb.toString();
+		}
 	}
 
 	/*
@@ -393,4 +420,52 @@ class Convert
 	}
 
 	private Convert() {}
+
+	public static
+	Object stringToArray(String s, Class parameterType, Object[] context)
+	{
+		//NB: CSV seems to be the most common for command-line flags
+		//NB: ...but this is *also* called for each array argument.
+		//e.g. "do-something --with=a,b,c --but-not=d,e,f other arguments here"
+		//TODO: support "literal" arrays, like "[a,b,c]", or a better parsing mechanic.
+		final
+		String[] args = s.split(",");
+
+		final
+		Class componentType = parameterType.getComponentType();
+
+		final
+		Object retval=Array.newInstance(componentType, args.length);
+
+		int i=0;
+
+		for (String arg : args)
+		{
+			Array.set(retval, i, stringToBasicObject(arg, componentType, context));
+			i++;
+		}
+
+		return retval;
+	}
+
+	static
+	Object dumpRemainingVarargs(List<String> arguments, int i, Class parameterType, Object[] context)
+	{
+		final
+		Class componentType = parameterType.getComponentType();
+
+		final
+		int l=arguments.size()-i;
+
+		final
+		Object retval=Array.newInstance(componentType, l);
+
+		for (int j=0; j<l; j++)
+		{
+			Array.set(retval, j, stringToBasicObject(arguments.get(j+i), componentType, context));
+		}
+
+		return retval;
+
+	}
 }

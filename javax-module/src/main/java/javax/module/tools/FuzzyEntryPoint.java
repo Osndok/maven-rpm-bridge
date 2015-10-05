@@ -10,6 +10,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,9 @@ import java.util.concurrent.Callable;
  * (5) call the run() or call() method, as appropriate, and finally
  * (6) convert the result to something that can be used from the command line (if from a call() method).
  *
+ * Also known as: "let's shoehorn all the nasty command line parameter and flag handling into one place
+ * so we never have to duplicate it in another main() method again."
+ *
  * Created by robert on 4/2/15.
  */
 public
@@ -36,7 +40,18 @@ class FuzzyEntryPoint
 	 * Since the return value is so much easier to check (e.g. for shell scripts), this will default
 	 * to true unless an environment variable or system property indicates otherwise.
 	 */
-	private static final boolean INTERPRETIVE_EXIT_STATUS=SystemPropertyOrEnvironment.getBoolean("INTERPRETIVE_EXIT_STATUS", true);
+	private static final boolean INTERPRETIVE_EXIT_STATUS = SystemPropertyOrEnvironment.getBoolean("INTERPRETIVE_EXIT_STATUS",
+																														 true);
+	private static
+	Comparator<? super Method> byMethodName = new Comparator<Method>()
+	{
+		@Override
+		public
+		int compare(Method method, Method method2)
+		{
+			return method.getName().compareTo(method2.getName());
+		}
+	};
 
 	public static
 	boolean supports(Class aClass)
@@ -92,8 +107,7 @@ class FuzzyEntryPoint
 				{
 					constructorArguments.add(argOrOption);
 				}
-				else
-				if (argOrOption.charAt(0) == '-')
+				else if (argOrOption.charAt(0) == '-')
 				{
 					if (argOrOption.length() == 1)
 					{
@@ -101,10 +115,9 @@ class FuzzyEntryPoint
 						constructorArguments.add(argOrOption);
 						continue;
 					}
-					else
-					if (argOrOption.length()==2 && argOrOption.charAt(1)=='-')
+					else if (argOrOption.length() == 2 && argOrOption.charAt(1) == '-')
 					{
-						noMoreOptions=true;
+						noMoreOptions = true;
 						continue;
 					}
 					else
@@ -115,7 +128,7 @@ class FuzzyEntryPoint
 						Method method;
 
 						final
-						List<String> methodArguments;
+						List<Object> methodArguments;
 
 						final
 						int equals=argOrOption.indexOf('=');
@@ -128,22 +141,39 @@ class FuzzyEntryPoint
 							String methodArg=argOrOption.substring(equals+1);
 
 							method=onlyMatchingOneArgumentMethod(methodName);
-							methodArguments=Collections.singletonList(methodArg);
+							methodArguments=(List)Collections.singletonList(methodArg);
 						}
 						else
 						{
+							final
 							String methodName=argOrOption.substring(2);
+
 							method=onlyMatchingMethod(methodName);
 
 							//Maybe consume some extra arguments...
-							//TODO: support varargs in command line options
-							int numMethodArguments=method.getParameterTypes().length;
 
-							methodArguments=new ArrayList<>(numMethodArguments);
+							final
+							Class[] parameterTypes = method.getParameterTypes();
 
-							for (int k=0; k<numMethodArguments; k++)
+							methodArguments=new ArrayList<>(parameterTypes.length);
+
+							for (Class parameterType : parameterTypes)
 							{
-								methodArguments.add(argumentsAndCommandLineOptions[++i]);
+								//NB: CONSUMING additional arguments (e.g. if we wanted to support '=' separation...)
+								final
+								String arg=argumentsAndCommandLineOptions[++i];
+
+								final
+								Object[] context = new Object[]{methodName," argument #",i,": "};
+
+								if (parameterType.isArray())
+								{
+									methodArguments.add(Convert.stringToArray(arg, parameterType, context));
+								}
+								else
+								{
+									methodArguments.add(Convert.stringToBasicObject(arg, parameterType, context));
+								}
 							}
 						}
 
@@ -170,15 +200,32 @@ class FuzzyEntryPoint
 							final
 							Method method=onlyMatchingOrZeroArgumentMethod(c, i, argOrOption);
 
-							//We will consume ahead as many arguments as needed for this function
-							int numMethodArguments=method.getParameterTypes().length;
+							final
+							String methodName=method.getName();
 
 							final
-							List<String> methodArguments=new ArrayList<>(numMethodArguments);
+							Class[] parameterTypes = method.getParameterTypes();
 
-							for (int k=0; k<numMethodArguments; k++)
+							final
+							List<Object> methodArguments=new ArrayList<>(parameterTypes.length);
+
+							for (Class parameterType : parameterTypes)
 							{
-								methodArguments.add(argumentsAndCommandLineOptions[++i]);
+								//NB: CONSUMING additional arguments (e.g. if we wanted to support '=' separation...)
+								final
+								String arg=argumentsAndCommandLineOptions[++i];
+
+								final
+								Object[] context = new Object[]{methodName," argument #",i,": "};
+
+								if (parameterType.isArray())
+								{
+									methodArguments.add(Convert.stringToArray(arg, parameterType, context));
+								}
+								else
+								{
+									methodArguments.add(Convert.stringToBasicObject(arg, parameterType, context));
+								}
 							}
 
 							if (Modifier.isStatic(method.getModifiers()))
@@ -198,7 +245,8 @@ class FuzzyEntryPoint
 				}
 			}
 
-			//TODO: support varargs in constructors
+			boolean hasPublicConstructor=false;
+
 			//Locate first constructor matching number (and type?) of *convertable* arguments.
 			Constructor constructor=null;
 			{
@@ -212,6 +260,8 @@ class FuzzyEntryPoint
 					{
 						continue;
 					}
+
+					hasPublicConstructor=true;
 
 					final
 					Class[] parameterTypes = possibleMatch.getParameterTypes();
@@ -232,6 +282,55 @@ class FuzzyEntryPoint
 						}
 					}
 				}
+
+				final
+				boolean exactConstructorMatch=(constructor!=null);
+
+				if (constructor==null)
+				{
+					if (!hasPublicConstructor)
+					{
+						System.err.println(aClass.toString()+" has no public constructors");
+						System.exit(1);
+					}
+
+					//No luck? Now let's see if there is a varargs constructor that matches.
+					for (Constructor possibleMatch : aClass.getConstructors())
+					{
+						if (!Modifier.isPublic(possibleMatch.getModifiers()))
+						{
+							continue;
+						}
+
+						final
+						Class[] parameterTypes = possibleMatch.getParameterTypes();
+
+						if (possibleMatch.isVarArgs())
+						{
+							_kludge_incompatibleType=null;
+
+							if (containsOnlyPrimitiveAndConvertableArrayedTypes(parameterTypes))
+							{
+								if (constructor==null)
+								{
+									constructor = possibleMatch;
+								}
+								else
+								{
+									System.err.println("WARNING: this version of FuzzyEntryPoint cannot descriminate between multiple varargs constructors");
+								}
+							}
+							else
+							if (mostPlausibleError==null)
+							{
+								mostPlausibleError=_kludge_incompatibleType;
+							}
+						}
+					}
+				}
+
+				final
+				boolean varargsMatch=(!exactConstructorMatch && constructor!=null);
 
 				if (constructor==null)
 				{
@@ -264,11 +363,30 @@ class FuzzyEntryPoint
 
 				for (int i=0; i<l; i++)
 				{
-					//TODO: it would be nice if we did not have to construct strings that were never used...
 					final
-					String context=aClass.getSimpleName()+" constructor argument #"+i+": ";
+					Object[] context=new Object[]{aClass.getSimpleName()," constructor argument #",i,": "};
 
-					constructorParameters[i] = Convert.stringToBasicObject(constructorArguments.get(i), parameterTypes[i], context);
+					if (parameterTypes[i].isArray())
+					{
+						if (constructor.isVarArgs() && i==l-1)
+						{
+							//If we are on the 'last parameter' and it is an array type, then we are probably dealing with a varargs
+							//In which case, just push all the remaining parameters into a single array
+							constructorParameters[i] = Convert.dumpRemainingVarargs(constructorArguments, i,
+																				parameterTypes[i], context);
+
+						}
+						else
+						{
+							constructorParameters[i] = Convert.stringToArray(constructorArguments.get(i),
+																				parameterTypes[i], context);
+						}
+					}
+					else
+					{
+						constructorParameters[i] = Convert.stringToBasicObject(constructorArguments.get(i),
+																				  parameterTypes[i], context);
+					}
 				}
 			}
 
@@ -514,6 +632,10 @@ class FuzzyEntryPoint
 		return false;
 	}
 
+	/**
+	 * @param parameterTypes
+	 * @return true if the given array of java types contains only supported types that can be interpreted from the command line
+	 */
 	private
 	boolean containsOnlyPrimitiveAndConvertableTypes(Class[] parameterTypes)
 	{
@@ -521,6 +643,28 @@ class FuzzyEntryPoint
 		{
 			if (!parameterType.isPrimitive() && !Convert.isSupportedType(parameterType))
 			{
+				_kludge_incompatibleType=new IllegalArgumentException(parameterType+" is not a supported parameter type");
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private
+	boolean containsOnlyPrimitiveAndConvertableArrayedTypes(Class[] parameterTypes)
+	{
+		for (Class parameterType : parameterTypes)
+		{
+			if (parameterType.isArray())
+			{
+				//System.err.println("testing "+parameterType+" falls into a test for "+parameterType.getComponentType());
+				parameterType=parameterType.getComponentType();
+			}
+
+			if (!parameterType.isPrimitive() && !Convert.isSupportedType(parameterType))
+			{
+				//System.err.println("not primitive or convertible: "+parameterType);
 				_kludge_incompatibleType=new IllegalArgumentException(parameterType+" is not a supported parameter type");
 				return false;
 			}
@@ -695,14 +839,18 @@ class FuzzyEntryPoint
 	public
 	void fabricateUsageMessage(PrintStream e)
 	{
+		boolean hasPublicConstructor=false;
+
 		for (Constructor constructor : aClass.getConstructors())
 		{
 			if (Modifier.isPublic(constructor.getModifiers()))
 			{
+				hasPublicConstructor=true;
+
 				final
 				Class[] parameterTypes = constructor.getParameterTypes();
 
-				if (containsOnlyPrimitiveAndConvertableTypes(parameterTypes))
+				if (containsOnlyPrimitiveAndConvertableArrayedTypes(parameterTypes))
 				{
 					e.print("usage: ");
 					e.print(aClass.getSimpleName());
@@ -711,13 +859,34 @@ class FuzzyEntryPoint
 					{
 						e.print(' ');
 						e.print('<');
-						e.print(parameterType.getSimpleName());
+
+						if (parameterType.isArray())
+						{
+							e.print(parameterType.getComponentType().getSimpleName());
+							e.print(",[...]");
+						}
+						else
+						{
+							e.print(parameterType.getSimpleName());
+						}
 						e.print('>');
 					}
+
+					/*
+					if (constructor.isVarArgs())
+					{
+						e.print(" [...]");
+					}
+					*/
 
 					e.println();
 				}
 			}
+		}
+
+		if (!hasPublicConstructor)
+		{
+			System.err.println(aClass.toString() + " has no public constructors; static options only.");
 		}
 
 		//NB: may throw if options are not consistent.
@@ -767,6 +936,11 @@ class FuzzyEntryPoint
 
 		for (Map.Entry<String, Method> me : primaryOptions.entrySet())
 		{
+			if (wellKnownMethodIsExpectedToBeUseless(me.getKey()))
+			{
+				continue;
+			}
+
 			e.print("\t--");
 			e.print(me.getKey());
 
@@ -781,6 +955,14 @@ class FuzzyEntryPoint
 			e.print('\t');
 			e.println(getDescription(me.getValue()));
 		}
+	}
+
+	private
+	boolean wellKnownMethodIsExpectedToBeUseless(String name)
+	{
+		//I find it highly unlikely that someone would find use for the synchronization functions
+		//so long as we all calling into a new vm.
+		return name.equals("notify") || name.equals("notify-all");
 	}
 
 	//TODO: we *could* expand this logic to deeply inspect argument types, and thus pick out which method to use.
@@ -894,14 +1076,9 @@ class FuzzyEntryPoint
 		primaryOptions = new HashMap<>();
 		backupOptions = new HashMap<>();
 
-		for (Method method : aClass.getMethods())
+		for (Method method : getAllPublicMethods())
 		{
-			if (!Modifier.isPublic(method.getModifiers()))
-			{
-				continue;
-			}
-
-			if (!containsOnlyPrimitiveAndConvertableTypes(method.getParameterTypes()))
+			if (!containsOnlyPrimitiveAndConvertableArrayedTypes(method.getParameterTypes()))
 			{
 				continue;
 			}
@@ -1020,6 +1197,41 @@ class FuzzyEntryPoint
 			{
 				System.err.println(String.format("backup: %s -> %s", me.getKey(), me.getValue().getName()));
 			}
+		}
+	}
+
+	private
+	List<Method> allPublicMethods;
+
+	private
+	List<Method> getAllPublicMethods()
+	{
+		if (allPublicMethods==null)
+		{
+			allPublicMethods = new ArrayList<>();
+			collectPublicMethods(allPublicMethods, aClass);
+			Collections.sort(allPublicMethods, byMethodName);
+		}
+		return allPublicMethods;
+	}
+
+	private
+	void collectPublicMethods(List<Method> methods, Class aClass)
+	{
+		for (Method method : aClass.getDeclaredMethods())
+		{
+			if (Modifier.isPublic(method.getModifiers()))
+			{
+				methods.add(method);
+			}
+		}
+
+		final
+		Class superclass = aClass.getSuperclass();
+
+		if (superclass!=null)
+		{
+			collectPublicMethods(methods, superclass);
 		}
 	}
 
@@ -1165,7 +1377,7 @@ class FuzzyEntryPoint
 		Object[] parameters;
 
 		public
-		Invocation(Method method, List<String> args)
+		Invocation(Method method, List<Object> args)
 		{
 			if (method == null) throw new NullPointerException("method is null");
 			if (args == null) throw new NullPointerException("method arguments list is null");
@@ -1175,19 +1387,7 @@ class FuzzyEntryPoint
 			final
 			Class[] parameterTypes = method.getParameterTypes();
 
-			final
-			int l = args.size();
-
-			parameters = new Object[l];
-
-			for (int i = 0; i < l; i++)
-			{
-				//TODO: it would be nice if we did not have to construct strings that were never used...
-				final
-				String context = method.getName() + " argument #" + i + ": ";
-
-				parameters[i] = Convert.stringToBasicObject(args.get(i), parameterTypes[i], context);
-			}
+			parameters = args.toArray(new Object[args.size()]);
 		}
 
 		public
