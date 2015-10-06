@@ -1,4 +1,4 @@
-package javax.module.tools;
+package javax.module.util;
 
 import javax.module.CommandLineOption;
 import java.io.PrintStream;

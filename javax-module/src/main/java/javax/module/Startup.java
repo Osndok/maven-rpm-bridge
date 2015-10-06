@@ -1,6 +1,6 @@
 package javax.module;
 
-import javax.module.tools.FuzzyEntryPoint;
+import javax.module.util.FuzzyEntryPoint;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;

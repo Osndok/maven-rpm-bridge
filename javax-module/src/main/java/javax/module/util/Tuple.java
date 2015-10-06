@@ -1,4 +1,4 @@
-package javax.module.tools;
+package javax.module.util;
 
 /**
  * Tuple classes are provided here to encourage interoperability between modules, and enhanced

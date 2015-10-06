@@ -1,5 +1,5 @@
 
-package javax.module.tools;
+package javax.module.util;
 
 // Copyright 2010 The Apache Software Foundation
 //
@@ -22,19 +22,23 @@ package javax.module.tools;
  * @url https://github.com/apache/tapestry-5/blob/master/tapestry-func/src/main/java/org/apache/tapestry5/func/Tuple.java
  * @param <A> - the type of the first entry
  * @param <B> - the type of the second entry
+ * @param <C> - the type of the third entry
  */
-public class Tuple2 <A, B> extends Tuple
+public class Tuple3 <A, B, C> extends Tuple
 {
 	public final A first;
 
 	public final B second;
 
+	public final C third;
+
 	public
-	Tuple2(A first, B second)
+	Tuple3(A first, B second, C third)
 	{
-		super(2);
+		super(3);
 		this.first = first;
 		this.second = second;
+		this.third = third;
 	}
 
 	/**
@@ -49,6 +53,8 @@ public class Tuple2 <A, B> extends Tuple
 		builder.append(String.valueOf(first));
 		builder.append(", ");
 		builder.append(String.valueOf(second));
+		builder.append(", ");
+		builder.append(String.valueOf(third));
 
 		extendDescription(builder);
 
@@ -96,9 +102,9 @@ public class Tuple2 <A, B> extends Tuple
 	 */
 	protected boolean isMatch(Object other)
 	{
-		Tuple2<?, ?> tuple = (Tuple2<?, ?>) other;
+		Tuple3<?, ?, ?> tuple = (Tuple3<?, ?, ?>) other;
 
-		return isEqual(first, tuple.first) && isEqual(second, tuple.second);
+		return isEqual(first, tuple.first) && isEqual(second, tuple.second) && isEqual(third, tuple.third);
 	}
 
 	@Override
@@ -107,6 +113,7 @@ public class Tuple2 <A, B> extends Tuple
 	{
 		int result = first != null ? first.hashCode() : 0;
 		result = 31 * result + (second != null ? second.hashCode() : 0);
+		result = 31 * result + (third != null ? third.hashCode() : 0);
 		return result;
 	}
 }

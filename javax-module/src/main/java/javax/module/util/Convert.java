@@ -1,4 +1,4 @@
-package javax.module.tools;
+package javax.module.util;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -419,7 +419,11 @@ class Convert
 		}
 	}
 
-	private Convert() {}
+	private
+	Convert()
+	{
+		throw new UnsupportedOperationException();
+	}
 
 	public static
 	Object stringToArray(String s, Class parameterType, Object[] context)

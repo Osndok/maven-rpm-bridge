@@ -1,4 +1,4 @@
-package javax.module.tools;
+package javax.module.util;
 
 /**
  * Created by robert on 4/8/15.
@@ -6,6 +6,12 @@ package javax.module.tools;
 public
 class SystemPropertyOrEnvironment
 {
+	private
+	SystemPropertyOrEnvironment()
+	{
+		throw new UnsupportedOperationException();
+	}
+
 	public static
 	String get(String key)
 	{

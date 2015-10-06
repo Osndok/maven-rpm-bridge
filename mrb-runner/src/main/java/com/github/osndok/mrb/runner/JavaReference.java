@@ -1,6 +1,6 @@
 package com.github.osndok.mrb.runner;
 
-import javax.module.tools.Tuple3;
+import javax.module.util.Tuple3;
 
 /**
  * Created by robert on 4/22/15.

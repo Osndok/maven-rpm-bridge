@@ -1,4 +1,4 @@
-package javax.module.tools;
+package javax.module.util;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;

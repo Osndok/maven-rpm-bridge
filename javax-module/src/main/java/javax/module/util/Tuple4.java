@@ -1,5 +1,5 @@
 
-package javax.module.tools;
+package javax.module.util;
 
 // Copyright 2010 The Apache Software Foundation
 //
