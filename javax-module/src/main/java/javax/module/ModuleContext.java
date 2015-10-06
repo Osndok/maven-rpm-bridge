@@ -1,5 +1,6 @@
 package javax.module;
 
+import javax.module.meta.LoaderModule;
 import javax.module.util.Dependency;
 import javax.module.util.ModuleKey;
 import javax.module.util.VersionString;
@@ -111,7 +112,7 @@ class ModuleContext
 		//NB: adding module to context is not lazy, loading module deps is
 		try
 		{
-			if (moduleKey.equals(VersionString.JAVAX_MODULE))
+			if (moduleKey.equals(LoaderModule.getModuleKey()))
 			{
 				//log.debug...
 			}

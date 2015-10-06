@@ -1,6 +1,7 @@
 package javax.module;
 
 
+import javax.module.meta.LoaderModule;
 import javax.module.util.VersionString;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -18,9 +19,9 @@ import java.io.IOException;
  * - the target class must have a public no-args constructor
  * - the requesting code must use the no-args constructor (i.e. class.newInstance()).
  */
+@CommandLineTool(suffix = "bytecode-extension-test")
 class ModuleNameStrippingByteCodeClassExtender
 {
-	public static final String JAVAX_MODULE_EXEC = VersionString.JAVAX_MODULE + "-bytecode-extension-test";
 
 	private final String oldName;
 	private final String newName;

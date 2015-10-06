@@ -303,4 +303,35 @@ class ModuleKey implements Serializable
 
 		return (l>0);
 	}
+
+	public
+	boolean matchesName(ModuleKey otherKey)
+	{
+		return this.moduleName.equals(otherKey.moduleName);
+	}
+
+	public
+	boolean matchesNameAndMajor(ModuleKey otherKey)
+	{
+		if (matchesName(otherKey))
+		{
+			if (majorVersion==null)
+			{
+				return otherKey.majorVersion==null;
+			}
+			else
+			if (otherKey.majorVersion==null)
+			{
+				return false;
+			}
+			else
+			{
+				return majorVersion.equals(otherKey.majorVersion);
+			}
+		}
+		else
+		{
+			return false;
+		}
+	}
 }

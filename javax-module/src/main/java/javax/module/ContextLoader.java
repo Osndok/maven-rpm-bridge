@@ -1,5 +1,6 @@
 package javax.module;
 
+import javax.module.meta.LoaderModule;
 import javax.module.util.ModuleKey;
 import javax.module.util.VersionString;
 import java.io.IOException;
@@ -91,7 +92,7 @@ class ContextLoader extends ClassLoader
 				{
 					ModuleKey moduleKey = ModuleKey.parseModuleKey(moduleName);
 
-					if (moduleKey.equals(VersionString.JAVAX_MODULE))
+					if (moduleKey.equals(LoaderModule.getModuleKey()))
 					{
 						return null;
 					}

@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * command line. Thus, this class should always be packaged as a command line tool, and an
  * inability to do so represents a packaging error.
  *
- * TODO: make this annotation @Repeatable
+ * TODO: make this annotation @Repeatable (which starts here but requires support in the grinder too)
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

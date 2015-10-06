@@ -16,11 +16,6 @@ class VersionString implements Comparable<VersionString>, Serializable
 	static final
 	boolean DEBUG = false;
 
-	//TODO: convert this to be populated by Maven at build time
-	//TODO: have this cause the same module to *not* be loaded at runtime (as it's in the ole... 'classpath' mechanism)
-	public static final
-	ModuleKey JAVAX_MODULE = new ModuleKey("javax-module", "1", null);
-
 	public final
 	String stringValue;
 

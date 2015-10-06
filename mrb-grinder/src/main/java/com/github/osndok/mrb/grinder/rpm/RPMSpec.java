@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
+import javax.module.meta.LoaderModule;
 import javax.module.util.Dependency;
 import javax.module.util.ModuleKey;
 import javax.module.util.VersionString;
@@ -83,33 +84,42 @@ class RPMSpec
 		return spec;
 	}
 
+	private static final
+	ModuleKey LOADER_MODULE_KEY = LoaderModule.getModuleKey();
+
 	public static
-	File write(ModuleKey moduleKey, MavenJar mavenJar, Main main, File warFile, Collection<SpecShard> extraShards) throws IOException
+	File write(
+				  ModuleKey moduleKey,
+				  MavenJar mavenJar,
+				  Main main,
+				  File warFile,
+				  Collection<SpecShard> extraShards
+	) throws IOException
 	{
 		final
-		RPMRepo rpmRepo=RPMManifold.getRepoFor(mavenJar.getInfo());
+		RPMRepo rpmRepo = RPMManifold.getRepoFor(mavenJar.getInfo());
 
 		final
-		File jar=mavenJar.getFile().getCanonicalFile();
+		File jar = mavenJar.getFile().getCanonicalFile();
 
 		final
-		File spec=new File(jar.getParent(), jar.getName()+".spec");
+		File spec = new File(jar.getParent(), jar.getName() + ".spec");
 
 		if (spec.exists())
 		{
 			log.warn("already exists: {}", spec);
 			if (!spec.delete())
 			{
-				throw new IOException("cannot delete: "+spec);
+				throw new IOException("cannot delete: " + spec);
 			}
 		}
 
 		log.debug("writing spec for: {} / {} / {}", moduleKey, mavenJar, mavenJar.getInfo());
 
 		final
-		Map<String,String> generalInfos;
+		Map<String, String> generalInfos;
 		{
-			generalInfos=new HashMap<String, String>();
+			generalInfos = new HashMap<String, String>();
 			generalInfos.put("@NAME@", moduleKey.toString());
 			generalInfos.put("@VERSION@", rpmVersionString(moduleKey));
 			generalInfos.put("@RELEASE@", RELEASE);
@@ -119,7 +129,7 @@ class RPMSpec
 
 			generalInfos.put("@JAR@", jar.getName());
 
-			if (warFile==null)
+			if (warFile == null)
 			{
 				//Repeating 'jar' will probably not cause an error, as an empty source declaration would
 				generalInfos.put("@WAR@", jar.getName());
@@ -141,7 +151,7 @@ class RPMSpec
 		try
 		{
 			//TODO: minor version is not being picked carried here (inside moduleKey)
-			dependencies=mavenJar.listRpmDependencies(moduleKey, main);
+			dependencies = mavenJar.listRpmDependencies(moduleKey, main);
 		}
 		catch (DependencyNotProcessedException e)
 		{
@@ -157,14 +167,14 @@ class RPMSpec
 		}
 
 		final
-		Map<String,String> execClassesByToolName=mavenJar.getExecClassesByToolName(moduleKey);
+		Map<String, String> execClassesByToolName = mavenJar.getExecClassesByToolName(moduleKey);
 
-		StringBuilder sb=readTemplate("spec.prefix");
+		StringBuilder sb = readTemplate("spec.prefix");
 
 		replace(sb, generalInfos);
 
 		final
-		OutputStream out=new FileOutputStream(spec);
+		OutputStream out = new FileOutputStream(spec);
 
 		try
 		{
@@ -183,9 +193,9 @@ class RPMSpec
 			NB: a bit of a 'hidden' dependency... every javax module *RPM* implicitly depends on the module
 			loader (so that it can run). Except for the module loader itself (which would make it depend on itself).
 			 */
-			if (!moduleKey.equals(VersionString.JAVAX_MODULE) && !dependencies.contains(VersionString.JAVAX_MODULE))
+			if (!moduleKey.matchesName(LOADER_MODULE_KEY) && !dependencies.contains(LOADER_MODULE_KEY))
 			{
-				out.write(requiresLine(VersionString.JAVAX_MODULE));
+				out.write(requiresLine(LOADER_MODULE_KEY));
 			}
 
 			out.write(descriptionFromPomFile(mavenJar));
