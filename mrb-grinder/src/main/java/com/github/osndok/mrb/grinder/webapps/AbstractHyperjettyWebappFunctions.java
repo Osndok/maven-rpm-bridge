@@ -147,7 +147,7 @@ SELF=/usr/lib/hyperjetty/10088.config
 		}
 
 		final
-		Map<String,String> retval=new HashMap<>();
+		Map<String,String> retval=new HashMap<String, String>();
 		{
 			retval.put(configFilePath, toString(p));
 		}

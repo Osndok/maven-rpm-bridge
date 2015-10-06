@@ -92,9 +92,14 @@ class FuzzyEntryPoint
 
 		if (argc > 0)
 		{
-			List<Invocation> staticOptions = new ArrayList<>(argc);
-			List<Invocation> instanceOptions = new ArrayList<>(argc);
-			List<String> constructorArguments = new ArrayList<>(argc);
+			final
+			List<Invocation> staticOptions = new ArrayList<Invocation>(argc);
+
+			final
+			List<Invocation> instanceOptions = new ArrayList<Invocation>(argc);
+
+			final
+			List<String> constructorArguments = new ArrayList<String>(argc);
 
 			boolean noMoreOptions = false;
 
@@ -156,7 +161,7 @@ class FuzzyEntryPoint
 							final
 							Class[] parameterTypes = method.getParameterTypes();
 
-							methodArguments=new ArrayList<>(parameterTypes.length);
+							methodArguments=new ArrayList<Object>(parameterTypes.length);
 
 							for (Class parameterType : parameterTypes)
 							{
@@ -208,7 +213,7 @@ class FuzzyEntryPoint
 							Class[] parameterTypes = method.getParameterTypes();
 
 							final
-							List<Object> methodArguments=new ArrayList<>(parameterTypes.length);
+							List<Object> methodArguments = new ArrayList<Object>(parameterTypes.length);
 
 							for (Class parameterType : parameterTypes)
 							{
@@ -1109,10 +1114,10 @@ class FuzzyEntryPoint
 	private
 	void doLazyMethodReflectionAnalysis()
 	{
-		explicitShortOptionsByCode = new HashMap<>();
-		implicitShortOptionsByCode = new HashMap<>();
-		primaryOptions = new TreeMap<>();
-		backupOptions = new HashMap<>();
+		explicitShortOptionsByCode = new HashMap<Character, Method>();
+		implicitShortOptionsByCode = new HashMap<Character, Method>();
+		primaryOptions = new TreeMap<String, Method>();
+		backupOptions = new HashMap<String, Method>();
 
 		for (Method method : getAllPublicMethods())
 		{
@@ -1246,7 +1251,7 @@ class FuzzyEntryPoint
 	{
 		if (allPublicMethods==null)
 		{
-			allPublicMethods = new ArrayList<>();
+			allPublicMethods = new ArrayList<Method>();
 			collectPublicMethods(allPublicMethods, aClass);
 			Collections.sort(allPublicMethods, byMethodName);
 		}

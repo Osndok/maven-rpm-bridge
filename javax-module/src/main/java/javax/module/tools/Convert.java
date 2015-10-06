@@ -51,7 +51,7 @@ class Convert
 
 		if (supportedNonPrimitiveTypeSet==null)
 		{
-			supportedNonPrimitiveTypeSet=new HashSet<>();
+			supportedNonPrimitiveTypeSet=new HashSet<Class>();
 
 			for (Class supportedNonPrimitiveType : supportedNonPrimitiveTypes)
 			{

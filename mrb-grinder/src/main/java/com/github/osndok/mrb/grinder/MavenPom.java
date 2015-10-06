@@ -531,7 +531,7 @@ class MavenPom
 			{
 				try
 				{
-					Set<MavenInfo> accumulator=new HashSet<>(declaredDependencies);
+					Set<MavenInfo> accumulator=new HashSet<MavenInfo>(declaredDependencies);
 
 					accumulator.addAll(getParentPom().getDependencies());
 

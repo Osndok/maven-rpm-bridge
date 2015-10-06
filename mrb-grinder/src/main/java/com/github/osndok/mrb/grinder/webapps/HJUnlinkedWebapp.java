@@ -63,7 +63,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 	Collection<String> getFilePathsToPackage()
 	{
 		final
-		List<String> list=new ArrayList<>(2);
+		List<String> list=new ArrayList<String>(2);
 
 		list.add("%attr(644, hyperjetty, hyperjetty) "+getConfigFilePath());
 		list.add(directory + "/" + warBaseFileName);
@@ -84,7 +84,7 @@ class HJUnlinkedWebapp extends AbstractHyperjettyWebappFunctions implements WarP
 	Map<String, String> getScriptletBodiesByType()
 	{
 		final
-		Map<String, String> retval=new HashMap<>(1);
+		Map<String, String> retval=new HashMap<String, String>(1);
 
 		retval.put("install", getInstallPhase());
 		retval.put("post", getPostInstallPhase(warFileInfo.getModuleKey()));

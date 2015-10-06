@@ -35,7 +35,7 @@ class ReactorClients
 	List<String> names()
 	{
 		final
-		List<String> retval=new ArrayList<>();
+		List<String> retval=new ArrayList<String>();
 
 		for (String name : notNull(directory.list()))
 		{

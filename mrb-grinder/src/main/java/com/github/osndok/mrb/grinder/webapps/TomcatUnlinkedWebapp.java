@@ -88,7 +88,7 @@ class TomcatUnlinkedWebapp implements WarProcessingPlugin, SpecShard
 	Map<String, String> getScriptletBodiesByType()
 	{
 		final
-		Map<String, String> retval=new HashMap<>(1);
+		Map<String, String> retval=new HashMap<String, String>(1);
 
 		retval.put("install", getInstallPhase());
 

@@ -69,16 +69,16 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	}
 
 	private final
-	Set<JavaReference> references = new TreeSet<>();
+	Set<JavaReference> references = new TreeSet<JavaReference>();
 
 	private final
-	Map<String, JavaReference> byIdentifier = new HashMap<>();
+	Map<String, JavaReference> byIdentifier = new HashMap<String, JavaReference>();
 
 	private final
-	Map<String, JavaReference> byFullyQualifiedName = new HashMap<>();
+	Map<String, JavaReference> byFullyQualifiedName = new HashMap<String, JavaReference>();
 
 	private final
-	Map<String, JavaReference> exampleByPackageName = new HashMap<>();
+	Map<String, JavaReference> exampleByPackageName = new HashMap<String, JavaReference>();
 
 	public
 	Set<JavaReference> getReferences()
@@ -197,7 +197,7 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 		}
 
 		final
-		Set<String> genericsPlaceholderNames = new HashSet<>();
+		Set<String> genericsPlaceholderNames = new HashSet<String>();
 
 		selfReferentialNames = extractRelevantTypeNames(cu);
 
@@ -318,7 +318,7 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	Set<String> extractRelevantTypeNames(CompilationUnit cu)
 	{
 		final
-		Set<String> retval = new HashSet<>();
+		Set<String> retval = new HashSet<String>();
 
 		for (TypeDeclaration typeDeclaration : cu.getTypes())
 		{
@@ -422,7 +422,7 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	}
 
 	private
-	Set<String> errantPackageNames = new HashSet<>();
+	Set<String> errantPackageNames = new HashSet<String>();
 
 	private
 	<M>
@@ -518,7 +518,7 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	public
 	void setIncludeStatic(boolean includeStatic)
 	{
-		this.includeStatic=includeStatic;
+		this.includeStatic = includeStatic;
 	}
 
 	private
@@ -562,7 +562,7 @@ class JavaFileReferences implements Runnable, Callable<Set<JavaReference>>
 	{
 		if (siblingDirectories == null)
 		{
-			siblingDirectories = new ArrayList<>();
+			siblingDirectories = new ArrayList<File>();
 
 			if (siblingBase != null)
 			{

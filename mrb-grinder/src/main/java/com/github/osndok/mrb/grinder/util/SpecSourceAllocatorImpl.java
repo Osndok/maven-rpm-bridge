@@ -21,7 +21,7 @@ class SpecSourceAllocatorImpl implements SpecSourceAllocator
 	int counter = 100;
 
 	private
-	Map<Integer, File> filesBySourceNumber = new HashMap<>();
+	Map<Integer, File> filesBySourceNumber = new HashMap<Integer, File>();
 
 	@Override
 	public
@@ -72,7 +72,7 @@ class SpecSourceAllocatorImpl implements SpecSourceAllocator
 	SpecShard asSpecShard()
 	{
 		final
-		List<String> sourceLines=new ArrayList<>(filesBySourceNumber.size());
+		List<String> sourceLines=new ArrayList<String>(filesBySourceNumber.size());
 
 		for (Map.Entry<Integer, File> me : filesBySourceNumber.entrySet())
 		{

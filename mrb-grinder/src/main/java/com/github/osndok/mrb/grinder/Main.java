@@ -324,7 +324,7 @@ class Main
 		File lib=new File(dir, "WEB-INF/lib");
 
 		final
-		Map<String,ModuleKey> libDependencyMapping=new HashMap<>();
+		Map<String,ModuleKey> libDependencyMapping = new HashMap<String, ModuleKey>();
 		//Set<ModuleKey> additionalDepsFromLibs=new HashSet<ModuleKey>();
 
 		if (lib.isDirectory())
@@ -374,7 +374,8 @@ class Main
 		final
 		File jar=File.createTempFile("mrb-war-classes-"+warArtifactId+"-", ".jar");
 		{
-			List<String> command=new ArrayList<>();
+			final
+			List<String> command=new ArrayList<String>();
 
 			command.add("/usr/bin/jar");
 			command.add("cf");
@@ -411,8 +412,7 @@ class Main
 
 
 		//(5) Delegate to the war plugins to generate deployment-specific sub-packages.
-
-		List<SpecShard> shards=new ArrayList<>();
+		List<SpecShard> shards=new ArrayList<SpecShard>();
 		{
 			SpecSourceAllocatorImpl sourceAllocator = new SpecSourceAllocatorImpl();
 			WarFileInfo warFileInfo=new WarFileInfo(moduleKey, warFile, dir, mavenPom, mavenInfo, declaredDependencies,
@@ -465,7 +465,7 @@ class Main
 	{
 		if (defaultPlugins==null)
 		{
-			defaultPlugins=new ArrayList<>(4);
+			defaultPlugins=new ArrayList<WarProcessingPlugin>(4);
 
 			if (!Boolean.getBoolean("NO_TOMCAT"))
 			{

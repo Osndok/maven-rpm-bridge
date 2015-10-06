@@ -28,7 +28,7 @@ public final
 class FeatureSet
 {
 	private final
-	Map<String, Version> versionRequirements = new LinkedHashMap<>();
+	Map<String, Version> versionRequirements = new LinkedHashMap<String, Version>();
 
 	public
 	FeatureSet add(String key)
@@ -61,7 +61,7 @@ class FeatureSet
 
 		_add(key, version);
 
-		toStringCache=null;
+		toStringCache = null;
 		return this;
 	}
 
@@ -83,8 +83,7 @@ class FeatureSet
 			//NB: version could be null too
 			versionRequirements.put(key, version);
 		}
-		else
-		if (version!=null && existing.isOlderThan(version))
+		else if (version != null && existing.isOlderThan(version))
 		{
 			versionRequirements.put(key, version);
 		}
@@ -94,11 +93,11 @@ class FeatureSet
 	void throwIfFound(char c, String commas, String identifier, String value)
 	{
 		final
-		int position=value.indexOf(c);
+		int position = value.indexOf(c);
 
-		if (position>=0)
+		if (position >= 0)
 		{
-			throw new IllegalArgumentException(identifier+" may not contain any "+commas+": '"+value+"' @ "+position);
+			throw new IllegalArgumentException(identifier + " may not contain any "+commas+": '"+value+"' @ "+position);
 		}
 	}
 

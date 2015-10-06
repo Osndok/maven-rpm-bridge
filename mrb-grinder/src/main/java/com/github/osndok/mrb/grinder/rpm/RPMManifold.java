@@ -207,7 +207,7 @@ class RPMManifold
 	RPMRepo defaultRepo;
 
 	private final
-	Map<String, RPMRepo> reposByPrefix = new LinkedHashMap<>(5);
+	Map<String, RPMRepo> reposByPrefix = new LinkedHashMap<String, RPMRepo>(5);
 
 	private
 	RPMManifold(RPMRepo defaultRepo)
@@ -344,9 +344,9 @@ class RPMManifold
 		for (RPMRepo rpmRepo : reposByPrefix.values())
 		{
 			final
-			MavenInfo mavenInfo=rpmRepo.getRpmRegistry().getMavenInfoFor(jarHash);
+			MavenInfo mavenInfo = rpmRepo.getRpmRegistry().getMavenInfoFor(jarHash);
 
-			if (mavenInfo!=null)
+			if (mavenInfo != null)
 			{
 				return mavenInfo;
 			}
@@ -361,9 +361,9 @@ class RPMManifold
 		for (RPMRepo rpmRepo : reposByPrefix.values())
 		{
 			final
-			RPM rpm=rpmRepo.get(moduleKey);
+			RPM rpm = rpmRepo.get(moduleKey);
 
-			if (rpm!=null)
+			if (rpm != null)
 			{
 				return rpm;
 			}
