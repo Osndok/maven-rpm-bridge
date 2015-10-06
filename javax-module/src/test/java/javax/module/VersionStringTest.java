@@ -3,12 +3,14 @@ package javax.module;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import javax.module.util.VersionString;
+
 /**
  * Created by robert on 10/29/14.
  */
 @Test
 public
-class VersionTest extends Assert
+class VersionStringTest extends Assert
 {
 	@Test
 	public
@@ -31,7 +33,7 @@ class VersionTest extends Assert
 	Object[] split(String s)
 	{
 		final
-		Object[] retval=Version.split(s);
+		Object[] retval= VersionString.split(s);
 
 		System.err.print("split('"+s+"'\t) -> {");
 		for (int i=0; i<retval.length; i++)
@@ -72,7 +74,7 @@ class VersionTest extends Assert
 	public
 	void testRelativeComparisons()
 	{
-		Version oneDotTwo=new Version("1.2");
+		VersionString oneDotTwo=new VersionString("1.2");
 
 		assertTrue(oneDotTwo.isNewerThan(v("1.2-SNAPSHOT")));
 		assertTrue(oneDotTwo.isNewerThan(v("1.2-rc7")));
@@ -104,9 +106,9 @@ class VersionTest extends Assert
 
 	//For shorthand & readability
 	private
-	Version v(String s)
+	VersionString v(String s)
 	{
-		return new Version(s);
+		return new VersionString(s);
 	}
 
 	/*

@@ -1,5 +1,6 @@
 package javax.module;
 
+import javax.module.util.VersionString;
 import java.io.IOException;
 import java.net.URL;
 import java.text.ParseException;
@@ -89,7 +90,7 @@ class ContextLoader extends ClassLoader
 				{
 					ModuleKey moduleKey = ModuleKey.parseModuleKey(moduleName);
 
-					if (moduleKey.equals(Version.JAVAX_MODULE))
+					if (moduleKey.equals(VersionString.JAVAX_MODULE))
 					{
 						return null;
 					}

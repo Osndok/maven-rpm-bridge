@@ -1,6 +1,7 @@
 package javax.module;
 
 
+import javax.module.util.VersionString;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -19,7 +20,7 @@ import java.io.IOException;
  */
 class ModuleNameStrippingByteCodeClassExtender
 {
-	public static final String JAVAX_MODULE_EXEC=Version.JAVAX_MODULE+"-bytecode-extension-test";
+	public static final String JAVAX_MODULE_EXEC = VersionString.JAVAX_MODULE + "-bytecode-extension-test";
 
 	private final String oldName;
 	private final String newName;

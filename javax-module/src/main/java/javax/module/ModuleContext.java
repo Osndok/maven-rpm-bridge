@@ -1,5 +1,6 @@
 package javax.module;
 
+import javax.module.util.VersionString;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -108,7 +109,7 @@ class ModuleContext
 		//NB: adding module to context is not lazy, loading module deps is
 		try
 		{
-			if (moduleKey.equals(Version.JAVAX_MODULE))
+			if (moduleKey.equals(VersionString.JAVAX_MODULE))
 			{
 				//log.debug...
 			}

@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.module.Dependency;
 import javax.module.ModuleKey;
-import javax.module.Version;
+import javax.module.util.VersionString;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -62,7 +62,7 @@ class RPMRepo
 		MavenInfo mavenInfo=mavenJar.getInfo();
 
 		final
-		Object[] bits= Version.split(mavenInfo.getVersion());
+		Object[] bits= VersionString.split(mavenInfo.getVersion());
 
 		final
 		int length=bits.length;
@@ -158,7 +158,7 @@ class RPMRepo
 
 		String mGuess=guess.getMinorVersion();
 		String mExisting=existing.getMinorVersion();
-		int i=Version.compare(mGuess, mExisting);
+		int i= VersionString.compare(mGuess, mExisting);
 		boolean retval=(i<=0);
 
 		log.debug("For {}... is {} equalTo or olderThan {}? {} -> {}", guess, mGuess, mExisting, i, retval);
@@ -196,24 +196,24 @@ class RPMRepo
 		if (fileNames.length==1) return new RPM(new File(dir, fileNames[0]));
 
 		String bestFileName=null;
-		Version bestVersion=null;
+		VersionString bestVersionString =null;
 
 		for (String fileName : fileNames)
 		{
 			if (bestFileName==null)
 			{
 				bestFileName=fileName;
-				bestVersion=new Version(bestFileName);
+				bestVersionString =new VersionString(bestFileName);
 			}
 			else
 			{
-				Version thisVersion=new Version(fileName);
+				VersionString thisVersionString =new VersionString(fileName);
 
-				if (thisVersion.isNewerThan(bestVersion))
+				if (thisVersionString.isNewerThan(bestVersionString))
 				{
 					log.debug("{} is newer than {}", fileName, bestFileName);
 					bestFileName=fileName;
-					bestVersion=thisVersion;
+					bestVersionString = thisVersionString;
 				}
 				else
 				{

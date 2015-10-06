@@ -1,5 +1,6 @@
-package javax.module;
+package javax.module.util;
 
+import javax.module.ModuleKey;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +9,7 @@ import java.util.List;
  * Created by robert on 10/29/14.
  */
 public final
-class Version implements Comparable<Version>, Serializable
+class VersionString implements Comparable<VersionString>, Serializable
 {
 	private static final
 	char ASCII_TOLOWER_GAP = ('a' - 'A');
@@ -25,7 +26,7 @@ class Version implements Comparable<Version>, Serializable
 	String stringValue;
 
 	public
-	Version(String stringValue)
+	VersionString(String stringValue)
 	{
 		if (stringValue == null) throw new NullPointerException();
 		this.stringValue = stringValue;
@@ -40,19 +41,19 @@ class Version implements Comparable<Version>, Serializable
 
 	@Override
 	public
-	int compareTo(Version v)
+	int compareTo(VersionString v)
 	{
 		return compare(getBits(), v.getBits());
 	}
 
 	public
-	boolean isNewerThan(Version v)
+	boolean isNewerThan(VersionString v)
 	{
 		return compare(getBits(), v.getBits())>0;
 	}
 
 	public
-	boolean isOlderThan(Version v)
+	boolean isOlderThan(VersionString v)
 	{
 		return compare(getBits(), v.getBits())<0;
 	}
@@ -72,7 +73,7 @@ class Version implements Comparable<Version>, Serializable
 		}
 		else
 		{
-			return new Version(a).compareTo(new Version(b));
+			return new VersionString(a).compareTo(new VersionString(b));
 		}
 	}
 
@@ -187,9 +188,9 @@ class Version implements Comparable<Version>, Serializable
 	public
 	boolean equals(Object o)
 	{
-		if (o instanceof Version)
+		if (o instanceof VersionString)
 		{
-			return compareTo((Version)o)==0;
+			return compareTo((VersionString)o)==0;
 		}
 		else
 		{

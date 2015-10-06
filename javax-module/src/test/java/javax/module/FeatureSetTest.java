@@ -3,6 +3,9 @@ package javax.module;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import javax.module.util.FeatureSet;
+import javax.module.util.VersionString;
+
 /**
  * Created by robert on 4/7/15.
  */
@@ -26,10 +29,10 @@ class FeatureSetTest extends Assert
 		assertTrue(fs.providesAtLeast("java", "7.0"));
 		assertTrue(fs.providesAtLeast("java", "6.99"));
 		assertTrue(fs.providesAtLeast("java", "1"));
-		assertTrue(fs.providesAtLeast("java", (Version)null));
+		assertTrue(fs.providesAtLeast("java", (VersionString)null));
 		assertTrue(fs.providesAtLeast("java", (String)null));
 
-		assertFalse(fs.providesAtLeast("blather", (Version)null));
+		assertFalse(fs.providesAtLeast("blather", (VersionString)null));
 		assertFalse(fs.providesAtLeast("blather", "1.2.3"));
 		assertFalse(fs.providesAtLeast("java", "100"));
 		assertFalse(fs.providesAtLeast("java", "10"));
@@ -80,7 +83,7 @@ class FeatureSetTest extends Assert
 		assertTrue(linux.providesAtLeast("java", "7.0"));
 		assertTrue(linux.providesAtLeast("java", "6"));
 		assertTrue(linux.providesAtLeast("java", "6.999"));
-		assertTrue(linux.providesAtLeast("rpmbuild", (Version)null));
+		assertTrue(linux.providesAtLeast("rpmbuild", (VersionString)null));
 
 		assertTrue(windows.containsKey("c#"));
 

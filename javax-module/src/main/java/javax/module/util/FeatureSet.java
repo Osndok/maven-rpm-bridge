@@ -1,4 +1,4 @@
-package javax.module;
+package javax.module.util;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -28,12 +28,12 @@ public final
 class FeatureSet
 {
 	private final
-	Map<String, Version> versionRequirements = new LinkedHashMap<String, Version>();
+	Map<String, VersionString> versionRequirements = new LinkedHashMap<String, VersionString>();
 
 	public
 	FeatureSet add(String key)
 	{
-		return add(key, (Version) null);
+		return add(key, (VersionString) null);
 	}
 
 	public
@@ -41,25 +41,25 @@ class FeatureSet
 	{
 		if (version == null)
 		{
-			return add(key, (Version) null);
+			return add(key, (VersionString) null);
 		}
 		else
 		{
-			return add(key, new Version(version));
+			return add(key, new VersionString(version));
 		}
 	}
 
 	public
-	FeatureSet add(String key, Version version)
+	FeatureSet add(String key, VersionString versionString)
 	{
 		mustNotContainAnyCommasOrParanthesis("key", key);
 
-		if (version != null)
+		if (versionString != null)
 		{
-			mustNotContainAnyCommasOrParanthesis("version", version.toString());
+			mustNotContainAnyCommasOrParanthesis("version", versionString.toString());
 		}
 
-		_add(key, version);
+		_add(key, versionString);
 
 		toStringCache = null;
 		return this;
@@ -74,18 +74,18 @@ class FeatureSet
 	}
 
 	private
-	void _add(String key, Version version)
+	void _add(String key, VersionString versionString)
 	{
-		Version existing = versionRequirements.get(key);
+		VersionString existing = versionRequirements.get(key);
 
 		if (existing == null)
 		{
 			//NB: version could be null too
-			versionRequirements.put(key, version);
+			versionRequirements.put(key, versionString);
 		}
-		else if (version != null && existing.isOlderThan(version))
+		else if (versionString != null && existing.isOlderThan(versionString))
 		{
-			versionRequirements.put(key, version);
+			versionRequirements.put(key, versionString);
 		}
 	}
 
@@ -97,18 +97,18 @@ class FeatureSet
 
 		if (position >= 0)
 		{
-			throw new IllegalArgumentException(identifier + " may not contain any "+commas+": '"+value+"' @ "+position);
+			throw new IllegalArgumentException(identifier + " may not contain any " + commas + ": '"+value+"' @ "+position);
 		}
 	}
 
 	public
 	FeatureSet addAll(FeatureSet other)
 	{
-		for (Map.Entry<String, Version> me : other.versionRequirements.entrySet())
+		for (Map.Entry<String, VersionString> me : other.versionRequirements.entrySet())
 		{
 			String key=me.getKey();
-			Version version=me.getValue();
-			_add(key, version);
+			VersionString versionString =me.getValue();
+			_add(key, versionString);
 		}
 
 		return this;
@@ -125,23 +125,23 @@ class FeatureSet
 	{
 		if (version==null)
 		{
-			return providesAtLeast(key, (Version)null);
+			return providesAtLeast(key, (VersionString)null);
 		}
 		else
 		{
-			return providesAtLeast(key, new Version(version));
+			return providesAtLeast(key, new VersionString(version));
 		}
 	}
 
 	public
-	boolean providesAtLeast(String key, Version minimum)
+	boolean providesAtLeast(String key, VersionString minimum)
 	{
 		if (minimum==null)
 		{
 			return versionRequirements.containsKey(key);
 		}
 
-		Version provision=versionRequirements.get(key);
+		VersionString provision=versionRequirements.get(key);
 
 		return (provision != null && !provision.isOlderThan(minimum));
 	}
@@ -158,10 +158,10 @@ class FeatureSet
 			final
 			StringBuilder sb = new StringBuilder();
 
-			for (Map.Entry<String, Version> me : versionRequirements.entrySet())
+			for (Map.Entry<String, VersionString> me : versionRequirements.entrySet())
 			{
 				String key=me.getKey();
-				Version version=me.getValue();
+				VersionString versionString =me.getValue();
 
 				if (sb.length()!=0)
 				{
@@ -170,10 +170,10 @@ class FeatureSet
 
 				sb.append(key);
 
-				if (version!=null)
+				if (versionString !=null)
 				{
 					sb.append('(');
-					sb.append(version);
+					sb.append(versionString);
 					sb.append(')');
 				}
 			}
@@ -205,7 +205,7 @@ class FeatureSet
 			else
 			if (leftParanthesis<0)
 			{
-				retval.add(bit, (Version)null);
+				retval.add(bit, (VersionString)null);
 			}
 			else
 			if (bit.charAt(bit.length()-1)==')')
@@ -228,12 +228,12 @@ class FeatureSet
 	public
 	boolean isSuperSetOf(FeatureSet smaller)
 	{
-		for (Map.Entry<String, Version> me : smaller.versionRequirements.entrySet())
+		for (Map.Entry<String, VersionString> me : smaller.versionRequirements.entrySet())
 		{
 			String key=me.getKey();
-			Version version=me.getValue();
+			VersionString versionString =me.getValue();
 
-			if (version==null)
+			if (versionString ==null)
 			{
 				if (!this.versionRequirements.containsKey(key))
 				{
@@ -242,9 +242,9 @@ class FeatureSet
 			}
 			else
 			{
-				Version shouldBeNewer=this.versionRequirements.get(key);
+				VersionString shouldBeNewer=this.versionRequirements.get(key);
 
-				if (shouldBeNewer==null || shouldBeNewer.isOlderThan(version))
+				if (shouldBeNewer==null || shouldBeNewer.isOlderThan(versionString))
 				{
 					return false;
 				}
@@ -257,12 +257,12 @@ class FeatureSet
 	public
 	boolean isSubSetOf(FeatureSet larger)
 	{
-		for (Map.Entry<String, Version> me : this.versionRequirements.entrySet())
+		for (Map.Entry<String, VersionString> me : this.versionRequirements.entrySet())
 		{
 			String key=me.getKey();
-			Version version=me.getValue();
+			VersionString versionString =me.getValue();
 
-			if (version==null)
+			if (versionString ==null)
 			{
 				if (!larger.versionRequirements.containsKey(key))
 				{
@@ -271,9 +271,9 @@ class FeatureSet
 			}
 			else
 			{
-				Version shouldBeNewer=larger.versionRequirements.get(key);
+				VersionString shouldBeNewer=larger.versionRequirements.get(key);
 
-				if (shouldBeNewer==null || shouldBeNewer.isOlderThan(version))
+				if (shouldBeNewer==null || shouldBeNewer.isOlderThan(versionString))
 				{
 					return false;
 				}
