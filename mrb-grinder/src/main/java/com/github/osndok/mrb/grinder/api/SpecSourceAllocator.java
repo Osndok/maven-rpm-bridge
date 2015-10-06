@@ -1,6 +1,6 @@
 package com.github.osndok.mrb.grinder.api;
 
-import javax.module.ModuleKey;
+import javax.module.util.ModuleKey;
 import java.io.File;
 
 /**

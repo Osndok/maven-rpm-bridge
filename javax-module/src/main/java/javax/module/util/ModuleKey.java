@@ -1,4 +1,4 @@
-package javax.module;
+package javax.module.util;
 
 import java.io.Serializable;
 import java.text.ParseException;
@@ -6,7 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by robert on 10/29/14.
+ * A ModuleKey is a three-tuple that specifies a particular module (1) by name, (2) by major version number,
+ * and (3) by an optional minimum minor version number.
+ *
+ * ???: should we convert this to actually extend Tuple3? It might be a bit less readable :(
  */
 public
 class ModuleKey implements Serializable
@@ -23,7 +26,7 @@ class ModuleKey implements Serializable
 	public
 	ModuleKey(String moduleName, String majorVersion, String minorVersion)
 	{
-		if (moduleName == null) throw new NullPointerException();
+		//NB: if (moduleName == null) throw new NullPointerException();
 		this.moduleName = moduleName.toLowerCase();
 
 		if (majorVersion==null || majorVersion.length()==0)

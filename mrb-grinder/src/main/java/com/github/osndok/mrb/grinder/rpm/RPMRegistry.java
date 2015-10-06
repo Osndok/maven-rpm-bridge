@@ -8,7 +8,7 @@ import com.github.osndok.mrb.grinder.util.Exec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.module.ModuleKey;
+import javax.module.util.ModuleKey;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;

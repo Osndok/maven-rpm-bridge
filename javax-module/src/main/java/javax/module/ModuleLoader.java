@@ -1,5 +1,7 @@
 package javax.module;
 
+import javax.module.util.Dependency;
+import javax.module.util.ModuleKey;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;

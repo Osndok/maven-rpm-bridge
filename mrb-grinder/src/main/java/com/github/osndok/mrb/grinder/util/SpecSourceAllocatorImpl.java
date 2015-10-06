@@ -3,7 +3,7 @@ package com.github.osndok.mrb.grinder.util;
 import com.github.osndok.mrb.grinder.api.SpecShard;
 import com.github.osndok.mrb.grinder.api.SpecSourceAllocator;
 
-import javax.module.ModuleKey;
+import javax.module.util.ModuleKey;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;

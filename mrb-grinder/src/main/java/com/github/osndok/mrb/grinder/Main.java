@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
-import javax.module.ModuleKey;
+import javax.module.util.ModuleKey;
 import javax.module.Plugins;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;

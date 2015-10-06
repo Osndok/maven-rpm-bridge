@@ -1,4 +1,6 @@
-package javax.module;
+package javax.module.util;
+
+import javax.module.util.ModuleKey;
 
 /**
  * A Dependency is simply a ModuleKey that implicates another ModuleKey as having provoked

@@ -1,6 +1,5 @@
 package javax.module.util;
 
-import javax.module.ModuleKey;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;

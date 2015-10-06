@@ -1,6 +1,8 @@
 package javax.module;
 
+import javax.module.util.Dependency;
 import javax.module.util.FuzzyEntryPoint;
+import javax.module.util.ModuleKey;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -15,7 +17,8 @@ public
 class Startup extends ClassLoader
 {
 	private static final
-	boolean ROOT_MODULE_DEFINES_CONTEXT = Boolean.parseBoolean(System.getProperty("ROOT_MODULE_DEFINES_CONTEXT", "true"));
+	boolean ROOT_MODULE_DEFINES_CONTEXT = Boolean.parseBoolean(System.getProperty("ROOT_MODULE_DEFINES_CONTEXT",
+																					 "true"));
 
 	//TODO: how can we reliably detect this at runtime? is it enough to set it to true in the main() method?
 	public static final boolean MODULAR_VM_STARTUP = true;

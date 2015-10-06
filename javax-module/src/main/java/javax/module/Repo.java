@@ -1,5 +1,7 @@
 package javax.module;
 
+import javax.module.util.ModuleKey;
+
 /**
  * Created by robert on 10/29/14.
  */

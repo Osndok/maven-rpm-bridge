@@ -1,5 +1,6 @@
 package javax.module;
 
+import javax.module.util.ModuleKey;
 import javax.module.util.VersionString;
 import java.io.IOException;
 import java.net.URL;

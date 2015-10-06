@@ -25,8 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
-import javax.module.Dependency;
-import javax.module.ModuleKey;
+import javax.module.util.Dependency;
+import javax.module.util.ModuleKey;
 import javax.module.ReactorClients;
 import javax.module.util.Convert;
 import javax.module.util.FuzzyEntryPoint;

@@ -3,6 +3,8 @@ package javax.module;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import javax.module.util.Dependency;
+import javax.module.util.ModuleKey;
 import java.io.IOException;
 import java.io.InputStream;
 

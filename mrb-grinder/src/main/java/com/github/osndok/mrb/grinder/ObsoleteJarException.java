@@ -1,6 +1,6 @@
 package com.github.osndok.mrb.grinder;
 
-import javax.module.ModuleKey;
+import javax.module.util.ModuleKey;
 
 /**
  * Created by robert on 10/30/14.

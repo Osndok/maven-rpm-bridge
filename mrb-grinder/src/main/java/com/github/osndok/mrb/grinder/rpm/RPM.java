@@ -10,9 +10,9 @@ import org.semver.Delta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.module.Dependency;
+import javax.module.util.Dependency;
 import javax.module.ModuleInfo;
-import javax.module.ModuleKey;
+import javax.module.util.ModuleKey;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;

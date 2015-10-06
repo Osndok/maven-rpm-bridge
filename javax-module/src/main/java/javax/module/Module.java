@@ -1,5 +1,7 @@
 package javax.module;
 
+import javax.module.util.Dependency;
+import javax.module.util.ModuleKey;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -40,11 +42,11 @@ class Module
 		this.directory = new File(modulesDirectory, moduleKey.toString());
 
 		final
-		String moduleName=moduleKey.getModuleName();
+		String moduleName = moduleKey.getModuleName();
 
-		this.jarFile   = new File(directory, moduleName+".jar"  );
-		this.depsFile  = new File(directory, moduleName+".deps" );
-		this.propsFile = new File(directory, moduleName+".props");
+		this.jarFile = new File(directory, moduleName + ".jar");
+		this.depsFile = new File(directory, moduleName + ".deps");
+		this.propsFile = new File(directory, moduleName + ".props");
 	}
 
 	private

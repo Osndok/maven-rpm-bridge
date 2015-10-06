@@ -4,7 +4,7 @@ import com.github.osndok.mrb.grinder.MavenInfo;
 import com.github.osndok.mrb.grinder.MavenPom;
 import com.github.osndok.mrb.grinder.rpm.RPMRepo;
 
-import javax.module.ModuleKey;
+import javax.module.util.ModuleKey;
 import java.io.File;
 import java.util.Collection;
 import java.util.Map;

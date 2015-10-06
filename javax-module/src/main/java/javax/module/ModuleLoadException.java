@@ -1,5 +1,6 @@
 package javax.module;
 
+import javax.module.util.ModuleKey;
 import java.io.IOException;
 
 /**

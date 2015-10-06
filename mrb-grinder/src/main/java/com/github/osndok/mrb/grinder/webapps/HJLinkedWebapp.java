@@ -6,7 +6,7 @@ import com.github.osndok.mrb.grinder.api.WarFileInfo;
 import com.github.osndok.mrb.grinder.api.WarProcessingPlugin;
 import com.github.osndok.mrb.grinder.rpm.RPMSpec;
 
-import javax.module.ModuleKey;
+import javax.module.util.ModuleKey;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;

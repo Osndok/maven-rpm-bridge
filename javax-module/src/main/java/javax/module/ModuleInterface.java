@@ -1,5 +1,7 @@
 package javax.module;
 
+import javax.module.util.ModuleKey;
+
 /**
  * Provides a mechanism by which well-written & module-aware code can further interact
  * with the module system. To utilize these functionalities, write a class which

@@ -3,6 +3,7 @@ package javax.module;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import javax.module.util.ModuleKey;
 import java.text.ParseException;
 
 /**
