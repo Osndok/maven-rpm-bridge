@@ -1,6 +1,7 @@
 package javax.module.util;
 
 import javax.module.CommandLineOption;
+import javax.module.NoCommandLineUtility;
 import java.io.PrintStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
@@ -8,6 +9,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -18,10 +20,19 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 
 /**
- * Used when a java class is being called into from the command line, but it does not provide a
- * conventional and explicit static main() method. Instead, our task is to use the class definition
- * along with the provided string arguments to:
+ * Attempts to execute a given class even if it does not have a main method or any semblance of command
+ * line argument/flag parsing. Ideally, this may allow all such coding "rituals" to be discarded in
+ * favor of writing pure java code, that just happens to be command-line-executable.
  *
+ * Also known as: "let's shoehorn all the nasty command line parameter and flag handling into one place
+ * so we never have to duplicate it in another main() method again."
+ *
+ * Primarily, this works when the target class implements a known executable interface (such as Runnable
+ * or Callable), and is particularly useful by detecting and converting command-line flags into both
+ * static and member-method function calls to allow the proper setup, and even attempting to make any
+ * returned elements usable from the command line.
+ *
+ * Goals/Procedure:
  * (1) differentiate between arguments and command line options,
  * (2) invoke static methods that resemble provided command line flags (possibly with arguments),
  * (3) construct an instance of the provided class (possibly with the remaining arguments),
@@ -29,11 +40,15 @@ import java.util.concurrent.Callable;
  * (5) call the run() or call() method, as appropriate, and finally
  * (6) convert the result to something that can be used from the command line (if from a call() method).
  *
- * Also known as: "let's shoehorn all the nasty command line parameter and flag handling into one place
- * so we never have to duplicate it in another main() method again."
+ * This class has a main method *NOT* because it should be used from the command line, but to allow
+ * IDEs to have an easier transition into modular invocations, and to allow developers to be more
+ * productive (they can specify this as their launching class in the IDE with a conventional CLASSPATH).
+ * It is expected that command line scripts & utilities use the Startup class instead, which will
+ * actually splice in the module loader (which this class will *NOT*).
  *
  * Created by robert on 4/2/15.
  */
+@NoCommandLineUtility
 public
 class FuzzyEntryPoint
 {
@@ -81,6 +96,12 @@ class FuzzyEntryPoint
 
 	private
 	RuntimeException _kludge_incompatibleType;
+
+	public
+	void execute(Collection<String> argsAndCommandLineOptions)
+	{
+		execute(argsAndCommandLineOptions.toArray(new String[argsAndCommandLineOptions.size()]));
+	}
 
 	public
 	void execute(String[] argumentsAndCommandLineOptions)
@@ -1449,6 +1470,40 @@ class FuzzyEntryPoint
 
 				printResult(result);
 			}
+		}
+	}
+
+	public static
+	void main(String[] argArray)
+	{
+		if (argArray.length==0)
+		{
+			System.err.println("usage: javax.module.util.FuzzyEntryPoint package.ClassName <args..>");
+			System.err.println("goal:  attempts to run the given class even if it does not have a main method or command line argument parsing");
+			System.exit(1);
+		}
+
+		final
+		List<String> args=new ArrayList<String>(argArray.length);
+		{
+			Collections.addAll(args, argArray);
+		}
+
+		final
+		String className=args.remove(0);
+
+		try
+		{
+			//NB: This is *not* expected to work when running under the module loader!
+			final
+			Class<?> aClass = Class.forName(className);
+
+			new FuzzyEntryPoint(aClass).execute(args);
+		}
+		catch (Throwable t)
+		{
+			t.printStackTrace();
+			System.exit(1);
 		}
 	}
 }
