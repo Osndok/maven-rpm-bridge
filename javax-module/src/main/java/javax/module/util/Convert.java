@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -471,5 +472,43 @@ class Convert
 
 		return retval;
 
+	}
+
+	/**
+	 * Ambitious, and slow. Attempts to partially replicate the utility of golang's late interface binding
+	 * by allowing an object that *technically* does not implement an interface, but has "all the matching
+	 * functions" to be called via an interface proxy.
+	 *
+	 * Cost:
+	 * (1) increased overhead per-cast & per-call (< 30 micros), which is comparable to a println() or synchronize.
+	 * (2) increased "jitter" for high object casting rates (probably due to embedded synchronization)
+	 *
+	 * Benefit:
+	 * (1) code organization,
+	 * (2) allows interfaces to "float" between modules easier,
+	 * (3) allows you to 'impose' an interface on 3rd party libraries
+	 *
+	 * BENCHMARKS (nanos to create-and-call w/ standard jit optimizations):
+	 * Native  interface, *initial*  overhead:                940 nanos
+	 * Coerced interface, *initial*  overhead:             68,000 nanos
+	 * Native  interface, subsequent overhead:    240 -to-    300 nanos
+	 * Coerced interface, subsequent overhead: 15,000 -to- 33,000 nanos
+	 *
+	 * @param o
+	 * @param iface
+	 * @param <T>
+	 * @return
+	 */
+	public static <T>
+	T objectToInterface(Object o, Class<T> iface)
+	{
+		if (iface.isInstance(o))
+		{
+			return (T)o;
+		}
+
+		//TODO: verify correctness of classloader choice... we presume the loader of the interface can see the object's loader.
+		//TODO: check to see if it would be faster to cache the Method lookups or factor-out (and cache) the class-specific data.
+		return (T)Proxy.newProxyInstance(iface.getClassLoader(), new Class[]{iface}, new InterfaceCoercion(o, iface));
 	}
 }
