@@ -5,6 +5,7 @@ import com.github.osndok.mrb.grinder.JarHasNoPomException;
 import com.github.osndok.mrb.grinder.Main;
 import com.github.osndok.mrb.grinder.MavenJar;
 import com.github.osndok.mrb.grinder.api.SpecShard;
+import com.github.osndok.mrb.grinder.meta.GrinderModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -681,6 +682,11 @@ class RPMSpec
 		else
 		{
 			sb.append(descriptionFromPom);
+		}
+
+		{
+			sb.append("\n\nmrb @ ");
+			sb.append(GrinderModule.FULL);
 		}
 
 		sb.append("\n\n");

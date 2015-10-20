@@ -110,4 +110,74 @@
 
 	</dependencies>
 
+	<build>
+
+		<resources>
+
+			<!-- the usual, now needed b/c we are bringing in at least one resource outside of the conventional directory -->
+			<resource>
+				<targetPath>.</targetPath>
+				<directory>src/main/resources</directory>
+			</resource>
+
+			<resource>
+				<directory>src/main/templates</directory>
+				<includes>
+					<include>*.java</include>
+				</includes>
+				<filtering>true</filtering>
+				<targetPath>${project.build.directory}/generated-sources/java/com/github/osndok/mrb/grinder/meta</targetPath>
+			</resource>
+
+		</resources>
+
+		<plugins>
+
+			<plugin>
+				<groupId>pl.project13.maven</groupId>
+				<artifactId>git-commit-id-plugin</artifactId>
+				<version>2.1.12</version>
+
+				<executions>
+					<execution>
+						<goals>
+							<goal>revision</goal>
+						</goals>
+					</execution>
+				</executions>
+
+				<configuration>
+					<dateFormat>yyyy-MM-dd HH:mm:ss z</dateFormat>
+				</configuration>
+
+			</plugin>
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>1.8</version>
+				<executions>
+					<execution>
+						<id>add-source</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.build.directory}/generated-sources/java/</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+		</plugins>
+
+	</build>
+
+	<properties>
+		<build.timestamp>${maven.build.timestamp}</build.timestamp>
+	</properties>
+
 </project>
