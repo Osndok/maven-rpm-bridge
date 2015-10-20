@@ -53,7 +53,7 @@ class RPMSpec
 	File writeSunTools(ModuleKey moduleKey, RPMRepo rpmRepo) throws IOException
 	{
 		final
-		File spec=File.createTempFile("mrb-sun-tools-",".spec");
+		File spec=File.createTempFile("mrb-sun-tools-", ".spec");
 
 		final
 		Map<String,String> generalInfos;
@@ -667,7 +667,7 @@ class RPMSpec
 
 			if (descriptionFromPom!=null)
 			{
-				descriptionFromPom=descriptionFromPom.trim();
+				descriptionFromPom=removeWhitespaceAfterNewlines(descriptionFromPom).trim();
 			}
 		}
 		catch (JarHasNoPomException e)
@@ -691,6 +691,42 @@ class RPMSpec
 
 		sb.append("\n\n");
 		return sb.toString().getBytes();
+	}
+
+	private static
+	String removeWhitespaceAfterNewlines(String s)
+	{
+		final
+		int l=s.length();
+
+		final
+		StringBuilder sb=new StringBuilder();
+
+		boolean lastWasNewline=true;
+
+		for (int i=0; i<l; i++)
+		{
+			final
+			char c = s.charAt(i);
+
+			if (c=='\n')
+			{
+				lastWasNewline=true;
+				sb.append('\n');
+			}
+			else
+			if (lastWasNewline && Character.isWhitespace(c))
+			{
+				//Do not append it, do not change lastWasNewLine
+			}
+			else
+			{
+				lastWasNewline=false;
+				sb.append(c);
+			}
+		}
+
+		return sb.toString();
 	}
 
 	private static
