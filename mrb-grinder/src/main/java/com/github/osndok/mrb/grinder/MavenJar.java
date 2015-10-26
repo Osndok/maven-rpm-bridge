@@ -1034,6 +1034,8 @@ class MavenJar
 				log.error("no pom file in jar", e);
 				return declaredDependencies;
 			}
+
+			mavenInfos.addAll(ManualDependencyList.given(moduleKey));
 		}
 
 		for (MavenInfo info : mavenInfos)

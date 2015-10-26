@@ -576,17 +576,28 @@ class MavenPom
 	{
 		if (parentPom==null && parentInfo!=null)
 		{
+			final
 			File pomFile = Main.guessLocalPomPath(parentInfo);
-			FileInputStream fis = new FileInputStream(pomFile);
-			try
+
+			if (pomFile.canRead())
 			{
-				parentPom=new MavenPom(parentInfo, fis);
+				final
+				FileInputStream fis = new FileInputStream(pomFile);
+				try
+				{
+					parentPom = new MavenPom(parentInfo, fis);
+				}
+				finally
+				{
+					fis.close();
+				}
 			}
-			finally
+			else
 			{
-				fis.close();
+				parentPom = fetchedFromMavenCentral(parentInfo);
 			}
 		}
+
 		return parentPom;
 	}
 
