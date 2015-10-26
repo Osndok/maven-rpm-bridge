@@ -17,8 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
+import javax.module.CommandLineTool;
 import javax.module.util.ModuleKey;
 import javax.module.Plugins;
+import javax.module.util.SystemPropertyOrEnvironment;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,38 +39,22 @@ import java.util.Set;
  * Given a JAR file (or eventually a WAR file) grind it (and it's dependencies) into
  * RPMs, suitable for the flat-file javax-module system.
  */
+@CommandLineTool(name = "mrb-grinder")
 public
 class Main
 {
-	public static final String JAVAX_MODULE_EXEC = "mrb-grinder";
-
 	public static final  Logger  log       = LoggerFactory.getLogger(Main.class);
-	public static final  boolean RECURSIVE = (Boolean.valueOf(System.getProperty("RECURSIVE", "true")));
-	private static final boolean DEBUG     = true;
+	public static final  boolean RECURSIVE = SystemPropertyOrEnvironment.getBoolean("RECURSIVE", true);
+	private static final boolean DEBUG     = SystemPropertyOrEnvironment.getBoolean("DEBUG", true);
 
 	//TODO: atm, "force" may be construed two ways... specific to the top-level grinding (replace this jar), or global ("I just want it to work"). Maybe split it?
 	public static boolean FORCE = false;
 
-	/*
-	private final
-	RPMRepo rpmRepo;
-
-	public
-	Main(String repoPath) throws IOException
-	{
-		this.rpmRepo = new RPMRepo(new File(repoPath));
-	}
-
-	public
-	Main(RPMRepo rpmRepo)
-	{
-		this.rpmRepo = rpmRepo;
-	}
-	*/
-
+	//TODO: let us "eat our own dog food" and rid ourselves of this main method!!! and 'Main' class name!!!
 	public static
 	void main(String[] args) throws IOException
 	{
+		final
 		Main main = new Main();
 
 		int status = 0;
@@ -120,7 +106,7 @@ class Main
 			if (isWritableDirectory(parentFile))
 			{
 				//Not needed...
-				tempDirectory=null;
+				tempDirectory = null;
 			}
 			else
 			{
@@ -133,7 +119,7 @@ class Main
 					File newFile = new File(tempDirectory, file.getName());
 					Exec.andWait("cp", "-v", file.getAbsolutePath(), newFile.getAbsolutePath());
 
-					file=newFile;
+					file = newFile;
 				}
 				else
 				{

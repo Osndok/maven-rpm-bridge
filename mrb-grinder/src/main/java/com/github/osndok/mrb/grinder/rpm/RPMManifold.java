@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.module.util.ModuleKey;
+import javax.module.util.SystemPropertyOrEnvironment;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -104,7 +105,7 @@ class RPMManifold
 	RPMManifold createInstance() throws IOException
 	{
 		final
-		File MRB_CONFIG = new File(stringFromEnvironmentOrSystemProperty("MRB_CONFIG", "/etc/mrb.props"));
+		File MRB_CONFIG = new File(SystemPropertyOrEnvironment.get("MRB_CONFIG", "/etc/mrb.props"));
 
 		final
 		Properties config = readPropertiesFile(MRB_CONFIG);
@@ -218,8 +219,8 @@ class RPMManifold
 	public static final
 	void main(String[] args)
 	{
-		boolean WITH_PREFIX = generallyFalseBooleanFromEnvironmentOrSystemProperty("WITH_PREFIX");
-		boolean NO_PREFIX = generallyFalseBooleanFromEnvironmentOrSystemProperty("NO_PREFIX");
+		boolean WITH_PREFIX = SystemPropertyOrEnvironment.getBoolean("WITH_PREFIX", false);
+		boolean NO_PREFIX = SystemPropertyOrEnvironment.getBoolean("NO_PREFIX", false);
 
 		if (args.length == 0)
 		{
@@ -250,26 +251,6 @@ class RPMManifold
 	}
 
 	private static
-	String stringFromEnvironmentOrSystemProperty(String key, String _default)
-	{
-		String value = System.getProperty(key);
-
-		if (value == null)
-		{
-			value = System.getenv(key);
-		}
-
-		if (value == null)
-		{
-			return _default;
-		}
-		else
-		{
-			return value;
-		}
-	}
-
-	private static
 	String stringFromEnvironmentSystemOrApplicationProperties(String key, String _default, Properties properties)
 	{
 		String value = System.getProperty(key);
@@ -293,41 +274,6 @@ class RPMManifold
 			return value;
 		}
 	}
-
-	private static
-	boolean generallyFalseBooleanFromEnvironmentOrSystemProperty(String key)
-	{
-		String value = System.getProperty(key);
-
-		if (value == null)
-		{
-			value = System.getenv(key);
-		}
-
-		if (value == null)
-		{
-			return false;
-		}
-		else
-		{
-			return stringToBoolean(value);
-		}
-	}
-
-	private static
-	boolean stringToBoolean(String s)
-	{
-		if (s.isEmpty())
-		{
-			return false;
-		}
-
-		final
-		char c = s.charAt(0);
-
-		return (c == '1' || c == 't' || c == 'T' || c == 'y' || c == 'Y');
-	}
-
 
 	public static
 	MavenInfo getMavenInfoFromAnyRegistry(File file) throws IOException
