@@ -211,7 +211,9 @@ class MavenInfo implements Serializable
 			}
 			else
 			{
-				stringValue = groupId + ':' + artifactId + ':' + version + ':' + packaging + ':' + classifier;
+				//https://maven.apache.org/pom.html#Maven_Coordinates
+				//"groupId:artifactId:packaging:classifier:version"
+				stringValue = groupId + ':' + artifactId + ':' + packaging + ':' + classifier + ':' + version;
 			}
 		}
 
@@ -235,19 +237,52 @@ class MavenInfo implements Serializable
 		final
 		String[] bits=s.split(":");
 
+		/*
+		https://maven.apache.org/pom.html#Maven_Coordinates
+		 */
 		if (bits.length==3)
 		{
 			return new MavenInfo(bits[0], bits[1], bits[2]);
 		}
 		else
-		if (bits.length==5)
+		if (bits.length==4)
 		{
 			String groupId=bits[0];
 			String artifactId=bits[1];
-			String version=bits[2];
-			String packaging=bits[3];
-			String classifier=bits[4];
+			String packaging=bits[2];
+			String version=bits[3];
+
+			//https://maven.apache.org/pom.html#Maven_Coordinates
+			//"groupId:artifactId:packaging:version"
+			if (!looksLikeMavenPackaging(packaging))
+			{
+				throw new IllegalArgumentException("unparsable 4-segment maven identifier: "+s);
+			}
+
+			String classifier=null;
 			boolean optional=false;
+
+			return new MavenInfo(groupId, artifactId, version, classifier, packaging, optional);
+		}
+		else
+		if (bits.length==5)
+		{
+			//https://maven.apache.org/pom.html#Maven_Coordinates
+			//"groupId:artifactId:packaging:classifier:version"
+			String groupId=bits[0];
+			String artifactId=bits[1];
+			String packaging=bits[2];
+			String classifier=bits[3];
+			String version=bits[4];
+			boolean optional=false;
+
+			if (!looksLikeMavenPackaging(packaging))
+			{
+				throw new IllegalArgumentException("unparsable 5-segment maven identifier: "+s);
+			}
+
+			//TODO: somewhere, I saw this pattern being used: "group:artifact:version:packaging:classifier"
+			//... but changed this implementation to align with maven's documentation.
 
 			//return new MavenInfo(bits[0], bits[1], bits[4], bits[2], bits[3], false);
 			return new MavenInfo(groupId, artifactId, version, classifier, packaging, optional);
@@ -258,47 +293,13 @@ class MavenInfo implements Serializable
 		}
 	}
 
-	/*
-	public
-	String toParsableLine(String majorVersion)
+	private static
+	boolean looksLikeMavenPackaging(String s)
 	{
-		if (majorVersion==null)
-		{
-			return getParsablePrefix() + "snapshot\n";
-		}
-		else
-		{
-			return getParsablePrefix() + majorVersion + "\n";
-		}
+		return s.equals("jar")
+			|| s.equals("war")
+			|| s.equals("pom");
 	}
-	*/
-
-	/*
-	private
-	String getParsablePrefix()
-	{
-		if (parsablePrefix==null)
-		{
-			parsablePrefix=groupId + ':' + artifactId + ':' + version + '>';
-		}
-		return parsablePrefix;
-	}
-	*/
-
-	/*
-	public
-	String majorVersionFromParsableLineMatch(String line)
-	{
-		if (line.startsWith(getParsablePrefix()))
-		{
-			return line.substring(getParsablePrefix().length());
-		}
-		else
-		{
-			return null;
-		}
-	}
-	*/
 
 	public
 	boolean isOptional()
@@ -324,5 +325,43 @@ class MavenInfo implements Serializable
 	String getClassifier()
 	{
 		return classifier;
+	}
+
+	private transient
+	String groupIdPath;
+
+	public
+	String getGroupIdPath()
+	{
+		if (groupIdPath==null)
+		{
+			final
+			StringBuilder sb=new StringBuilder();
+
+			final
+			String groupId=this.groupId;
+
+			final
+			int l=groupId.length();
+
+			for (int i=0; i<l; i++)
+			{
+				final
+				char c=groupId.charAt(i);
+
+				if (c=='.')
+				{
+					sb.append('/');
+				}
+				else
+				{
+					sb.append(c);
+				}
+			}
+
+			groupIdPath=sb.toString();
+		}
+
+		return groupIdPath;
 	}
 }

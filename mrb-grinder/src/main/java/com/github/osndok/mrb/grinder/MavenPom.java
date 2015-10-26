@@ -24,11 +24,18 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Properties;
@@ -40,7 +47,11 @@ import java.util.Set;
 public
 class MavenPom
 {
-	private static final Logger log = LoggerFactory.getLogger(MavenPom.class);
+	private static final
+	Logger log = LoggerFactory.getLogger(MavenPom.class);
+
+	private static final
+	boolean JAVA_URL_CLASS_CAN_HANDLE_302_REDIRECTS = false;
 
 	private final
 	MavenInfo mavenInfo;
@@ -108,12 +119,12 @@ class MavenPom
 		String version = stringChild(topLevel, "version");
 
 		final
-		Node parent=tagNamed("parent", topLevel);
+		Node parent = tagNamed("parent", topLevel);
 
-		if (parent==null)
+		if (parent == null)
 		{
-			this.parentPom=null;
-			this.parentInfo=null;
+			this.parentPom = null;
+			this.parentInfo = null;
 		}
 		else
 		{
@@ -121,9 +132,9 @@ class MavenPom
 
 			NodeList parentInfo = parent.getChildNodes();
 
-			String parentGroupId=stringChild(parentInfo, "groupId");
-			String parentArtifactId=stringChild(parentInfo, "artifactId");
-			String parentVersion=stringChild(parentInfo, "version");
+			String parentGroupId = stringChild(parentInfo, "groupId");
+			String parentArtifactId = stringChild(parentInfo, "artifactId");
+			String parentVersion = stringChild(parentInfo, "version");
 
 			if (groupId==null) groupId=parentGroupId;
 			if (version==null) version=parentVersion;
@@ -644,4 +655,79 @@ class MavenPom
 		return combinedProperties;
 	}
 
+	public static
+	MavenPom fetchedFromMavenCentral(MavenInfo mavenInfo) throws IOException, ParserConfigurationException, SAXException
+	{
+		final
+		String artifactId = mavenInfo.getArtifactId();
+
+		final
+		String version = mavenInfo.getVersion();
+
+		//e.g. 'com/nativelibs4java/jnaerator/0.12/jnaerator-0.12.pom'
+		final
+		String path = String.format("%s/%s/%s/%s-%s.pom", mavenInfo.getGroupIdPath(), artifactId, version, artifactId,
+									   version);
+
+		final
+		String urlString;
+		{
+			/*
+			It would be nice to be a kind neighbor and hit against their preferred hit counter/redirector,
+			but... it doesn't seem to work (easily, anyway)... :(
+			 */
+			if (JAVA_URL_CLASS_CAN_HANDLE_302_REDIRECTS)
+			{
+				urlString="http://search.maven.org/remotecontent?filepath=" + path;
+			}
+			else
+			{
+				urlString="https://repo1.maven.org/maven2/"+path;
+			}
+		}
+
+		log.debug("trying to fetch: {}", urlString);
+
+		final
+		URL url = new URL(urlString);
+
+		//Hmm... apparently the URL class does not follow 302/found messages. Okay...
+		if (false)
+		{
+			final
+			BufferedReader br=new BufferedReader(new InputStreamReader(url.openStream()));
+
+			log.error("PRINTING RESPONSE");
+
+			String line;
+
+			while ((line=br.readLine())!=null)
+			{
+				System.err.println(line);
+			}
+
+			throw new IOException("debugging");
+		}
+		/*
+		final
+		File tempFile=File.createTempFile("/tmp/mrb-grinder-fetch-", "-pom.xml");
+
+		final
+		ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+
+		final
+		FileOutputStream fos = new FileOutputStream(tempFile);
+		{
+			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+			fos.close();
+		}
+
+		rbc.close();
+		*/
+
+		final
+		MavenPom mavenPom=new MavenPom(mavenInfo, url.openStream());
+
+		return mavenPom;
+	}
 }

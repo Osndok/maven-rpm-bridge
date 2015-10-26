@@ -1310,11 +1310,15 @@ class MavenJar
 	private
 	InputStream pomXmlInputStream() throws IOException, JarHasNoPomException
 	{
+		final
 		Enumeration e = jarFile.entries();
 
 		while (e.hasMoreElements())
 		{
+			final
 			JarEntry je = (JarEntry) e.nextElement();
+
+			final
 			String name = je.getName();
 
 			if (name.endsWith("/pom.xml"))

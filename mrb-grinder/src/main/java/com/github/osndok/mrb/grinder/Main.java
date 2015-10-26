@@ -601,8 +601,50 @@ class Main
 				final
 				MavenJar mavenJar = new MavenJar(file, mavenInfo);
 
-				if (mavenPom!=null)
+				if (mavenPom==null)
 				{
+					/*
+					If we don't already have a pom, and if there is not one in the JAR file, then we
+					will probably have runtime issues. What's more... we are currently in the best place
+					to deal with this situation.
+					 */
+					try
+					{
+						mavenPom=mavenJar.getMavenPom();
+					}
+					catch (JarHasNoPomException e)
+					{
+						try
+						{
+							mavenPom=MavenPom.fetchedFromMavenCentral(mavenInfo);
+						}
+						catch (RuntimeException e2)
+						{
+							if (FORCE || acceptablyFunctionalWithoutPomDependencyInfo(mavenInfo))
+							{
+								log.error("no pom available, will likely have runtime issues: {}", mavenInfo, e2);
+							}
+							else
+							{
+								throw e2;
+							}
+						}
+						catch (Exception e2)
+						{
+							if (FORCE || acceptablyFunctionalWithoutPomDependencyInfo(mavenInfo))
+							{
+								log.error("no pom available, will likely have runtime issues: {}", mavenInfo, e2);
+							}
+							else
+							{
+								throw new RuntimeException(e2);
+							}
+						}
+					}
+				}
+				else
+				{
+					log.debug("injecting pre-existing mavenPom");
 					mavenJar.setMavenPom(mavenPom);
 				}
 
@@ -657,6 +699,13 @@ class Main
 		}
 	}
 
+	private
+	boolean acceptablyFunctionalWithoutPomDependencyInfo(MavenInfo mavenInfo)
+	{
+		//TODO: probably sun tools, asm, and a few others... probably calls for regrind-the-world
+		return false;
+	}
+
 	/**
 	 * @url http://docs.codehaus.org/display/MAVEN/Repository+Layout+-+Final
 	 * @param mavenInfo
@@ -679,6 +728,7 @@ class Main
 			throw new SecurityException("invalid path: "+path);
 		}
 
+		log.debug("local pom? {}", path);
 		return new File(path);
 	}
 
