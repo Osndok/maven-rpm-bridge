@@ -364,4 +364,10 @@ class MavenInfo implements Serializable
 
 		return groupIdPath;
 	}
+
+	public
+	String getPackaging()
+	{
+		return packaging;
+	}
 }
