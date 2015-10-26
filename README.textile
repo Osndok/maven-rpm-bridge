@@ -1,0 +1,41 @@
+h1. Maven RPM Bridge
+
+The maven-rpm-bridge (aka. "mrb" or "Mr. B") allows you to install & run java applications that use
+maven dependency management (which is most of them) in an RPM layout that does not require setting,
+knowing, or hunting-down java classpaths... EVER.
+
+Dependencies are discovered from the maven metadata, garunteed to be present at install time via RPM
+dependency links, and resolved at runtime using a non-standard modular java loader that "should" work
+for just about anything (but, no promises).
+
+Furthermore, MrB does not *require* the entry points to have 'main' methods and the standard/ritualistic
+command-line-option parsing logic that comes therewith. If the target class does not have a static main
+method, then command line flags are automatically mapped to static and instance methods (as appropriate,
+with optional arguments) and command-line-arguments are provided as constructor parameters. To support
+cases where it effects construction, any static methods (as mapped from command line flags) are always
+called before the target class is instantiated.
+
+Using the Callable interface (as opposed to Runnable) will also let you return a value to be printed
+during execution, while maintaining a high-level of unit testing (as the same callable can be used
+in the unit tests).
+
+If you wish to have an entry point that neither has a main method nor implements Runnable or Callable,
+then you must mark it with the @CommandLineTool annotation (which implies/requires a dependency on the
+same javax-module system) in order for the mrb-grinder to detect and create a "tool" for that java
+class (e.g. "/usr/bin/mytool"), in which case there must always be some instance method called for it
+to actually be useful (as nobody would hide side effects in a constructor, right?).
+
+Similarly, you can avoid a command line tool from being created for an otherwise-suitable java class
+by using the @NoCommandLineUtility annotation... but it's use is discouraged, and suggested only
+to cover special or confusing cases.
+
+As it's name implies, MrB is intended to "bridge" the gap between java and command-line execution,
+which implicitly spans the great gulf of *dependency management* (which is where the 'maven' part
+comes in).
+
+You should know that using it might greatly pollute your tool namespace with oddly-named tools...
+the utility of which is questionable or marginal at best (such as "log4j-v1-PropertyPrinter").
+
+Ideally, jar files (or maven coordinates) are fed into the mrb-grinder as input, and a fully-usable
+yumified rpm repo containing an rpm with that jar (and RPM links to all of it's dependencies) is
+produced (or maintained) as it's output.
