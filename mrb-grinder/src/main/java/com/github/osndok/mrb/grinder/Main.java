@@ -544,7 +544,7 @@ class Main
 		try
 		{
 			log.info("downloading {} to {}", mavenInfo, dir);
-			Exec.andWait("mvn","dependency:copy","-Dartifact="+mavenInfo, "-DoutputDirectory="+dir.getAbsolutePath());
+			Exec.andWait("mvn","dependency:copy","-Dartifact="+mavenInfo.getDependencyCopyString(), "-DoutputDirectory="+dir.getAbsolutePath());
 
 			final
 			File[] onlyOne = dir.listFiles();

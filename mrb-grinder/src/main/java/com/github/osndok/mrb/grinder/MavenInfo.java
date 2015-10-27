@@ -205,16 +205,25 @@ class MavenInfo implements Serializable
 	{
 		if (stringValue==null)
 		{
-			if (classifier==null)
+			final
+			StringBuilder sb=new StringBuilder();
+
+			sb.append(groupId); sb.append(':');
+			sb.append(artifactId); sb.append(':');
+
+			if (packaging!=null)
 			{
-				stringValue = groupId + ':' + artifactId + ':' + version;
+				sb.append(packaging); sb.append(':');
 			}
-			else
+
+			if (classifier!=null)
 			{
-				//https://maven.apache.org/pom.html#Maven_Coordinates
-				//"groupId:artifactId:packaging:classifier:version"
-				stringValue = groupId + ':' + artifactId + ':' + packaging + ':' + classifier + ':' + version;
+				sb.append(classifier); sb.append(':');
 			}
+
+			sb.append(version);
+
+			stringValue=sb.toString();
 		}
 
 		return stringValue;
@@ -369,5 +378,24 @@ class MavenInfo implements Serializable
 	String getPackaging()
 	{
 		return packaging;
+	}
+
+	/**
+	 * So close to 'toString()' but no cigar... why don't they use "actual maven coordinates", I do not know...
+	 *
+	 * @url https://issues.apache.org/jira/browse/MDEP-446
+	 * @return
+	 */
+	public
+	String getDependencyCopyString()
+	{
+		if (packaging==null)
+		{
+			return String.format("%s:%s:%s", groupId, artifactId, version);
+		}
+		else
+		{
+			return String.format("%s:%s:%s:%s", groupId, artifactId, version, packaging);
+		}
 	}
 }

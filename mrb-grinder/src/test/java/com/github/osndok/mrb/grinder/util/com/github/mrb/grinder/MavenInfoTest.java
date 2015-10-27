@@ -11,6 +11,7 @@ class MavenInfoTest extends Assert
 {
 	/*
 	WHERE DID THIS TEST VECTOR COME FROM?
+	(probably from dependency:copy plugin's "artifact" parameter)
 
 	It disagrees with maven's docs:
 	https://maven.apache.org/pom.html#Maven_Coordinates
@@ -63,6 +64,20 @@ class MavenInfoTest extends Assert
 			assertEquals("jar", parsed.getPackaging());
 			assertEquals("classifier", parsed.getClassifier());
 		}
+	}
 
+	public
+	void testVectorsFromMavenOutput()
+	{
+		MavenInfo parsed=MavenInfo.parse("org.scalatest:scalatest_2.11:jar:sources:2.2.4");
+		{
+			assertEquals("org.scalatest", parsed.getGroupId());
+			assertEquals("scalatest_2.11", parsed.getArtifactId());
+			assertEquals("jar", parsed.getPackaging());
+			assertEquals("sources", parsed.getClassifier());
+			assertEquals("2.2.4", parsed.getVersion());
+		}
+
+		assertEquals("org.scalatest:scalatest_2.11:jar:sources:2.2.4", parsed.toString());
 	}
 }
