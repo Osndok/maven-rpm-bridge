@@ -36,8 +36,8 @@ class RPMSpec
 {
 	public static final String RPM_NAME_PREFIX="mrb-";
 
-	//TODO: maybe pull release in from mrb-grinder maven version?
-	//TODO: !!!: maybe publish incremental releases, esp. for snapshots
+	//TODO: maybe pull release in from mrb-grinder maven version? or .build_number file?
+	//TODO: !!!: maybe publish incremental releases (relative to the newest in-repo), esp. for snapshots
 	private static final String RELEASE="0";
 
 	private final
@@ -456,6 +456,7 @@ class RPMSpec
 				replace(sb, "@TOOL_NAME@", maybeRemovePath(toolName));
 				replace(sb, "@TOOL_PATH@", maybeAddPath(toolName));
 				replace(sb, "@CLASS@", className);
+				replace(sb, "@GRINDER_VERSION@", GrinderModule.FULL);
 
 				retval.append(sb.toString());
 			}

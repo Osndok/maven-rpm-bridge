@@ -9,6 +9,8 @@ cat ->    .@TOOL_PATH@ <<"EOF"
 #
 # From the %{name} rpm package.
 #
+# Created automatically using the maven-rpm-bridge's mrb-grinder (v@GRINDER_VERSION@).
+#
 
 . /etc/sysconfig/javax-module-v1
 

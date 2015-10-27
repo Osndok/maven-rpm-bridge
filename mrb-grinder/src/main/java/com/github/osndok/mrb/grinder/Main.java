@@ -24,6 +24,7 @@ import javax.module.util.SystemPropertyOrEnvironment;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -93,6 +94,11 @@ class Main
 	private
 	void grind(File file) throws IOException, ObsoleteJarException
 	{
+		if (!file.exists())
+		{
+			throw new FileNotFoundException(file.toString());
+		}
+
 		final
 		File tempDirectory;
 		{
@@ -100,6 +106,7 @@ class Main
 
 			if (parentFile == null)
 			{
+				log.warn("parentFile is null");
 				parentFile = new File(".");
 			}
 
@@ -110,14 +117,19 @@ class Main
 			}
 			else
 			{
+				log.debug("not a writable directory: {}", parentFile);
+
 				tempDirectory = new File(Exec.toString("mktemp", "-d", "/tmp/mrb-grinder-XXXXXXXX").trim());
 
 				log.debug("created: {}", tempDirectory);
 
 				if (isWritableDirectory(tempDirectory))
 				{
+					final
 					File newFile = new File(tempDirectory, file.getName());
-					Exec.andWait("cp", "-v", file.getAbsolutePath(), newFile.getAbsolutePath());
+					{
+						Exec.andWait("cp", "-v", file.getAbsolutePath(), newFile.getAbsolutePath());
+					}
 
 					file = newFile;
 				}
