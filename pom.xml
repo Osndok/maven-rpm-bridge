@@ -38,7 +38,7 @@
 		<dependency>
 			<groupId>com.github.osndok.javax.module</groupId>
 			<artifactId>javax-module</artifactId>
-			<version>1.0.0</version>
+			<version>1.0.6</version>
 		</dependency>
 
 	</dependencies>
