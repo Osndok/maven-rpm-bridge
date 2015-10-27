@@ -39,6 +39,11 @@ class StreamGobbler extends Thread
 			String line;
 			while ((line = br.readLine()) != null)
 			{
+				if (knownNuisanceMessage(line))
+				{
+					//Skip obnoxious messages.
+				}
+				else
 				if (lastLineContainsSpaceReducer && line.trim().length()==0)
 				{
 					//suppress blank line, squeezing some output
@@ -53,6 +58,23 @@ class StreamGobbler extends Thread
 		catch (IOException ioe)
 		{
 			ioe.printStackTrace();
+		}
+	}
+
+	private
+	boolean knownNuisanceMessage(String line)
+	{
+		if (line.startsWith("[WARNING] "))
+		{
+			//Yeah... we get it, maven... you don't like it...
+			return line.contains("contains an expression but should be a constant.")
+				|| line.contains("they threaten the stability of your build.")
+				|| line.contains("building such malformed projects.")
+				;
+		}
+		else
+		{
+			return false;
 		}
 	}
 }
