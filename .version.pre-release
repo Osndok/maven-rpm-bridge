@@ -1,1 +1,1 @@
-exec mvn test
+mvn test
